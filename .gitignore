@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Logs & Testing
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+coverage/
+.nyc_output/
+
+# IDE / System
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.cursor
+
+# Certificates and temporary files
+*.pem
+ca.pem
+
+legacy
+.env.example

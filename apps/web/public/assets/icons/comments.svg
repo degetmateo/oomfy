@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Capa_2" data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 444.3 429.01" width="18px" height="18px">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #FFFBDF;
+        stroke-width: 0px;
+      }
+    </style>
+  </defs>
+  <g id="COMENTARIOS">
+    <g>
+      <polygon class="cls-1" points="389.63 25.78 389.63 0 55.41 0 55.41 25.78 388.41 25.78 388.41 54.67 417.3 54.67 417.3 25.78 389.63 25.78"/>
+      <rect class="cls-1" x="417.3" y="54.67" width="27" height="193.33"/>
+      <rect class="cls-1" x="389.63" y="248" width="27.67" height="27.67"/>
+      <rect class="cls-1" x="222.86" y="275.67" width="165.55" height="27.44"/>
+      <rect class="cls-1" x="194.96" y="303.11" width="27.9" height="27.9"/>
+      <rect class="cls-1" x="167.41" y="331.01" width="27.56" height="27.56"/>
+      <rect class="cls-1" x="137.63" y="358.56" width="29.78" height="29.78"/>
+      <polygon class="cls-1" points="110.52 401.9 83.41 401.9 83.41 332.89 56.96 332.89 56.96 415.45 83.41 415.45 83.41 429.01 110.52 429.01 110.52 415.45 137.63 415.45 137.63 388.34 110.52 388.34 110.52 401.9"/>
+      <polygon class="cls-1" points="83.41 303.67 83.41 332.3 109.19 332.3 109.19 275.67 83.41 275.67 55.48 275.67 55.48 248.74 27.33 248.74 27.33 276.89 55.41 276.89 55.41 303.67 83.41 303.67"/>
+      <rect class="cls-1" y="54.67" width="27.33" height="194.07"/>
+      <rect class="cls-1" x="27.33" y="25.78" width="28.07" height="28.07"/>
+    </g>
+  </g>
+</svg>
