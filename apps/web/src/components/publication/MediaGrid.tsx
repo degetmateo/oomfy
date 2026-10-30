@@ -8,10 +8,12 @@ interface MediaGridProps {
 
 export const MediaGrid: React.FC<MediaGridProps> = ({ images }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
 
-  const validImages = (images || []).filter(
-    (img) => img && typeof img.url === 'string' && img.url.trim().length > 0
-  );
+  const validImages = (images || [])
+    .filter((img) => img && typeof img.url === 'string' && img.url.trim().length > 0 && !failedUrls[img.url])
+    .slice(0, 4);
+
   if (validImages.length === 0) return null;
 
   const count = validImages.length;
@@ -39,6 +41,7 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images }) => {
             <img
               src={img.url}
               alt="Adjunto de publicación"
+              onError={() => setFailedUrls((prev) => ({ ...prev, [img.url]: true }))}
               className="w-full h-full object-cover max-h-80 group-hover:scale-105 transition-transform duration-200"
               loading="lazy"
             />

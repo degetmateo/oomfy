@@ -54,12 +54,12 @@ export class AuxController {
   public static async getSuggestedMembers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const limit = Number(req.query.limit) || 5;
-      const members = await MongoMemberRepository.findSuggested(limit);
       const currentUserId = req.user?.id;
+      const members = await MongoMemberRepository.findSuggested(limit, currentUserId);
 
       if (currentUserId) {
         for (const m of members) {
-          m.is_following = await MongoFollowRepository.isFollowing(currentUserId, m.id);
+          m.is_following = false;
         }
       }
 

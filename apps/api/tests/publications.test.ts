@@ -55,4 +55,18 @@ describe('Publications API Endpoints', () => {
     const extracted = UrlPreviewAdapter.extractFirstUrl(textWithUrl);
     expect(extracted).toBe('https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT');
   });
+
+  it('GET /api/publications?type=posts should support posts, quotes and shares filter', async () => {
+    const res = await request(server.app).get('/api/publications?type=posts&limit=5');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
+  });
+
+  it('GET /api/publications?liked_by=buenardo_bro should handle liked_by query gracefully', async () => {
+    const res = await request(server.app).get('/api/publications?liked_by=buenardo_bro&limit=5');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
+  });
 });

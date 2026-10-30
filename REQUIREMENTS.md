@@ -325,3 +325,23 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
 
 
 
+
+- **Hito 22:** Optimización de Interacción, Enrutamiento SPA en Render, Caché React Query y Vistas de Perfil (Completado):
+  - *Enrutamiento SPA en Render:* Inclusión de regla `/* /index.html 200` en `apps/web/public/_redirects` y `base: '/'` en `vite.config.ts`.
+  - *Filtrado de Timeline y Botones Ergonómicos:* Muro principal limpio con publicaciones directas y citas; botones de interacción de 20px.
+  - *Caché Global:* `staleTime: 5 min` y `gcTime: 30 min` en React Query.
+  - *Sugerencias y Pestañas de Perfil:* Exclusión de seguidos y sub-pestañas Publicaciones, Respuestas y Me gusta.
+- **Hito 23:** Ergonomía de Interacciones, Identidad de Seguimiento, PWA, Visor Resiliente y Seguridad de Credenciales (Completado):
+  - *Distribución Horizontal de Acciones:* Botones de interacción expandidos a lo largo (`w-full`) en `PublicationActions`.
+  - *Avatares Ampliados:* Mayor tamaño visual en publicaciones (`w-12 h-12`), hilos (`w-11 h-11`), vista de detalle (`w-14 h-14`) y sugerencias (`w-10 h-10`).
+  - *Estados Iluminados y Toggle:* Iconos activos en verde (`#00dc65`) al dar me gusta, compartir o citar; toggle al volver a presionar.
+  - *Insignia "Te sigue":* Indicador informativo junto al nombre de usuario en perfiles cuando el usuario visitado sigue al usuario activo.
+  - *Ajuste Ergonómico Móvil:* Posicionamiento y márgenes adaptativos para botones de cabecera de perfil en móviles.
+  - *Menú de Opciones en Detalle:* Menú desplegable restaurado en `PublicationDetailView` para copiar enlace o eliminar publicación.
+  - *Enlaces de Perfil Seguros:* Biografía y sitio web enrutados preventivamente a través de `ExternalWarningView`.
+  - *Soporte PWA Completo:* Configuración de `manifest.webmanifest`, `sw.js`, metadatos móviles y sección en Ajustes con botón de instalación e instrucciones por navegador.
+  - *Vistas de Seguidores y Siguiendo:* Rutas dedicadas `/:username/followers` y `/:username/following` con paginación infinita y tarjetas de usuario interactivas.
+  - *Sesiones Persistentes y Refresco Silencioso:* Recuperación de sesión persistente con reintentos automáticos vía `POST /api/auth/refresh` ante códigos 401.
+  - *Visibilidad de Contraseñas:* Botón de visualización con iconos `Eye` / `EyeOff` en todos los formularios de autenticación y ajustes.
+  - *Recuperación de Cuenta:* Flujos completos para olvido de contraseña (correo con token hacia `/reset-password`) y recordatorio de usuario por correo.
+  - *Resiliencia Multimedia y Paginación:* Límite estricto de hasta 4 elementos multimedia por publicación (1 GIF o 4 imágenes), supresión de placeholders rotos en `MediaGrid` mediante fallback reactivo y aislamiento de clave en `useInfiniteQuery` (`notifications-infinite-list`).

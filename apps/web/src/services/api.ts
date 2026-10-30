@@ -9,6 +9,8 @@ export class ApiClient {
     return '/api';
   }
 
+  private static isRefreshing = false;
+
   public static async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = localStorage.getItem('oomfy_token');
     const headers = new Headers(options.headers || {});
@@ -24,11 +26,49 @@ export class ApiClient {
     const base = this.getBaseUrl();
     const res = await fetch(`${base}${endpoint}`, {
       ...options,
+      credentials: 'include',
       headers,
     });
 
     if (res.status === 401 && !endpoint.includes('/auth/signin')) {
+      if (!endpoint.includes('/auth/refresh') && !this.isRefreshing) {
+        this.isRefreshing = true;
+        try {
+          const refreshToken = localStorage.getItem('oomfy_refresh_token');
+          const refreshRes = await fetch(`${base}/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+          });
+
+          if (refreshRes.ok) {
+            const refreshData = await refreshRes.json();
+            if (refreshData.accessToken) {
+              localStorage.setItem('oomfy_token', refreshData.accessToken);
+              this.isRefreshing = false;
+              headers.set('Authorization', `Bearer ${refreshData.accessToken}`);
+              const retryRes = await fetch(`${base}${endpoint}`, {
+                ...options,
+                credentials: 'include',
+                headers,
+              });
+              const retryData = await retryRes.json().catch(() => ({}));
+              if (!retryRes.ok) {
+                throw new Error(retryData.message || 'Error en la petición.');
+              }
+              return retryData as T;
+            }
+          }
+        } catch {
+          // Refresh failed
+        } finally {
+          this.isRefreshing = false;
+        }
+      }
+
       localStorage.removeItem('oomfy_token');
+      localStorage.removeItem('oomfy_refresh_token');
       window.dispatchEvent(new Event('auth:unauthorized'));
     }
 

@@ -10,6 +10,7 @@ export interface FeedParams {
   authorUsername?: string | null;
   query?: string | null;
   type?: string | null;
+  likedBy?: string | null;
   since?: string | null;
   until?: string | null;
   hasMedia?: boolean | null;
@@ -53,6 +54,57 @@ export class MongoPublicationRepository {
 
   public static async findFeed(params: FeedParams): Promise<Publication[]> {
     const col = this.getCollection();
+
+    if (params.likedBy) {
+      const userDoc = await MongoDatabase.getDb().collection('members').findOne({
+        username: { $regex: new RegExp(`^${params.likedBy}$`, 'i') },
+      });
+      if (!userDoc) return [];
+      const userIds = [userDoc.id, userDoc._id ? userDoc._id.toString() : null].filter(Boolean);
+
+      const upvoteQuery: any = { user_id: { $in: userIds } };
+      if (params.olderId) {
+        const olderUpvote = await MongoDatabase.getDb().collection('upvotes').findOne({
+          publication_id: params.olderId,
+          user_id: { $in: userIds },
+        });
+        if (olderUpvote?.created_at) {
+          upvoteQuery.created_at = { $lt: olderUpvote.created_at };
+        }
+      }
+
+      const limit = params.limit ? Number(params.limit) : 20;
+      const upvotes = await MongoDatabase.getDb().collection('upvotes')
+        .find(upvoteQuery)
+        .sort({ created_at: -1 })
+        .limit(limit)
+        .toArray();
+
+      const pubIds = upvotes.map((u: any) => u.publication_id).filter(Boolean);
+      if (pubIds.length === 0) return [];
+
+      const filters = pubIds.flatMap((id: string) => MongoIdHelper.idFilter(id).$or);
+      const docs = await col.find({ $or: filters }).toArray();
+      const domainMap = new Map<string, Publication>();
+      for (const d of docs) {
+        const domain = PublicationMapper.toDomain(d);
+        domainMap.set(domain.id, domain);
+        if (d.id) domainMap.set(d.id, domain);
+        if (d.old_id) domainMap.set(String(d.old_id), domain);
+      }
+
+      const orderedList: Publication[] = [];
+      for (const id of pubIds) {
+        const post = domainMap.get(id);
+        if (post && !orderedList.some((p) => p.id === post.id)) {
+          orderedList.push(post);
+        }
+      }
+
+      const populated = await this.populateTargetPublications(orderedList);
+      return PublicationInteractionDecorator.decorate(populated, params.userId);
+    }
+
     const query: Filter<any> = {};
 
     if (params.olderId) {
@@ -74,10 +126,12 @@ export class MongoPublicationRepository {
       }
     }
     if (params.authorUsername) query['author.username'] = { $regex: new RegExp(`^${params.authorUsername}$`, 'i') };
-    if (params.type) {
+    if (params.type === 'posts') {
+      query.type = { $in: ['default', 'quote', 'shared'] };
+    } else if (params.type) {
       query.type = params.type;
     } else if (!params.authorUsername && !params.query) {
-      query.type = { $in: ['default', 'quote', 'shared'] };
+      query.type = { $in: ['default', 'quote'] };
     }
     if (params.query) query.content = { $regex: params.query, $options: 'i' };
     if (params.hasMedia) query['images.0'] = { $exists: true };
@@ -148,7 +202,7 @@ export class MongoPublicationRepository {
   private static async populateTargetPublications(posts: Publication[]): Promise<Publication[]> {
     const col = this.getCollection();
     const needed = posts.filter(
-      (p) => !p.target_publication && p.parent_publication_id && (p.type === 'quote' || p.type === 'shared')
+      (p) => !p.target_publication && p.parent_publication_id
     );
     if (needed.length === 0) return posts;
 

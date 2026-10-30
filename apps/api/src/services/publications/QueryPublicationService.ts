@@ -3,11 +3,12 @@ import { MongoPublicationRepository, FeedParams } from '../../infrastructure/rep
 import { NotFoundError } from '../../errors/AppError.js';
 
 export class QueryPublicationService {
-  public static async getFeed(input: QueryPublicationInput & { query?: string; since?: string; until?: string; has_media?: boolean }, userId?: string): Promise<Publication[]> {
+  public static async getFeed(input: QueryPublicationInput & { query?: string; since?: string; until?: string; has_media?: boolean; liked_by?: string }, userId?: string): Promise<Publication[]> {
     const params: FeedParams = {
       olderId: input.older_id,
       authorUsername: input.author_username,
       type: input.type,
+      likedBy: input.liked_by,
       query: input.query,
       since: input.since,
       until: input.until,

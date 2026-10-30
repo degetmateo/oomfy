@@ -26,7 +26,10 @@ export class FollowController {
   public static async getFollowers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { username } = req.params;
-      const followers = await MongoFollowRepository.getFollowers(username);
+      const limit = Number(req.query.limit) || 20;
+      const olderId = req.query.older_id as string | undefined;
+      const currentUserId = req.user?.id;
+      const followers = await FollowService.getFollowers(username, limit, olderId, currentUserId);
       res.status(200).json({ success: true, data: followers });
     } catch (err) {
       next(err);
@@ -36,7 +39,10 @@ export class FollowController {
   public static async getFollowed(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { username } = req.params;
-      const followed = await MongoFollowRepository.getFollowed(username);
+      const limit = Number(req.query.limit) || 20;
+      const olderId = req.query.older_id as string | undefined;
+      const currentUserId = req.user?.id;
+      const followed = await FollowService.getFollowed(username, limit, olderId, currentUserId);
       res.status(200).json({ success: true, data: followed });
     } catch (err) {
       next(err);

@@ -11,6 +11,7 @@ interface Props {
   initialIsUpvoted?: boolean;
   initialShares: number;
   initialIsShared?: boolean;
+  initialIsQuoted?: boolean;
   quotesCount?: number;
   commentsCount: number;
   onCommentClick?: () => void;
@@ -23,6 +24,7 @@ export const PublicationActions: React.FC<Props> = ({
   initialIsUpvoted = false,
   initialShares,
   initialIsShared = false,
+  initialIsQuoted = false,
   quotesCount = 0,
   commentsCount,
   onCommentClick,
@@ -73,44 +75,46 @@ export const PublicationActions: React.FC<Props> = ({
   };
 
   return (
-    <div className="flex justify-between items-center max-w-sm mt-3 text-dark-muted text-xs select-none">
+    <div className="flex justify-between items-center w-full mt-3.5 text-dark-muted text-sm font-medium select-none">
       <button
         onClick={onCommentClick}
         title="Comentar"
-        className="flex items-center gap-1.5 hover:text-brand-400 transition-colors"
+        className="flex items-center gap-2 p-1.5 sm:px-2 rounded hover:bg-dark-border/40 hover:text-brand-400 transition-colors"
       >
-        <PixelComment size={16} />
+        <PixelComment size={20} />
         <span>{commentsCount}</span>
       </button>
 
       <button
         onClick={toggleShare}
         title="Compartir"
-        className={`flex items-center gap-1.5 transition-colors ${
+        className={`flex items-center gap-2 p-1.5 sm:px-2 rounded hover:bg-dark-border/40 transition-colors ${
           isShared ? 'text-brand-400' : 'hover:text-brand-400'
         }`}
       >
-        <PixelShare active={isShared} size={16} />
+        <PixelShare active={isShared} size={20} />
         <span>{shares}</span>
       </button>
 
       <button
         onClick={handleQuote}
         title="Citar"
-        className="flex items-center gap-1.5 hover:text-brand-400 transition-colors"
+        className={`flex items-center gap-2 p-1.5 sm:px-2 rounded hover:bg-dark-border/40 transition-colors ${
+          initialIsQuoted ? 'text-brand-400' : 'hover:text-brand-400'
+        }`}
       >
-        <PixelQuote size={16} />
+        <PixelQuote active={initialIsQuoted} size={20} />
         <span>{quotesCount}</span>
       </button>
 
       <button
         onClick={toggleUpvote}
         title="Me gusta"
-        className={`flex items-center gap-1.5 transition-colors ${
+        className={`flex items-center gap-2 p-1.5 sm:px-2 rounded hover:bg-dark-border/40 transition-colors ${
           isUpvoted ? 'text-brand-400' : 'hover:text-brand-400'
         }`}
       >
-        <PixelThumb active={isUpvoted} size={16} />
+        <PixelThumb active={isUpvoted} size={20} />
         <span>{upvotes}</span>
       </button>
     </div>

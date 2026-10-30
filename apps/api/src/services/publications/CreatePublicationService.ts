@@ -45,6 +45,8 @@ export class CreatePublicationService {
       }
     }
 
+    const limitedMedia = mediaItems.slice(0, 4);
+
     const { iconUrl, bannerUrl } = await AuthorProfileResolver.resolve(user);
     const embeds: any[] = [];
     let targetPublication: Publication | null = null;
@@ -101,7 +103,7 @@ export class CreatePublicationService {
       parent_publication_id: targetPublication?.id || input.target_id || null,
       root_publication_id: rootPublicationId,
       thread_ids: threadIds,
-      images: mediaItems,
+      images: limitedMedia,
       embeds,
       upvotes_count: 0,
       shares_count: 0,

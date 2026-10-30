@@ -6,6 +6,7 @@ import { Publication } from '@oomfy/shared';
 import { MediaGrid } from './MediaGrid.js';
 import { LinkPreviewCard } from './LinkPreviewCard.js';
 import { PixelBadge } from '../icons/PixelBadge.js';
+import { PixelShare } from '../icons/PixelShare.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { FormattedText } from '../common/FormattedText.js';
 import { PublicationActions } from './PublicationActions.js';
@@ -71,6 +72,103 @@ export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
     openPostModal(post);
   };
 
+  if (post.type === 'shared') {
+    const original = post.target_publication;
+    const targetUrl = original ? `/publication/${original.id}` : (post.parent_publication_id ? `/publication/${post.parent_publication_id}` : '#');
+
+    return (
+      <article
+        onClick={() => targetUrl !== '#' && navigate(targetUrl)}
+        className="p-3 sm:p-4 border-b border-dark-border hover:bg-dark-card/40 transition-colors cursor-pointer font-mono relative"
+      >
+        <div className="flex items-center justify-between text-xs text-dark-muted mb-2 font-mono">
+          <div className="flex items-center gap-1.5">
+            <PixelShare active size={16} />
+            <span>Compartido por @{post.author.username}</span>
+          </div>
+
+          <div className="relative">
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}
+              className="p-1 text-dark-muted hover:text-white transition-colors"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+            {isMenuOpen && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-0 top-6 z-30 w-44 bg-dark-bg border border-dark-border shadow-pixel py-1 text-xs"
+              >
+                <button
+                  onClick={handleCopyLink}
+                  className="w-full px-3 py-2 text-left hover:bg-dark-card flex items-center gap-2 text-dark-text"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-brand-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copied ? '¡Copiado!' : 'Copiar enlace'}</span>
+                </button>
+                {canDelete && (
+                  <button
+                    onClick={handleDelete}
+                    className="w-full px-3 py-2 text-left hover:bg-red-950/40 text-red-400 flex items-center gap-2 border-t border-dark-border/50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Eliminar</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {original ? (
+          <div className="flex gap-3">
+            <div
+              onClick={(e) => { e.stopPropagation(); navigate(`/${original.author.username}`); }}
+              className="flex-shrink-0 cursor-pointer"
+            >
+              <PixelAvatar
+                src={original.author.icon_url}
+                username={original.author.username}
+                sizeClass="w-12 h-12"
+              />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  onClick={(e) => { e.stopPropagation(); navigate(`/${original.author.username}`); }}
+                  className="font-bold text-white hover:text-brand-400 truncate text-sm"
+                >
+                  {original.author.name}
+                </span>
+                <PixelBadge role={original.author.role} />
+                <span className="text-dark-muted text-xs truncate">@{original.author.username}</span>
+                <span className="text-dark-muted text-xs">· {new Date(original.created_at).toLocaleDateString()}</span>
+              </div>
+
+              {original.content && (
+                <FormattedText
+                  text={original.content}
+                  className="mt-1.5 text-sm text-dark-text whitespace-pre-line leading-relaxed font-sans block"
+                />
+              )}
+
+              <MediaGrid images={original.images || []} />
+              <LinkPreviewCard
+                embeds={original.embeds}
+                targetPublication={original.type === 'quote' ? original.target_publication : undefined}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 bg-dark-card/50 border border-dark-border text-xs text-dark-muted">
+            Publicación original no disponible o eliminada.
+          </div>
+        )}
+      </article>
+    );
+  }
+
   return (
     <article
       onClick={() => navigate(`/publication/${post.id}`)}
@@ -83,18 +181,11 @@ export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
         <PixelAvatar
           src={post.author.icon_url}
           username={post.author.username}
-          sizeClass="w-10 h-10"
+          sizeClass="w-12 h-12"
         />
       </div>
 
       <div className="flex-1 min-w-0">
-        {post.type === 'shared' && (
-          <div className="flex items-center gap-1.5 text-xs text-dark-muted mb-1 font-mono">
-            <span>🔁</span>
-            <span>Reposteado</span>
-          </div>
-        )}
-
         {post.type === 'reply' && (
           <div className="text-xs text-dark-muted mb-1 font-mono flex items-center gap-1">
             <span>En respuesta a</span>
@@ -171,7 +262,7 @@ export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
         <MediaGrid images={post.images || []} />
         <LinkPreviewCard
           embeds={post.embeds}
-          targetPublication={(post.type === 'quote' || post.type === 'shared') ? post.target_publication : undefined}
+          targetPublication={post.type === 'quote' ? post.target_publication : undefined}
         />
 
         <PublicationActions
@@ -180,6 +271,7 @@ export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
           initialIsUpvoted={post.is_upvoted}
           initialShares={post.shares_count || 0}
           initialIsShared={post.is_shared}
+          initialIsQuoted={post.is_quoted}
           quotesCount={post.quotes_count || 0}
           commentsCount={post.comments_count || 0}
           onCommentClick={() => navigate(`/publication/${post.id}`)}

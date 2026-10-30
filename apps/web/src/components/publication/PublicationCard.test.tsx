@@ -45,5 +45,77 @@ describe('PublicationCard Component', () => {
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
   });
+
+  it('renders shared publication correctly with original content and reposter line', () => {
+    const sharedPost: Publication = {
+      id: '019e6d84-f0de-74f8-8517-shared111111',
+      author: {
+        id: 'reposter-999',
+        username: 'reposter_user',
+        name: 'Reposter User',
+        role: 'member',
+        icon_url: null,
+        banner_url: null,
+      },
+      type: 'shared',
+      content: '',
+      created_at: new Date().toISOString(),
+      parent_publication_id: dummyPost.id,
+      root_publication_id: null,
+      upvotes_count: 0,
+      shares_count: 0,
+      quotes_count: 0,
+      comments_count: 0,
+      target_publication: dummyPost,
+    };
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <PublicationCard post={sharedPost} />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByText('Compartido por @reposter_user')).toBeInTheDocument();
+    expect(screen.getByText('Pixel Master')).toBeInTheDocument();
+    expect(screen.getByText('@pixeldev')).toBeInTheDocument();
+    expect(screen.getByText('Probando el diseño retro pixel de oomfy!')).toBeInTheDocument();
+  });
+
+  it('renders reply with correct target publication author username', () => {
+    const replyPost: Publication = {
+      id: '019e6d84-f0de-74f8-8517-reply111111',
+      author: {
+        id: 'replier-1',
+        username: 'replier_user',
+        name: 'Replier',
+        role: 'member',
+        icon_url: null,
+        banner_url: null,
+      },
+      type: 'reply',
+      content: 'Esta es una respuesta',
+      created_at: new Date().toISOString(),
+      parent_publication_id: dummyPost.id,
+      root_publication_id: dummyPost.id,
+      upvotes_count: 0,
+      shares_count: 0,
+      quotes_count: 0,
+      comments_count: 0,
+      target_publication: dummyPost,
+    };
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <PublicationCard post={replyPost} />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByText('En respuesta a')).toBeInTheDocument();
+    expect(screen.getByText('@pixeldev')).toBeInTheDocument();
+  });
 });
 

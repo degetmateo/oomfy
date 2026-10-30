@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Shield, Key, Laptop, Trash2 } from 'lucide-react';
+import { Shield, Key, Laptop, Trash2, Smartphone, Bell, Eye, EyeOff } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDialogStore } from '../stores/dialogStore.js';
+import { usePwaStore } from '../stores/pwaStore.js';
 import { ApiClient } from '../services/api.js';
 import { Session } from '@oomfy/shared';
 
-type Tab = 'account' | 'security' | 'sessions';
+type Tab = 'account' | 'security' | 'sessions' | 'app';
 
 export const SettingsView: React.FC = () => {
   const { user, setUser } = useAuthStore();
   const dialog = useDialogStore();
+  const { isInstallable, promptInstall, isInstalled } = usePwaStore();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>('account');
 
@@ -23,7 +25,16 @@ export const SettingsView: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+
+  // PWA tab state
+  const [selectedOs, setSelectedOs] = useState<'android' | 'ios' | 'desktop'>('android');
+  const [notificationsGranted, setNotificationsGranted] = useState(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission === 'granted' : false
+  );
 
   // Sessions query
   const { data: sessionsData, isLoading: loadingSessions } = useQuery<{ success: boolean; data: Session[] }>({
@@ -144,6 +155,15 @@ export const SettingsView: React.FC = () => {
           <Laptop className="w-3.5 h-3.5" />
           <span>Sesiones</span>
         </button>
+        <button
+          onClick={() => setActiveTab('app')}
+          className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${
+            activeTab === 'app' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
+          }`}
+        >
+          <Smartphone className="w-3.5 h-3.5" />
+          <span>App (PWA)</span>
+        </button>
       </div>
 
       <div className="p-4 sm:p-6 max-w-xl">
@@ -188,37 +208,67 @@ export const SettingsView: React.FC = () => {
 
             <div>
               <label className="block text-xs font-semibold text-dark-muted mb-1">Contraseña Actual</label>
-              <input
-                type="password"
-                required
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full px-3 py-2 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans"
-              />
+              <div className="relative flex items-center">
+                <input
+                  type={showCurrentPass ? 'text' : 'password'}
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full px-3 py-2 pr-9 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPass(!showCurrentPass)}
+                  className="absolute right-2.5 text-dark-muted hover:text-white p-0.5"
+                  title={showCurrentPass ? 'Ocultar contraseña' : 'Ver contraseña'}
+                >
+                  {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-dark-muted mb-1">Nueva Contraseña</label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-3 py-2 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans"
-              />
+              <div className="relative flex items-center">
+                <input
+                  type={showNewPass ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 pr-9 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPass(!showNewPass)}
+                  className="absolute right-2.5 text-dark-muted hover:text-white p-0.5"
+                  title={showNewPass ? 'Ocultar contraseña' : 'Ver contraseña'}
+                >
+                  {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-dark-muted mb-1">Confirmar Nueva Contraseña</label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-2 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans"
-              />
+              <div className="relative flex items-center">
+                <input
+                  type={showConfirmPass ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3 py-2 pr-9 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPass(!showConfirmPass)}
+                  className="absolute right-2.5 text-dark-muted hover:text-white p-0.5"
+                  title={showConfirmPass ? 'Ocultar contraseña' : 'Ver contraseña'}
+                >
+                  {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <button
@@ -277,6 +327,138 @@ export const SettingsView: React.FC = () => {
                 ))
               ) : (
                 <div className="p-6 text-center text-xs text-dark-muted">No hay sesiones activas registradas.</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'app' && (
+          <div className="flex flex-col gap-6">
+            <div>
+              <h3 className="text-sm font-bold text-white mb-1">Instalar Aplicación (PWA)</h3>
+              <p className="text-xs text-dark-muted font-sans leading-relaxed">
+                Instala oomfy en tu teléfono móvil o escritorio para usarla como una aplicación nativa en pantalla completa y recibir notificaciones.
+              </p>
+            </div>
+
+            {isInstalled ? (
+              <div className="p-3.5 bg-brand-950/20 border border-brand-500/40 text-xs text-brand-400">
+                ✓ oomfy ya se encuentra instalada en este dispositivo.
+              </div>
+            ) : isInstallable ? (
+              <button
+                onClick={() => promptInstall()}
+                className="py-3 px-5 bg-brand-500 hover:bg-brand-600 text-black font-bold text-xs uppercase tracking-wider pixel-button transition-colors flex items-center justify-center gap-2 self-start"
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>Instalar oomfy directamente</span>
+              </button>
+            ) : (
+              <div className="p-3 bg-dark-card border border-dark-border text-xs text-dark-muted font-sans">
+                La instalación directa con un clic no está disponible en este navegador o sistema. Sigue las instrucciones a continuación para instalarla manualmente:
+              </div>
+            )}
+
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-2 flex items-center gap-1.5">
+                <Bell className="w-3.5 h-3.5 text-brand-400" />
+                <span>Notificaciones Push</span>
+              </h4>
+              <p className="text-xs text-dark-muted mb-3 font-sans">
+                Recibe avisos inmediatos cuando te sigan, respondan o mencionen.
+              </p>
+              {notificationsGranted ? (
+                <span className="text-xs text-brand-400 font-bold flex items-center gap-1">
+                  ✓ Notificaciones push activadas en este navegador
+                </span>
+              ) : (
+                <button
+                  onClick={async () => {
+                    if ('Notification' in window) {
+                      const res = await Notification.requestPermission();
+                      if (res === 'granted') {
+                        setNotificationsGranted(true);
+                        dialog.alert('¡Notificaciones activadas con éxito!', 'Notificaciones');
+                      } else {
+                        dialog.alert('Permiso no concedido. Puedes habilitarlo en los ajustes de tu navegador.', 'Aviso');
+                      }
+                    } else {
+                      dialog.alert('Tu navegador no soporta notificaciones push.', 'Aviso');
+                    }
+                  }}
+                  className="py-2 px-3.5 border border-dark-border text-white hover:border-brand-500 hover:text-brand-400 font-bold text-xs pixel-button transition-colors"
+                >
+                  Activar notificaciones
+                </button>
+              )}
+            </div>
+
+            <div className="border border-dark-border bg-dark-card/30 p-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3">
+                Guía de instalación paso a paso
+              </h4>
+              <div className="flex border-b border-dark-border mb-3 text-xs">
+                <button
+                  onClick={() => setSelectedOs('android')}
+                  className={`pb-2 px-3 font-bold transition-colors border-b-2 ${
+                    selectedOs === 'android' ? 'border-brand-400 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
+                  }`}
+                >
+                  Android
+                </button>
+                <button
+                  onClick={() => setSelectedOs('ios')}
+                  className={`pb-2 px-3 font-bold transition-colors border-b-2 ${
+                    selectedOs === 'ios' ? 'border-brand-400 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
+                  }`}
+                >
+                  iOS (iPhone / iPad)
+                </button>
+                <button
+                  onClick={() => setSelectedOs('desktop')}
+                  className={`pb-2 px-3 font-bold transition-colors border-b-2 ${
+                    selectedOs === 'desktop' ? 'border-brand-400 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
+                  }`}
+                >
+                  Escritorio (PC / Mac)
+                </button>
+              </div>
+
+              {selectedOs === 'android' && (
+                <ol className="list-decimal list-inside text-xs text-dark-text/90 space-y-2 font-sans leading-relaxed">
+                  <li>Abre <strong>Chrome</strong> o tu navegador en tu teléfono Android.</li>
+                  <li>Toca el menú de tres puntos (<strong>⋮</strong>) en la esquina superior derecha.</li>
+                  <li>Selecciona <strong>"Instalar aplicación"</strong> o <strong>"Agregar a la pantalla principal"</strong>.</li>
+                  <li>Presiona <strong>"Instalar"</strong>. El icono de oomfy aparecerá en tu cajón de aplicaciones.</li>
+                </ol>
+              )}
+
+              {selectedOs === 'ios' && (
+                <div className="space-y-3 font-sans text-xs text-dark-text/90 leading-relaxed">
+                  <div>
+                    <p className="font-bold text-white mb-1">En Safari (Recomendado para iOS):</p>
+                    <ol className="list-decimal list-inside space-y-1.5">
+                      <li>Toca el botón de <strong>Compartir</strong> (icono de cuadrado con flecha hacia arriba) en la barra inferior.</li>
+                      <li>Desplázate hacia abajo y selecciona <strong>"Agregar a pantalla de inicio"</strong>.</li>
+                      <li>Confirma tocando <strong>"Agregar"</strong> en la esquina superior derecha.</li>
+                    </ol>
+                  </div>
+                  <div>
+                    <p className="font-bold text-white mb-1">En Chrome para iOS:</p>
+                    <ol className="list-decimal list-inside space-y-1.5">
+                      <li>Toca el botón de compartir o los tres puntos (<strong>...</strong>) en la barra de herramientas.</li>
+                      <li>Selecciona <strong>"Agregar a pantalla de inicio"</strong>.</li>
+                    </ol>
+                  </div>
+                </div>
+              )}
+
+              {selectedOs === 'desktop' && (
+                <ol className="list-decimal list-inside text-xs text-dark-text/90 space-y-2 font-sans leading-relaxed">
+                  <li>En Chrome o Edge, observa el extremo derecho de la barra de direcciones (URL).</li>
+                  <li>Haz clic en el icono de instalación (<strong>Computadora con flecha</strong>).</li>
+                  <li>Haz clic en <strong>"Instalar"</strong> para abrir oomfy como una ventana de app independiente.</li>
+                </ol>
               )}
             </div>
           </div>

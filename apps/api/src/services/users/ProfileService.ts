@@ -11,10 +11,13 @@ export class ProfileService {
     const profile = await MongoMemberRepository.findByUsername(username);
     if (!profile) throw new NotFoundError('Perfil de usuario no encontrado.');
     if (viewerId) {
-      const isFollowing = await MongoFollowRepository.isFollowing(viewerId, profile.id);
-      return { ...profile, is_following: isFollowing };
+      const [isFollowing, followsYou] = await Promise.all([
+        MongoFollowRepository.isFollowing(viewerId, profile.id),
+        MongoFollowRepository.isFollowing(profile.id, viewerId),
+      ]);
+      return { ...profile, is_following: isFollowing, follows_you: followsYou };
     }
-    return { ...profile, is_following: false };
+    return { ...profile, is_following: false, follows_you: false };
   }
 
   public static async updateProfile(

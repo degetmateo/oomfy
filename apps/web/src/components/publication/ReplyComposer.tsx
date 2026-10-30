@@ -125,7 +125,7 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
         isOpen={showGifModal}
         onClose={() => setShowGifModal(false)}
         onSelect={(url) => {
-          setSelectedGifs((prev) => [...prev.slice(0, 3), url]);
+          setSelectedGifs([url]);
           setShowGifModal(false);
         }}
       />

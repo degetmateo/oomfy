@@ -41,5 +41,6 @@ export interface PublicUser {
   followed_count: number;
   publication_count: number;
   is_following?: boolean;
+  follows_you?: boolean;
 }
 

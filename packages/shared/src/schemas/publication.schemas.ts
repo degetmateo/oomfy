@@ -24,8 +24,9 @@ export const CreatePublicationSchema = z.object({
 export const QueryPublicationSchema = z.object({
   older_id: z.string().uuid().nullable().optional(),
   author_username: z.string().nullable().optional(),
-  type: z.enum(['default', 'reply', 'quote', 'shared']).nullable().optional(),
+  type: z.enum(['default', 'reply', 'quote', 'shared', 'posts', 'liked']).nullable().optional(),
   target_id: z.string().uuid().nullable().optional(),
+  liked_by: z.string().nullable().optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
 

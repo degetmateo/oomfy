@@ -52,7 +52,7 @@ export class UpvoteService {
       }
       return { upvoted: true, upvotes_count: pub.upvotes_count + 1 };
     }
-    return { upvoted: true, upvotes_count: pub.upvotes_count };
+    return this.downvote(publicationId, user.id);
   }
 
   public static async downvote(

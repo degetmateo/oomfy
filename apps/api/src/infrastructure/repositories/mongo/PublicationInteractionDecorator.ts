@@ -10,7 +10,7 @@ export class PublicationInteractionDecorator {
     const mongoIds = postIds.map((id) => MongoIdHelper.toMongoId(id));
     const db = MongoDatabase.getDb();
 
-    const [userUpvotes, userShares] = await Promise.all([
+    const [userUpvotes, userShares, userQuotes] = await Promise.all([
       db.collection('upvotes').find({
         user_id: userId,
         publication_id: { $in: postIds },
@@ -23,16 +23,28 @@ export class PublicationInteractionDecorator {
           { target_publication_id: { $in: mongoIds } },
         ],
       }).toArray(),
+      db.collection('publications').find({
+        type: 'quote',
+        'author.id': userId,
+        $or: [
+          { parent_publication_id: { $in: postIds } },
+          { target_publication_id: { $in: mongoIds } },
+        ],
+      }).toArray(),
     ]);
 
     const upvotedSet = new Set(userUpvotes.map((u: any) => u.publication_id));
     const sharedSet = new Set(
       userShares.map((s: any) => s.parent_publication_id || s.target_publication_id?.toString())
     );
+    const quotedSet = new Set(
+      userQuotes.map((q: any) => q.parent_publication_id || q.target_publication_id?.toString())
+    );
 
     for (const post of posts) {
       post.is_upvoted = upvotedSet.has(post.id);
       post.is_shared = sharedSet.has(post.id);
+      post.is_quoted = quotedSet.has(post.id);
     }
 
     return posts;

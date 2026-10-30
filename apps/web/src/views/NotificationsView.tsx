@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, Heart, UserPlus, Repeat, MessageSquare, Quote, CheckCheck } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
+import { PixelAvatar } from '../components/common/PixelAvatar.js';
 import { ApiClient } from '../services/api.js';
 import { SocketClient } from '../services/socket.js';
 import { useAuthStore } from '../stores/authStore.js';
@@ -18,7 +19,7 @@ export const NotificationsView: React.FC = () => {
     if (!isAuthenticated) return;
     const socket = SocketClient.getSocket();
     const handleNotif = () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-feed'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-infinite-list'] });
       queryClient.invalidateQueries({ queryKey: ['notifications-summary'] });
     };
     socket.on('notification', handleNotif);
@@ -36,12 +37,12 @@ export const NotificationsView: React.FC = () => {
     hasNextPage,
     fetchNextPage,
   } = useInfiniteQuery<{ success: boolean; data: { notifications: Notification[]; pendingCount: number } }>({
-    queryKey: ['notifications-feed'],
-    queryFn: ({ pageParam }: { pageParam: any }) => {
-      const p = pageParam ? `?older_id=${String(pageParam)}&limit=20` : '?limit=20';
+    queryKey: ['notifications-infinite-list'],
+    queryFn: ({ pageParam }) => {
+      const p = pageParam ? `?older_id=${encodeURIComponent(String(pageParam))}&limit=20` : '?limit=20';
       return ApiClient.get(`/notifications${p}`);
     },
-    initialPageParam: null as string | null,
+    initialPageParam: '' as string,
     getNextPageParam: (lastPage) => {
       const notifs = lastPage?.data?.notifications;
       if (!Array.isArray(notifs) || notifs.length < 20) return undefined;
@@ -59,7 +60,7 @@ export const NotificationsView: React.FC = () => {
   const markAllMutation = useMutation({
     mutationFn: () => ApiClient.post('/notifications/read'),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-feed'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-infinite-list'] });
       queryClient.invalidateQueries({ queryKey: ['notifications-summary'] });
     },
   });
@@ -132,13 +133,11 @@ export const NotificationsView: React.FC = () => {
               >
                 {renderIcon(notif.type)}
                 <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <div className="w-9 h-9 border border-dark-border bg-dark-bg flex items-center justify-center font-bold text-xs text-brand-400 flex-shrink-0 overflow-hidden">
-                    {notif.sender.icon_url ? (
-                      <img src={notif.sender.icon_url} alt={notif.sender.username} className="w-full h-full object-cover" />
-                    ) : (
-                      notif.sender.username.slice(0, 2).toUpperCase()
-                    )}
-                  </div>
+                  <PixelAvatar
+                    src={notif.sender.icon_url}
+                    username={notif.sender.username}
+                    sizeClass="w-9 h-9"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-white">
                       <span className="font-bold hover:underline">@{notif.sender.username}</span>{' '}

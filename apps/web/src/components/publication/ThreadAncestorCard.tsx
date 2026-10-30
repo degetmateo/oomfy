@@ -29,7 +29,7 @@ export const ThreadAncestorCard: React.FC<Props> = ({ post }) => {
           <PixelAvatar
             src={post.author.icon_url}
             username={post.author.username}
-            sizeClass="w-9 h-9"
+            sizeClass="w-11 h-11"
           />
         </div>
         <div className="w-0.5 flex-1 bg-dark-border mt-2 mb-[-12px]" />

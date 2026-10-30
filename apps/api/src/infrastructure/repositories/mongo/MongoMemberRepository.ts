@@ -1,6 +1,7 @@
 import { PublicUser } from '@oomfy/shared';
 import { MongoDatabase } from '../../database/mongo/MongoDatabase.js';
 import { MongoIdHelper } from './MongoIdHelper.js';
+import { MongoFollowRepository } from './MongoFollowRepository.js';
 
 export class MongoMemberRepository {
   private static getCollection() {
@@ -74,10 +75,28 @@ export class MongoMemberRepository {
     return docs.map(this.toDomain);
   }
 
-  public static async findSuggested(limit: number = 5): Promise<PublicUser[]> {
+  public static async findSuggested(limit: number = 5, currentUserId?: string): Promise<PublicUser[]> {
     const col = this.getCollection();
+    const query: any = {};
+
+    if (currentUserId) {
+      const excludeIds: any[] = [currentUserId];
+      const mongoId = MongoIdHelper.toMongoId(currentUserId);
+      if (mongoId) excludeIds.push(mongoId);
+
+      const followedIds = await MongoFollowRepository.getFollowedUserIds(currentUserId);
+      for (const fid of followedIds) {
+        excludeIds.push(fid);
+        const fMongoId = MongoIdHelper.toMongoId(fid);
+        if (fMongoId) excludeIds.push(fMongoId);
+      }
+
+      query._id = { $nin: excludeIds };
+      query.id = { $nin: excludeIds.map(String) };
+    }
+
     const docs = await col
-      .find({})
+      .find(query)
       .sort({ follower_count: -1, publication_count: -1 })
       .limit(limit)
       .toArray();

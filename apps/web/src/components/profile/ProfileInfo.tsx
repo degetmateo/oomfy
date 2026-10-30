@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Calendar, MapPin, Link as LinkIcon } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PixelBadge } from '../icons/PixelBadge.js';
+import { FormattedText } from '../common/FormattedText.js';
 import { PublicUser } from '@oomfy/shared';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
@@ -46,7 +47,7 @@ export const ProfileInfo: React.FC<Props> = ({ user, isOwnProfile = false, onEdi
 
   return (
     <div className="px-4 pb-4 border-b border-dark-border relative bg-dark-bg font-mono">
-      <div className="flex justify-between items-end -mt-12 sm:-mt-16 mb-3">
+      <div className="flex justify-between items-end -mt-10 sm:-mt-16 mb-3">
         <div
           onClick={() => user.icon_url && onAvatarClick?.(user.icon_url)}
           className={`w-20 h-20 sm:w-28 sm:h-28 border-2 border-dark-border bg-dark-card overflow-hidden flex items-center justify-center font-bold text-2xl text-brand-400 ${
@@ -61,54 +62,70 @@ export const ProfileInfo: React.FC<Props> = ({ user, isOwnProfile = false, onEdi
           )}
         </div>
 
-        {isOwnProfile ? (
-          <button
-            onClick={onEditClick}
-            className="px-4 py-1.5 text-xs font-bold text-dark-text hover:text-brand-400 bg-dark-card border border-dark-border hover:border-brand-500 transition-colors pixel-button"
-          >
-            Editar perfil
-          </button>
-        ) : (
-          <button
-            onClick={handleFollowToggle}
-            onMouseEnter={() => setIsHoveringFollow(true)}
-            onMouseLeave={() => setIsHoveringFollow(false)}
-            disabled={isLoadingFollow}
-            className={`px-4 py-1.5 text-xs font-bold transition-colors pixel-button ${
-              user.is_following
+        <div className="mb-1 sm:mb-2 flex-shrink-0">
+          {isOwnProfile ? (
+            <button
+              onClick={onEditClick}
+              className="px-3.5 sm:px-4 py-1.5 text-xs font-bold text-dark-text hover:text-brand-400 bg-dark-card border border-dark-border hover:border-brand-500 transition-colors pixel-button"
+            >
+              Editar perfil
+            </button>
+          ) : (
+            <button
+              onClick={handleFollowToggle}
+              onMouseEnter={() => setIsHoveringFollow(true)}
+              onMouseLeave={() => setIsHoveringFollow(false)}
+              disabled={isLoadingFollow}
+              className={`px-3.5 sm:px-4 py-1.5 text-xs font-bold transition-colors pixel-button ${
+                user.is_following
+                  ? isHoveringFollow
+                    ? 'border border-red-500 text-red-400 bg-red-950/20'
+                    : 'border border-dark-border text-white bg-dark-card'
+                  : 'border border-brand-500 text-black bg-brand-500 hover:bg-brand-600'
+              }`}
+            >
+              {user.is_following
                 ? isHoveringFollow
-                  ? 'border border-red-500 text-red-400 bg-red-950/20'
-                  : 'border border-dark-border text-white bg-dark-card'
-                : 'border border-brand-500 text-black bg-brand-500 hover:bg-brand-600'
-            }`}
-          >
-            {user.is_following
-              ? isHoveringFollow
-                ? 'Dejar de seguir'
-                : 'Siguiendo'
-              : 'Seguir'}
-          </button>
-        )}
+                  ? 'Dejar de seguir'
+                  : 'Siguiendo'
+                : 'Seguir'}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mt-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <h2 className="text-lg font-bold text-white">{user.name}</h2>
           <PixelBadge role={user.role} />
+          {user.follows_you && !isOwnProfile && (
+            <span className="text-[10px] bg-dark-card border border-dark-border text-brand-400 px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
+              Te sigue
+            </span>
+          )}
         </div>
         <p className="text-xs text-dark-muted">@{user.username}</p>
       </div>
 
-      {user.bio && <p className="mt-2 text-xs text-dark-text leading-relaxed whitespace-pre-line font-sans">{user.bio}</p>}
+      {user.bio && (
+        <FormattedText
+          text={user.bio}
+          className="mt-2 text-xs text-dark-text leading-relaxed whitespace-pre-line font-sans block"
+        />
+      )}
 
       <div className="flex flex-wrap gap-3 mt-3 text-xs text-dark-muted">
         {user.location && (
           <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {user.location}</span>
         )}
         {user.link && (
-          <a href={user.link} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand-400 hover:underline">
-            <LinkIcon className="w-3.5 h-3.5" /> {user.link}
-          </a>
+          <Link
+            to={`/external?url=${encodeURIComponent(user.link)}`}
+            className="flex items-center gap-1 text-brand-400 hover:underline max-w-xs truncate"
+          >
+            <LinkIcon className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{user.link}</span>
+          </Link>
         )}
         <span className="flex items-center gap-1">
           <Calendar className="w-3.5 h-3.5" /> Se unió el {new Date(user.created_at).toLocaleDateString()}
@@ -116,12 +133,18 @@ export const ProfileInfo: React.FC<Props> = ({ user, isOwnProfile = false, onEdi
       </div>
 
       <div className="flex gap-4 mt-3 text-xs">
-        <span className="text-dark-muted">
+        <button
+          onClick={() => navigate(`/${user.username}/following`)}
+          className="text-dark-muted hover:underline hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
+        >
           <strong className="text-white">{user.followed_count || 0}</strong> Siguiendo
-        </span>
-        <span className="text-dark-muted">
+        </button>
+        <button
+          onClick={() => navigate(`/${user.username}/followers`)}
+          className="text-dark-muted hover:underline hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
+        >
           <strong className="text-white">{user.follower_count || 0}</strong> Seguidores
-        </span>
+        </button>
       </div>
     </div>
   );

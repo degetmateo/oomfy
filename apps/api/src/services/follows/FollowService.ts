@@ -77,5 +77,55 @@ export class FollowService {
     }
     return { message: `Dejaste de seguir a @${target.username}.` };
   }
+
+  public static async getFollowers(
+    username: string,
+    limit: number = 20,
+    olderId?: string,
+    viewerId?: string
+  ): Promise<any[]> {
+    const target = await MongoMemberRepository.findByUsername(username);
+    if (!target) throw new NotFoundError('Usuario no encontrado.');
+
+    const relations = await MongoFollowRepository.getFollowers(username, limit, olderId);
+    const userIds = relations.map((r) => r.follower_id || r.follower?.id).filter(Boolean);
+    const users: any[] = [];
+
+    for (const uid of userIds) {
+      const u = await MongoMemberRepository.findById(uid);
+      if (u) {
+        if (viewerId) {
+          u.is_following = await MongoFollowRepository.isFollowing(viewerId, u.id);
+        }
+        users.push(u);
+      }
+    }
+    return users;
+  }
+
+  public static async getFollowed(
+    username: string,
+    limit: number = 20,
+    olderId?: string,
+    viewerId?: string
+  ): Promise<any[]> {
+    const target = await MongoMemberRepository.findByUsername(username);
+    if (!target) throw new NotFoundError('Usuario no encontrado.');
+
+    const relations = await MongoFollowRepository.getFollowed(username, limit, olderId);
+    const userIds = relations.map((r) => r.followed_id || r.followed?.id).filter(Boolean);
+    const users: any[] = [];
+
+    for (const uid of userIds) {
+      const u = await MongoMemberRepository.findById(uid);
+      if (u) {
+        if (viewerId) {
+          u.is_following = await MongoFollowRepository.isFollowing(viewerId, u.id);
+        }
+        users.push(u);
+      }
+    }
+    return users;
+  }
 }
 

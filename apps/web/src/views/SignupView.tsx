@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { ApiClient } from '../services/api.js';
 import { PixelLogo } from '../components/icons/PixelLogo.js';
 
 export const SignupView: React.FC = () => {
   const [formData, setFormData] = useState({ email: '', username: '', name: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -80,14 +82,24 @@ export const SignupView: React.FC = () => {
 
             <div>
               <label className="block text-xs font-semibold text-dark-muted mb-1">Contraseña</label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-3 py-2 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans"
-              />
+              <div className="relative flex items-center">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-3 py-2 pr-9 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 text-dark-muted hover:text-white p-0.5"
+                  title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <button

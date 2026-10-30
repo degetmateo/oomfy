@@ -178,7 +178,7 @@ export const PublicationCreator: React.FC<Props> = ({
         isOpen={showGifModal}
         onClose={() => setShowGifModal(false)}
         onSelect={(url: string) => {
-          setSelectedGifs((prev) => [...prev.slice(0, 3), url]);
+          setSelectedGifs([url]);
           setShowGifModal(false);
         }}
       />

@@ -57,19 +57,45 @@ export class MongoFollowRepository {
     return count > 0;
   }
 
-  public static async getFollowers(followedUsername: string, limit: number = 20): Promise<FollowRelation[]> {
+  public static async getFollowedUserIds(followerId: string): Promise<string[]> {
     const col = this.getCollection();
+    const followerVariants = this.idVariants(followerId);
+    const follows = await col.find({ follower_id: { $in: followerVariants } }).toArray();
+    const ids: string[] = [];
+    for (const f of follows) {
+      if (f.followed_id) ids.push(String(f.followed_id));
+      if (f.followed?.id) ids.push(String(f.followed.id));
+    }
+    return Array.from(new Set(ids));
+  }
+
+  public static async getFollowers(followedUsername: string, limit: number = 20, olderId?: string): Promise<FollowRelation[]> {
+    const col = this.getCollection();
+    const query: any = { 'followed.username': { $regex: new RegExp(`^${followedUsername}$`, 'i') } };
+    if (olderId) {
+      const olderDoc = await col.findOne(MongoIdHelper.idFilter(olderId));
+      if (olderDoc?.created_at) {
+        query.created_at = { $lt: olderDoc.created_at };
+      }
+    }
     return col
-      .find({ 'followed.username': { $regex: new RegExp(`^${followedUsername}$`, 'i') } })
+      .find(query)
       .sort({ created_at: -1 })
       .limit(limit)
       .toArray();
   }
 
-  public static async getFollowed(followerUsername: string, limit: number = 20): Promise<FollowRelation[]> {
+  public static async getFollowed(followerUsername: string, limit: number = 20, olderId?: string): Promise<FollowRelation[]> {
     const col = this.getCollection();
+    const query: any = { 'follower.username': { $regex: new RegExp(`^${followerUsername}$`, 'i') } };
+    if (olderId) {
+      const olderDoc = await col.findOne(MongoIdHelper.idFilter(olderId));
+      if (olderDoc?.created_at) {
+        query.created_at = { $lt: olderDoc.created_at };
+      }
+    }
     return col
-      .find({ 'follower.username': { $regex: new RegExp(`^${followerUsername}$`, 'i') } })
+      .find(query)
       .sort({ created_at: -1 })
       .limit(limit)
       .toArray();

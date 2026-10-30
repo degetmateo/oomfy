@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicUser } from '@oomfy/shared';
 import { PixelBadge } from '../icons/PixelBadge.js';
+import { PixelAvatar } from '../common/PixelAvatar.js';
 import { ApiClient } from '../../services/api.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
@@ -35,13 +36,11 @@ export const UserSearchCard: React.FC<Props> = ({ user }) => {
   return (
     <article className="p-3 sm:p-4 border-b border-dark-border hover:bg-dark-card/40 transition-colors flex items-center justify-between gap-3 font-mono">
       <Link to={`/${user.username}`} className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="w-10 h-10 border border-dark-border bg-dark-bg flex items-center justify-center font-bold text-sm text-brand-400 flex-shrink-0">
-          {user.icon_url ? (
-            <img src={user.icon_url} alt={user.username} className="w-full h-full object-cover" />
-          ) : (
-            user.username.slice(0, 2).toUpperCase()
-          )}
-        </div>
+        <PixelAvatar
+          src={user.icon_url}
+          username={user.username}
+          sizeClass="w-12 h-12"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-bold text-sm text-white hover:text-brand-400 truncate">{user.name}</span>

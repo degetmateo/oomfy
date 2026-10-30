@@ -15,6 +15,7 @@ export const ProfileView: React.FC = () => {
   const { username } = useParams<{ username: string }>();
   const { user: currentUser } = useAuthStore();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'likes'>('posts');
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
@@ -31,12 +32,22 @@ export const ProfileView: React.FC = () => {
     hasNextPage,
     fetchNextPage,
   } = useInfiniteQuery<{ success: boolean; data: Publication[] }>({
-    queryKey: ['user-posts', username],
+    queryKey: ['user-posts', username, activeTab],
     queryFn: ({ pageParam }: { pageParam: any }) => {
       const p = new URLSearchParams();
-      if (username) p.append('author_username', username);
       p.append('limit', '20');
       if (pageParam) p.append('older_id', String(pageParam));
+
+      if (activeTab === 'posts') {
+        if (username) p.append('author_username', username);
+        p.append('type', 'posts');
+      } else if (activeTab === 'replies') {
+        if (username) p.append('author_username', username);
+        p.append('type', 'reply');
+      } else if (activeTab === 'likes') {
+        if (username) p.append('liked_by', username);
+      }
+
       return ApiClient.get(`/publications?${p.toString()}`);
     },
     initialPageParam: null as string | null,
@@ -84,6 +95,39 @@ export const ProfileView: React.FC = () => {
         />
       )}
 
+      <div className="flex border-b border-dark-border text-center select-none bg-dark-bg/60">
+        <button
+          onClick={() => setActiveTab('posts')}
+          className={`flex-1 py-3 text-xs sm:text-sm font-bold tracking-wider transition-colors ${
+            activeTab === 'posts'
+              ? 'text-brand-400 border-b-2 border-brand-400'
+              : 'text-dark-muted hover:text-white border-b-2 border-transparent'
+          }`}
+        >
+          Publicaciones
+        </button>
+        <button
+          onClick={() => setActiveTab('replies')}
+          className={`flex-1 py-3 text-xs sm:text-sm font-bold tracking-wider transition-colors ${
+            activeTab === 'replies'
+              ? 'text-brand-400 border-b-2 border-brand-400'
+              : 'text-dark-muted hover:text-white border-b-2 border-transparent'
+          }`}
+        >
+          Respuestas
+        </button>
+        <button
+          onClick={() => setActiveTab('likes')}
+          className={`flex-1 py-3 text-xs sm:text-sm font-bold tracking-wider transition-colors ${
+            activeTab === 'likes'
+              ? 'text-brand-400 border-b-2 border-brand-400'
+              : 'text-dark-muted hover:text-white border-b-2 border-transparent'
+          }`}
+        >
+          Me gusta
+        </button>
+      </div>
+
       <div className="divide-y divide-dark-border">
         {loadingPosts ? (
           <div className="p-8 text-center text-xs text-dark-muted">Cargando publicaciones...</div>
@@ -97,7 +141,13 @@ export const ProfileView: React.FC = () => {
             </div>
           </>
         ) : (
-          <div className="p-8 text-center text-xs text-dark-muted">No hay publicaciones todavía.</div>
+          <div className="p-8 text-center text-xs text-dark-muted">
+            {activeTab === 'posts'
+              ? 'No hay publicaciones todavía.'
+              : activeTab === 'replies'
+              ? 'No hay respuestas todavía.'
+              : 'No hay publicaciones que le gusten todavía.'}
+          </div>
         )}
       </div>
 

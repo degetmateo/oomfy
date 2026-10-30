@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiClient } from '../../services/api.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
+import { PixelAvatar } from '../common/PixelAvatar.js';
 import { PublicUser } from '@oomfy/shared';
 
 export const Aside: React.FC = () => {
@@ -77,15 +78,15 @@ export const Aside: React.FC = () => {
               <Link
                 key={m.id}
                 to={`/${m.username}`}
-                className="flex items-center gap-2 hover:bg-dark-card p-1 transition-colors"
+                className="flex items-center gap-2.5 hover:bg-dark-card p-1 transition-colors"
               >
-                <div className="relative w-7 h-7 border border-dark-border bg-dark-bg flex items-center justify-center font-bold text-[10px] text-brand-400 flex-shrink-0">
-                  {m.icon_url ? (
-                    <img src={m.icon_url} alt={m.username} className="w-full h-full object-cover" />
-                  ) : (
-                    m.username.slice(0, 2).toUpperCase()
-                  )}
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-brand-500 rounded-full border border-black" />
+                <div className="relative flex-shrink-0">
+                  <PixelAvatar
+                    src={m.icon_url}
+                    username={m.username}
+                    sizeClass="w-9 h-9"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-brand-500 rounded-full border border-black" />
                 </div>
                 <div className="truncate text-xs">
                   <p className="font-bold text-white hover:text-brand-400 truncate">{m.name}</p>
@@ -104,13 +105,13 @@ export const Aside: React.FC = () => {
         <div className="flex flex-col gap-3">
           {suggestedMembers.slice(0, 4).map((m) => (
             <div key={m.id} className="flex items-center justify-between gap-2">
-              <Link to={`/${m.username}`} className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="w-8 h-8 border border-dark-border bg-dark-bg flex items-center justify-center font-bold text-xs text-brand-400 flex-shrink-0">
-                  {m.icon_url ? (
-                    <img src={m.icon_url} alt={m.username} className="w-full h-full object-cover" />
-                  ) : (
-                    m.username.slice(0, 2).toUpperCase()
-                  )}
+              <Link to={`/${m.username}`} className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="flex-shrink-0">
+                  <PixelAvatar
+                    src={m.icon_url}
+                    username={m.username}
+                    sizeClass="w-10 h-10"
+                  />
                 </div>
                 <div className="truncate text-xs">
                   <p className="font-bold text-white hover:text-brand-400 truncate">{m.name}</p>

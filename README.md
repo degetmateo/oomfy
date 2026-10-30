@@ -439,6 +439,31 @@ pnpm test:coverage
   - Detección y formato de texto enriquecido (`FormattedText`): enlaces, menciones `@usuario` y hashtags `#tag` destacados en color de marca y clickeables.
   - Previsualizaciones enriquecidas para Twitter/X (vía FxTwitter oEmbed), TikTok, YouTube, Spotify y sitios web con Open Graph.
   - Pantalla retro de advertencia contra phishing (`/external` / `ExternalWarningView`) previa a la redirección a enlaces externos.
+- [x] **Fase 14: Enrutamiento SPA en Render, Publicaciones Compartidas, Caché Global, Sub-pestañas de Perfil y Botón Atrás:**
+  - Archivo `apps/web/public/_redirects` con regla `/* /index.html 200` y `base: '/'` en `vite.config.ts` para despliegues estáticos en Render sin caídas 404 al recargar subrutas.
+  - Rediseño de publicaciones compartidas (`type: 'shared'`): encabezado con icono retro pixel `<PixelShare />` ("Compartido por @username", sin emojis), remoción de avatar y acciones del repostero, despliegue del contenido original y navegación directa hacia el post compartido.
+  - Población de publicación destino (`populateTargetPublications`) en respuestas, corrigiendo el fallback a `@usuario`.
+  - Filtrado del timeline principal de inicio (`/publications`): despliegue exclusivo de publicaciones directas y citas (`['default', 'quote']`), excluyendo respuestas y compartidos.
+  - Botones de interacción en publicaciones de mayor tamaño y accesibilidad táctil (`size={20}`, tipografía más legible y padding adecuado).
+  - Estrategia de caché en frontend con React Query (`staleTime: 5 min`, `gcTime: 30 min`) para navegación instantánea entre vistas.
+  - Exclusión estricta de usuarios seguidos y del propio usuario en el widget "A quién seguir".
+  - 3 sub-pestañas en la vista de perfil (`ProfileView`): "Publicaciones" (posts, citas y compartidos), "Respuestas" (respuestas de conversación) y "Me gusta" (publicaciones a las que el usuario dio upvote con filtrado `liked_by`).
+  - Botón de retroceso `<ArrowLeft />` unificado en `Header.tsx` e integración limpia de la cabecera móvil.
 
 
 
+
+- [x] **Fase 15: Ergonomía de Acciones, Identidad de Seguimiento, PWA, Visor Resiliente y Recuperación de Cuenta:**
+  - Botones de interacción distribuidos equitativamente a lo largo de toda la fila (`w-full`) en `PublicationActions`, erradicando espacios residuales.
+  - Avatares ampliados en timeline (`w-12 h-12`), ancestros (`w-11 h-11`), detalle (`w-14 h-14`) y aside (`w-10 h-10`).
+  - Estados iluminados en verde (`#00dc65`) para me gusta, compartir y citar con soporte de alternancia reversible (toggle para desmarcar like o repost al segundo clic).
+  - Insignia retro "Te sigue" en perfiles de usuario cuando el perfil visitado sigue a la cuenta activa.
+  - Ajuste responsivo ergonómico en la cabecera de perfil en dispositivos móviles.
+  - Menú contextual de publicación (copiar enlace, eliminar post) en la vista de detalle `PublicationDetailView`.
+  - Redirección preventiva con aviso contra phishing (`ExternalWarningView`) para enlaces en biografía y sitio web de perfiles.
+  - Soporte completo de Progressive Web App (PWA): `manifest.webmanifest`, `sw.js` y pestaña "App (PWA)" en Configuración con instalación guiada por sistema operativo y permisos para notificaciones push.
+  - Vistas dedicadas de lista de usuarios con scroll infinito para Seguidores (`/:username/followers`) y Siguiendo (`/:username/following`).
+  - Persistencia de sesión con refresco transparente mediante JWT Refresh Token (`POST /api/auth/refresh`) ante expiraciones 401.
+  - Botones conmutadores de visibilidad (`Eye` / `EyeOff`) en todos los campos de contraseña.
+  - Recuperación de cuenta: restablecimiento seguro de contraseña por correo con token temporal (`/reset-password`) y recordatorio de nombre de usuario por correo.
+  - Saneamiento multimedia: cuota máxima de 4 adjuntos / 1 GIF por publicación, fallback silencioso de imágenes fallidas en `MediaGrid` y clave aislada `['notifications-infinite-list']` en TanStack Query.
