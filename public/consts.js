@@ -1,1 +1,0 @@
-export const URL_NO_IMAGE = '/public/assets/interrogation_mark.png';

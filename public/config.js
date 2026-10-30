@@ -1,1 +1,0 @@
-export const RECAPTCHA_KEY = '6Lfy-vIsAAAAAOSWaK4avDdN7B9mTNJLuCH5ed3z';

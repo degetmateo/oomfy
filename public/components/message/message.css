@@ -1,8 +1,0 @@
-.message {
-    color: var(--font-color);
-    font-family: var(--font-inter-light);
-}
-
-.message-pending {
-    color: var(--font-color-light);
-}
