@@ -5,11 +5,17 @@ import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/M
 import { PasswordHasher } from '../../infrastructure/adapters/PasswordHasher.js';
 import { TokenService } from '../../infrastructure/adapters/TokenService.js';
 import { ResendMailerAdapter } from '../../infrastructure/adapters/ResendMailerAdapter.js';
-import { ConflictError } from '../../errors/AppError.js';
+import { ConflictError, ForbiddenError } from '../../errors/AppError.js';
 import { Environment } from '../../config/Environment.js';
+import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 
 export class SignupService {
   public static async execute(input: SignupInput): Promise<{ message: string; id: string }> {
+    const settings = await SystemSettingsService.getSettings();
+    if (settings.disable_signups) {
+      throw new ForbiddenError('El registro de nuevos usuarios está deshabilitado temporalmente.');
+    }
+
     const existing = await PostgresUserRepository.findByUsernameOrEmail(input.username);
     if (existing) {
       if (existing.email === input.email.toLowerCase()) {

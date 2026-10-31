@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, X } from 'lucide-react';
 import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
+import { useDialogStore } from '../stores/dialogStore.js';
 import { PixelLogo } from '../components/icons/PixelLogo.js';
 
 export const SigninView: React.FC = () => {
@@ -29,7 +30,27 @@ export const SigninView: React.FC = () => {
     try {
       const res = await ApiClient.post<any>('/auth/signin', { username, password });
       setAuth(res.user, res.accessToken, res.refreshToken);
-      navigate('/');
+
+      const isStandalone =
+        typeof window !== 'undefined' &&
+        (window.matchMedia('(display-mode: standalone)').matches ||
+          (navigator as any).standalone === true);
+
+      if (!isStandalone) {
+        navigate('/');
+        const wantInstall = await useDialogStore.getState().confirm({
+          title: 'Instalar oomfy',
+          message:
+            '¿Sabías que puedes instalar oomfy en tu dispositivo para acceder más rápido y recibir notificaciones? ¿Deseas ver las instrucciones de instalación?',
+          confirmText: 'Ver instrucciones',
+          cancelText: 'Más tarde',
+        });
+        if (wantInstall) {
+          navigate('/settings?tab=app');
+        }
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {

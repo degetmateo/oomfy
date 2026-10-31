@@ -41,9 +41,14 @@ export class MessageService {
     return fullMessage;
   }
 
-  public static async getChatMessages(chatId: string, userId: string): Promise<any[]> {
+  public static async getChatMessages(
+    chatId: string,
+    userId: string,
+    limit: number = 30,
+    olderId?: string
+  ): Promise<any[]> {
     await PostgresChatRepository.markChatMessagesAsRead(chatId, userId);
-    return PostgresChatRepository.listChatMessages(chatId);
+    return PostgresChatRepository.listChatMessages(chatId, limit, olderId);
   }
 
   public static async getUnreadCount(userId: string): Promise<number> {

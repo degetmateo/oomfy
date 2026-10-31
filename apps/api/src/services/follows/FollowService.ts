@@ -87,7 +87,7 @@ export class FollowService {
     const target = await MongoMemberRepository.findByUsername(username);
     if (!target) throw new NotFoundError('Usuario no encontrado.');
 
-    const relations = await MongoFollowRepository.getFollowers(username, limit, olderId);
+    const relations = await MongoFollowRepository.getFollowers(target.id, target.username, limit, olderId);
     const userIds = relations.map((r) => r.follower_id || r.follower?.id).filter(Boolean);
     const users: any[] = [];
 
@@ -112,7 +112,7 @@ export class FollowService {
     const target = await MongoMemberRepository.findByUsername(username);
     if (!target) throw new NotFoundError('Usuario no encontrado.');
 
-    const relations = await MongoFollowRepository.getFollowed(username, limit, olderId);
+    const relations = await MongoFollowRepository.getFollowed(target.id, target.username, limit, olderId);
     const userIds = relations.map((r) => r.followed_id || r.followed?.id).filter(Boolean);
     const users: any[] = [];
 

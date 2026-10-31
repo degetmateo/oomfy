@@ -39,7 +39,9 @@ export class ChatController {
 
   public static async listMessages(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const messages = await MessageService.getChatMessages(req.params.id, req.user!.id);
+      const limit = Number(req.query.limit) || 30;
+      const olderId = req.query.older_id as string | undefined;
+      const messages = await MessageService.getChatMessages(req.params.id, req.user!.id, limit, olderId);
       res.status(200).json({ success: true, data: messages });
     } catch (err) {
       next(err);

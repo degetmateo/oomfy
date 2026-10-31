@@ -69,15 +69,49 @@ export class MongoFollowRepository {
     return Array.from(new Set(ids));
   }
 
-  public static async getFollowers(followedUsername: string, limit: number = 20, olderId?: string): Promise<FollowRelation[]> {
+  public static async getFollowers(
+    targetId: string,
+    followedUsername: string,
+    limit: number = 20,
+    olderId?: string
+  ): Promise<FollowRelation[]> {
     const col = this.getCollection();
-    const query: any = { 'followed.username': { $regex: new RegExp(`^${followedUsername}$`, 'i') } };
+    const targetVariants = this.idVariants(targetId);
+    const query: any = {
+      $or: [
+        { followed_id: { $in: targetVariants } },
+        { 'followed.id': { $in: targetVariants } },
+        { 'followed.username': { $regex: new RegExp(`^${followedUsername}$`, 'i') } },
+      ],
+    };
+
     if (olderId) {
-      const olderDoc = await col.findOne(MongoIdHelper.idFilter(olderId));
+      const olderVariants = this.idVariants(olderId);
+      const olderDoc = await col.findOne({
+        $and: [
+          query,
+          {
+            $or: [
+              { follower_id: { $in: olderVariants } },
+              { 'follower.id': { $in: olderVariants } },
+              { _id: { $in: olderVariants } },
+            ],
+          },
+        ],
+      });
+
       if (olderDoc?.created_at) {
-        query.created_at = { $lt: olderDoc.created_at };
+        const olderDate = new Date(olderDoc.created_at);
+        const olderIso = !isNaN(olderDate.getTime()) ? olderDate.toISOString() : null;
+        const timeFilters: any[] = [{ created_at: { $lt: olderDoc.created_at } }];
+        if (olderIso) {
+          timeFilters.push({ created_at: { $lt: olderDate } });
+          timeFilters.push({ created_at: { $lt: olderIso } });
+        }
+        query.$and = [{ $or: timeFilters }];
       }
     }
+
     return col
       .find(query)
       .sort({ created_at: -1 })
@@ -85,15 +119,49 @@ export class MongoFollowRepository {
       .toArray();
   }
 
-  public static async getFollowed(followerUsername: string, limit: number = 20, olderId?: string): Promise<FollowRelation[]> {
+  public static async getFollowed(
+    targetId: string,
+    followerUsername: string,
+    limit: number = 20,
+    olderId?: string
+  ): Promise<FollowRelation[]> {
     const col = this.getCollection();
-    const query: any = { 'follower.username': { $regex: new RegExp(`^${followerUsername}$`, 'i') } };
+    const targetVariants = this.idVariants(targetId);
+    const query: any = {
+      $or: [
+        { follower_id: { $in: targetVariants } },
+        { 'follower.id': { $in: targetVariants } },
+        { 'follower.username': { $regex: new RegExp(`^${followerUsername}$`, 'i') } },
+      ],
+    };
+
     if (olderId) {
-      const olderDoc = await col.findOne(MongoIdHelper.idFilter(olderId));
+      const olderVariants = this.idVariants(olderId);
+      const olderDoc = await col.findOne({
+        $and: [
+          query,
+          {
+            $or: [
+              { followed_id: { $in: olderVariants } },
+              { 'followed.id': { $in: olderVariants } },
+              { _id: { $in: olderVariants } },
+            ],
+          },
+        ],
+      });
+
       if (olderDoc?.created_at) {
-        query.created_at = { $lt: olderDoc.created_at };
+        const olderDate = new Date(olderDoc.created_at);
+        const olderIso = !isNaN(olderDate.getTime()) ? olderDate.toISOString() : null;
+        const timeFilters: any[] = [{ created_at: { $lt: olderDoc.created_at } }];
+        if (olderIso) {
+          timeFilters.push({ created_at: { $lt: olderDate } });
+          timeFilters.push({ created_at: { $lt: olderIso } });
+        }
+        query.$and = [{ $or: timeFilters }];
       }
     }
+
     return col
       .find(query)
       .sort({ created_at: -1 })

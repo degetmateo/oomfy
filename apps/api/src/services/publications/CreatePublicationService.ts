@@ -6,8 +6,9 @@ import { MongoNotificationRepository } from '../../infrastructure/repositories/m
 import { ImgBBStorageAdapter } from '../../infrastructure/adapters/ImgBBStorageAdapter.js';
 import { UrlPreviewAdapter } from '../../infrastructure/adapters/UrlPreviewAdapter.js';
 import { AuthorProfileResolver } from './AuthorProfileResolver.js';
-import { BadRequestError } from '../../errors/AppError.js';
+import { BadRequestError, ForbiddenError } from '../../errors/AppError.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
+import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 
 export class CreatePublicationService {
   public static async execute(
@@ -15,6 +16,11 @@ export class CreatePublicationService {
     user: { id: string; username: string; name: string; role: any },
     imageFiles: Express.Multer.File[] = []
   ): Promise<Publication> {
+    const settings = await SystemSettingsService.getSettings();
+    if (settings.disable_post_creation && user.role !== 'admin') {
+      throw new ForbiddenError('La creación de publicaciones está desactivada temporalmente por mantenimiento.');
+    }
+
     const content = input.content?.trim() || '';
     let tenorList: Array<{ src?: string; index?: number }> = [];
     if (typeof input.tenor === 'string') {

@@ -2,11 +2,20 @@ import { PostgresPool } from '../../infrastructure/database/postgres/PostgresPoo
 import { PostgresUserRepository } from '../../infrastructure/repositories/postgres/PostgresUserRepository.js';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
 import { PasswordHasher } from '../../infrastructure/adapters/PasswordHasher.js';
-import { BadRequestError, NotFoundError, UnauthorizedError } from '../../errors/AppError.js';
+import { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } from '../../errors/AppError.js';
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
+import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 
 export class SettingsService {
   public static async updateUsername(userId: string, newUsername: string): Promise<{ username: string }> {
+    const user = await PostgresUserRepository.findById(userId);
+    if (!user) throw new NotFoundError('Usuario no encontrado.');
+
+    const settings = await SystemSettingsService.getSettings();
+    if (settings.disable_profile_editing && user.role !== 'admin') {
+      throw new ForbiddenError('La edición de perfiles está desactivada temporalmente por mantenimiento.');
+    }
+
     const cleanUsername = newUsername.trim().toLowerCase();
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(cleanUsername)) {
       throw new BadRequestError('El nombre de usuario debe tener entre 3 y 20 caracteres (solo letras, números y guiones bajos).');

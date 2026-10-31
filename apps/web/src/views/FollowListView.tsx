@@ -45,7 +45,9 @@ export const FollowListView: React.FC = () => {
     }
   }, Boolean(hasNextPage));
 
-  const allUsers = data?.pages.flatMap((page) => page.data) || [];
+  const allUsers = (data?.pages.flatMap((page) => page.data) || []).filter(
+    (user, index, self) => index === self.findIndex((u) => u.id === user.id)
+  );
 
   const handleTabChange = (tab: 'followers' | 'following') => {
     setActiveTab(tab);

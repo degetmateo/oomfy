@@ -3,8 +3,9 @@ import { PostgresUserRepository } from '../../infrastructure/repositories/postgr
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MongoFollowRepository } from '../../infrastructure/repositories/mongo/MongoFollowRepository.js';
 import { ImgBBStorageAdapter } from '../../infrastructure/adapters/ImgBBStorageAdapter.js';
-import { NotFoundError } from '../../errors/AppError.js';
+import { NotFoundError, ForbiddenError } from '../../errors/AppError.js';
 import { PostgresPool } from '../../infrastructure/database/postgres/PostgresPool.js';
+import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 
 export class ProfileService {
   public static async getProfile(username: string, viewerId?: string): Promise<PublicUser> {
@@ -28,6 +29,11 @@ export class ProfileService {
   ): Promise<PublicUser> {
     const user = await PostgresUserRepository.findById(userId);
     if (!user) throw new NotFoundError('Usuario no encontrado.');
+
+    const settings = await SystemSettingsService.getSettings();
+    if (settings.disable_profile_editing && user.role !== 'admin') {
+      throw new ForbiddenError('La edición de perfiles está desactivada temporalmente por mantenimiento.');
+    }
 
     let iconUrl: string | null | undefined = undefined;
     let bannerUrl: string | null | undefined = undefined;

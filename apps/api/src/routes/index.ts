@@ -9,6 +9,7 @@ import chatRoutes from './chat.routes.js';
 import sessionRoutes from './session.routes.js';
 import auxRoutes from './auxiliary.routes.js';
 import settingsRoutes from './settings.routes.js';
+import { adminRouter } from './admin.routes.js';
 
 const apiRouter = Router();
 
@@ -22,5 +23,6 @@ apiRouter.use('/chats', chatRoutes);
 apiRouter.use('/sessions', sessionRoutes);
 apiRouter.use('/aux', auxRoutes);
 apiRouter.use('/settings', settingsRoutes);
+apiRouter.use('/admin', adminRouter);
 
 export default apiRouter;

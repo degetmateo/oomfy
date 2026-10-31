@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useUIStore } from '../../stores/uiStore.js';
@@ -6,8 +7,17 @@ import { useUIStore } from '../../stores/uiStore.js';
 export const MobileFloatingButton: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
   const { openPostModal } = useUIStore();
+  const location = useLocation();
 
   if (!isAuthenticated) return null;
+
+  const isHiddenRoute =
+    location.pathname.startsWith('/settings') ||
+    location.pathname.startsWith('/chats') ||
+    location.pathname.startsWith('/messages') ||
+    location.pathname.startsWith('/admin');
+
+  if (isHiddenRoute) return null;
 
   return (
     <button
@@ -19,4 +29,3 @@ export const MobileFloatingButton: React.FC = () => {
     </button>
   );
 };
-

@@ -66,19 +66,31 @@ export class PostgresChatRepository {
     return rows[0];
   }
 
-  public static async listChatMessages(chatId: string, limit: number = 50): Promise<any[]> {
+  public static async listChatMessages(chatId: string, limit: number = 30, olderId?: string): Promise<any[]> {
     const pool = PostgresPool.getInstance();
+    let beforeTimestamp: Date | null = null;
+    if (olderId) {
+      const msgRes = await pool.query('SELECT created_at FROM message WHERE id = $1', [olderId]);
+      if (msgRes.rows[0]?.created_at) {
+        beforeTimestamp = msgRes.rows[0].created_at;
+      }
+    }
+
     const q = `
-      SELECT m.id, m.chat_id, m.sender_id, m.content, m.status, m.created_at,
-             json_build_object('id', u.id, 'username', u.username, 'name', u.name, 'icon_url', i.url) as sender
-      FROM message m
-      JOIN oomfy u ON u.id = m.sender_id
-      LEFT JOIN icon i ON i.id = u.id
-      WHERE m.chat_id = $1
-      ORDER BY m.created_at ASC
-      LIMIT $2;
+      SELECT * FROM (
+        SELECT m.id, m.chat_id, m.sender_id, m.content, m.status, m.created_at,
+               json_build_object('id', u.id, 'username', u.username, 'name', u.name, 'icon_url', i.url) as sender
+        FROM message m
+        JOIN oomfy u ON u.id = m.sender_id
+        LEFT JOIN icon i ON i.id = u.id
+        WHERE m.chat_id = $1
+          AND ($3::timestamptz IS NULL OR m.created_at < $3)
+        ORDER BY m.created_at DESC
+        LIMIT $2
+      ) sub
+      ORDER BY sub.created_at ASC;
     `;
-    const { rows } = await pool.query(q, [chatId, limit]);
+    const { rows } = await pool.query(q, [chatId, limit, beforeTimestamp]);
     return rows;
   }
 

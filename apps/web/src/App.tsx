@@ -7,6 +7,7 @@ import { ExploreView } from './views/ExploreView.js';
 import { NotificationsView } from './views/NotificationsView.js';
 import { ChatsView } from './views/ChatsView.js';
 import { SettingsView } from './views/SettingsView.js';
+import { AdminView } from './views/AdminView.js';
 import { ProfileView } from './views/ProfileView.js';
 import { FollowListView } from './views/FollowListView.js';
 import { PublicationDetailView } from './views/PublicationDetailView.js';
@@ -69,6 +70,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <SettingsView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminView />
                 </ProtectedRoute>
               }
             />

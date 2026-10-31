@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Shield, Key, Laptop, Trash2, Smartphone, Bell, Eye, EyeOff } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
@@ -15,7 +16,23 @@ export const SettingsView: React.FC = () => {
   const dialog = useDialogStore();
   const { isInstallable, promptInstall, isInstalled } = usePwaStore();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<Tab>('account');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const validTabs: Tab[] = ['account', 'security', 'sessions', 'app'];
+  const tabParam = searchParams.get('tab') as Tab | null;
+  const [activeTab, setActiveTab] = useState<Tab>(
+    tabParam && validTabs.includes(tabParam) ? tabParam : 'account'
+  );
+
+  useEffect(() => {
+    if (tabParam && validTabs.includes(tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const selectTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   // Account tab state
   const [newUsername, setNewUsername] = useState(user?.username || '');
@@ -129,7 +146,7 @@ export const SettingsView: React.FC = () => {
       {/* Tabs */}
       <div className="flex border-b border-dark-border bg-dark-bg text-xs">
         <button
-          onClick={() => setActiveTab('account')}
+          onClick={() => selectTab('account')}
           className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${
             activeTab === 'account' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
           }`}
@@ -138,7 +155,7 @@ export const SettingsView: React.FC = () => {
           <span>Cuenta</span>
         </button>
         <button
-          onClick={() => setActiveTab('security')}
+          onClick={() => selectTab('security')}
           className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${
             activeTab === 'security' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
           }`}
@@ -147,7 +164,7 @@ export const SettingsView: React.FC = () => {
           <span>Seguridad</span>
         </button>
         <button
-          onClick={() => setActiveTab('sessions')}
+          onClick={() => selectTab('sessions')}
           className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${
             activeTab === 'sessions' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
           }`}
@@ -156,7 +173,7 @@ export const SettingsView: React.FC = () => {
           <span>Sesiones</span>
         </button>
         <button
-          onClick={() => setActiveTab('app')}
+          onClick={() => selectTab('app')}
           className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${
             activeTab === 'app' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
           }`}

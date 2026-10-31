@@ -39,7 +39,9 @@ export const HomeView: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen font-mono">
       <Header title="Inicio" />
-      <PublicationCreator onCreated={() => refetch()} />
+      <div className="hidden md:block">
+        <PublicationCreator onCreated={() => refetch()} />
+      </div>
 
       {isLoading ? (
         <div className="p-8 text-center text-xs text-dark-muted">Cargando publicaciones...</div>

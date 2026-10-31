@@ -345,3 +345,12 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
   - *Visibilidad de Contraseñas:* Botón de visualización con iconos `Eye` / `EyeOff` en todos los formularios de autenticación y ajustes.
   - *Recuperación de Cuenta:* Flujos completos para olvido de contraseña (correo con token hacia `/reset-password`) y recordatorio de usuario por correo.
   - *Resiliencia Multimedia y Paginación:* Límite estricto de hasta 4 elementos multimedia por publicación (1 GIF o 4 imágenes), supresión de placeholders rotos en `MediaGrid` mediante fallback reactivo y aislamiento de clave en `useInfiniteQuery` (`notifications-infinite-list`).
+- **Hito 24:** Panel de Administración, Moderación, Onboarding PWA, Paginación de Mensajes y Optimización de TL Móvil (Completado):
+  - *Popup y Guía PWA:* Onboarding al iniciar sesión invitando a instalar la PWA si la página no se ejecuta en standalone, vinculada a `/settings?tab=app`.
+  - *Saneamiento de Paginación en Seguidores/Siguiendo:* Búsqueda fidedigna de cursor temporal en `MongoFollowRepository` por la relación de seguimiento del usuario precedente en lugar de su `_id` de miembro.
+  - *Tipografía Inter en Mensajes:* Aplicación de `font-sans` en el input de redacción y en los cuerpos de mensaje.
+  - *Ergonomía de Vista Chat:* Encabezado único con interlocutor y botón de retorno; vista sin scroll de página y contenedor de mensajes con anclaje inferior (`mt-auto`) y paginación por lotes de 30 mensajes.
+  - *Creador de Publicaciones en TL Móvil:* Oculto en pantallas pequeñas (`hidden md:block`), preservando el botón flotante como canal principal.
+  - *Visibilidad Condicional del Botón Flotante:* Excluido de `/settings`, `/chats` y `/admin`.
+  - *Panel de Administración Exclusivo (`/admin`):* Módulo protegido para rol `admin` con métricas, kill-switches (creación de posts, edición de perfiles, registro de usuarios), suspensión/reactivación de miembros y eliminación de posts por moderación.
+  - *Ajuste de Imagen Única:* Visualización no recortada con ancho natural adaptable y `object-contain` en `MediaGrid`.

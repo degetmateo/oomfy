@@ -467,3 +467,16 @@ pnpm test:coverage
   - Botones conmutadores de visibilidad (`Eye` / `EyeOff`) en todos los campos de contraseña.
   - Recuperación de cuenta: restablecimiento seguro de contraseña por correo con token temporal (`/reset-password`) y recordatorio de nombre de usuario por correo.
   - Saneamiento multimedia: cuota máxima de 4 adjuntos / 1 GIF por publicación, fallback silencioso de imágenes fallidas en `MediaGrid` y clave aislada `['notifications-infinite-list']` en TanStack Query.
+- [x] **Fase 16: Moderación y Panel Admin, PWA Onboarding, Pulido de Chat & Paginación Social:**
+  - Diálogo retro modal de onboarding a PWA tras iniciar sesión con redirección directa a la guía de instalación en `/settings?tab=app`, omitido automáticamente si la web ya corre en modo standalone.
+  - Resolución del bug de paginación infinita en Seguidores y Siguiendo (`MongoFollowRepository`), consultando la relación temporal exacta por cursor `created_at` del usuario paginado y deduplicación reactiva en el cliente.
+  - Tipografía estándar `Inter` (`font-sans`) aplicada uniformemente en el campo de redacción de mensajes directos y en las burbujas de texto del chat.
+  - Encabezado unificado de chat con el usuario destinatario y botón de retroceso (`<ArrowLeft />`), erradicando duplicidad de barras de navegación.
+  - Contenedor de chat optimizado a la altura del viewport (`overflow-hidden`) con desplazamiento vertical confinado estrictamente al historial de mensajes.
+  - Disposición de mensajes anclados al fondo (`mt-auto`) con crecimiento ascendente progresivo y paginación bidireccional de historial con cursor temporal en PostgreSQL (`SELECT ... ORDER BY created_at DESC LIMIT $2`).
+  - Ocultamiento de la zona de redacción en timeline en dispositivos móviles (`hidden md:block`), canalizando la creación de posts exclusivamente mediante el botón flotante móvil.
+  - Supresión preventiva del botón flotante en vistas de Configuración, Mensajes y Panel de Administración (`/settings`, `/chats`, `/admin`).
+  - Pantalla exclusiva de Administración (`/admin` / `AdminView`) con pestañas retro pixel de Métricas, Ajustes Globales, Gestión de Usuarios y Moderación de Publicaciones, respaldada por `AdminGuard` y suite de pruebas en Vitest.
+  - Kill-switches globales: desactivación temporal de creación de publicaciones, bloqueo de edición de perfiles y suspensión de nuevos registros.
+  - Acciones de moderación: suspensión y reactivación de cuentas de usuario, y eliminación forzada de publicaciones por administradores.
+  - Ajuste ergonómico para publicaciones con imagen única en `MediaGrid`: ancho acoplado naturalmente con `object-contain` y altura máxima para evitar recortes forzados por aspect-ratio.

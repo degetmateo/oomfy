@@ -17,14 +17,34 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images }) => {
   if (validImages.length === 0) return null;
 
   const count = validImages.length;
-  const gridClass =
-    count === 1
-      ? 'grid-cols-1'
-      : count === 2
-      ? 'grid-cols-2'
-      : count === 3
-      ? 'grid-cols-2'
-      : 'grid-cols-2';
+
+  if (count === 1) {
+    const singleImg = validImages[0];
+    return (
+      <>
+        <div className="mt-3 flex justify-start">
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedImage(singleImg.url);
+            }}
+            className="relative overflow-hidden bg-dark-card cursor-pointer group border border-dark-border max-w-full inline-block"
+          >
+            <img
+              src={singleImg.url}
+              alt="Adjunto de publicación"
+              onError={() => setFailedUrls((prev) => ({ ...prev, [singleImg.url]: true }))}
+              className="max-w-full w-auto max-h-[450px] object-contain group-hover:opacity-90 transition-opacity"
+              loading="lazy"
+            />
+          </div>
+        </div>
+        <ImageViewerModal imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />
+      </>
+    );
+  }
+
+  const gridClass = count === 2 ? 'grid-cols-2' : count === 3 ? 'grid-cols-2' : 'grid-cols-2';
 
   return (
     <>
