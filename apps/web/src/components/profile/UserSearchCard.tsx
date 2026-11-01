@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicUser } from '@oomfy/shared';
 import { PixelBadge } from '../icons/PixelBadge.js';
@@ -14,8 +14,12 @@ interface Props {
 export const UserSearchCard: React.FC<Props> = ({ user }) => {
   const { isAuthenticated, user: currentUser } = useAuthStore();
   const dialog = useDialogStore();
-  const [following, setFollowing] = useState(user.is_following || false);
+  const [following, setFollowing] = useState(Boolean(user.is_following));
   const isSelf = currentUser?.id === user.id || currentUser?.username === user.username;
+
+  useEffect(() => {
+    setFollowing(Boolean(user.is_following));
+  }, [user.is_following]);
 
   const handleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation();

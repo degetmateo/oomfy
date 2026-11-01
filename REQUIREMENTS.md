@@ -354,3 +354,22 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
   - *Visibilidad Condicional del Botón Flotante:* Excluido de `/settings`, `/chats` y `/admin`.
   - *Panel de Administración Exclusivo (`/admin`):* Módulo protegido para rol `admin` con métricas, kill-switches (creación de posts, edición de perfiles, registro de usuarios), suspensión/reactivación de miembros y eliminación de posts por moderación.
   - *Ajuste de Imagen Única:* Visualización no recortada con ancho natural adaptable y `object-contain` en `MediaGrid`.
+- **Hito 25:** Identidad Visual Oficial, Control de Sesiones en Administración, Optimización Batch de Rendimiento y URLs Dinámicas de Medios (Completado):
+  - *Identidad de Marca y PWA:* Incorporación de los logotipos oficiales en `apps/web/public/assets/`, favicon en `index.html`, icono de acceso directo para la PWA instalada en `manifest.webmanifest` y soporte gráfico en `<PixelLogo />`.
+  - *Saneamiento de Renderizado de Logo:* Eliminación de `image-rendering: pixelated` y estilos de botón en `<PixelLogo />`, habilitando renderizado anti-aliasing de alta resolución para que el isotipo mantenga sus bordes y curvas íntegros sin recortes.
+  - *Ajustes Globales y Revocación de Sesiones:*
+    - Inclusión de la configuración `disable_signins` en `SystemSettings` y validación en `SigninService` para bloquear logins de usuarios regulares durante mantenimientos.
+    - Revocación global de sesiones (`POST /api/admin/sessions/revoke-all` y `AdminSessionService`) para invalidar simultáneamente todas las sesiones activas en PostgreSQL.
+    - Revocación puntual de sesiones por usuario (`POST /api/admin/users/:id/revoke-sessions`) con confirmación modal e integración en `AdminUsersTab` y `AdminUserRow`.
+  - *Optimización de Consultas y Erradicación del Problema N+1:*
+    - Reemplazo de los bucles secuenciales de búsqueda en `FollowService` por consultas batch en MongoDB (`findManyByIds` y `filterFollowing`), reduciendo el número de round-trips de red de 40 a solo 2.
+    - Creación de índices compuestos en MongoDB mediante `MongoMigrationRunner` para consultas frecuentes sobre `publications` y `upvotes`.
+  - *Saneamiento de Estado `is_following` y Paginación por Offset:*
+    - Normalización de identificadores BSON UUID a cadenas de texto (`String(id)`) en `FollowService` y `MongoFollowRepository`, asegurando el emparejamiento exacto en el conjunto `followingSet` y resolviendo la visualización errónea de "Seguir" en usuarios que ya son seguidos.
+    - Sincronización reactiva del botón de seguimiento en `UserSearchCard` ante cambios de propiedades.
+    - Paginación secuencial por `offset` en `FollowListView`, `FollowController` y `MongoFollowRepository`, erradicando el bloqueo de carga de páginas sucesivas causado por registros con marcas de tiempo idénticas heredadas de migraciones batch.
+  - *URLs Dinámicas para Fotos de Perfil y Banners:*
+    - Rutas en backend `/api/members/:username/icon` y `/api/members/:username/banner` que redirigen con código 302 y cabecera `Cache-Control: public, max-age=300`.
+    - Caché en memoria en `ProfileService` para minimizar llamadas a la base de datos e invalidación inmediata al editar perfil.
+    - Mapeo dinámico en `PublicationMapper`, garantizando que las publicaciones no queden desactualizadas ni requieran migraciones masivas en base de datos cuando un autor modifique su foto o portada.
+    - Utilidad cliente `resolveMediaUrl` con reglas de redirección en `apps/web/public/_redirects`.

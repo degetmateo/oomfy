@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Ban, CheckCircle } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { ApiClient } from '../../services/api.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 import { AdminUserSummary } from '@oomfy/shared';
-import { PixelBadge } from '../icons/PixelBadge.js';
+import { AdminUserRow } from './AdminUserRow.js';
 
 export const AdminUsersTab: React.FC = () => {
   const queryClient = useQueryClient();
@@ -23,6 +23,12 @@ export const AdminUsersTab: React.FC = () => {
     onError: (err: Error) => dialog.alert(err.message, 'Error al cambiar estado'),
   });
 
+  const revokeMutation = useMutation({
+    mutationFn: (userId: string) => ApiClient.post(`/admin/users/${userId}/revoke-sessions`),
+    onSuccess: () => dialog.alert('Se han cerrado las sesiones activas del usuario.', 'Sesiones revocadas'),
+    onError: (err: Error) => dialog.alert(err.message, 'Error al cerrar sesiones'),
+  });
+
   const handleToggleStatus = async (user: AdminUserSummary) => {
     const isSuspending = user.status !== 'suspended';
     const confirmed = await dialog.confirm({
@@ -33,6 +39,18 @@ export const AdminUsersTab: React.FC = () => {
     });
     if (confirmed) {
       statusMutation.mutate({ id: user.id, status: isSuspending ? 'suspended' : 'active' });
+    }
+  };
+
+  const handleRevokeSessions = async (user: AdminUserSummary) => {
+    const confirmed = await dialog.confirm({
+      title: 'Cerrar sesiones de usuario',
+      message: `¿Estás seguro de que deseas cerrar todas las sesiones activas de @${user.username}?`,
+      isDanger: true,
+      confirmText: 'Cerrar sesiones',
+    });
+    if (confirmed) {
+      revokeMutation.mutate(user.id);
     }
   };
 
@@ -56,34 +74,12 @@ export const AdminUsersTab: React.FC = () => {
           <div className="p-8 text-center text-xs text-dark-muted">Buscando usuarios...</div>
         ) : users.length > 0 ? (
           users.map((u) => (
-            <div key={u.id} className="p-3 flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-xs font-bold text-white truncate">{u.name}</span>
-                  <span className="text-[11px] text-dark-muted">@{u.username}</span>
-                  <PixelBadge role={u.role} />
-                  {u.status === 'suspended' && (
-                    <span className="px-1 text-[9px] bg-red-500/20 text-red-400 border border-red-500/40">
-                      SUSPENDIDO
-                    </span>
-                  )}
-                </div>
-                <p className="text-[10px] text-dark-muted truncate mt-0.5">{u.email}</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleToggleStatus(u)}
-                className={`px-2.5 py-1 text-[11px] font-bold border pixel-button flex items-center gap-1 ${
-                  u.status === 'suspended'
-                    ? 'border-brand-500 text-brand-400 hover:bg-brand-500 hover:text-black'
-                    : 'border-red-500/50 text-red-400 hover:bg-red-500 hover:text-black'
-                }`}
-              >
-                {u.status === 'suspended' ? <CheckCircle className="w-3 h-3" /> : <Ban className="w-3 h-3" />}
-                <span>{u.status === 'suspended' ? 'Reactivar' : 'Suspender'}</span>
-              </button>
-            </div>
+            <AdminUserRow
+              key={u.id}
+              user={u}
+              onToggleStatus={handleToggleStatus}
+              onRevokeSessions={handleRevokeSessions}
+            />
           ))
         ) : (
           <div className="p-8 text-center text-xs text-dark-muted">No se encontraron usuarios.</div>
@@ -92,4 +88,3 @@ export const AdminUsersTab: React.FC = () => {
     </div>
   );
 };
-

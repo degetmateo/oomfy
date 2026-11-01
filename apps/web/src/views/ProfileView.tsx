@@ -6,6 +6,7 @@ import { PublicationCard } from '../components/publication/PublicationCard.js';
 import { ProfileInfo } from '../components/profile/ProfileInfo.js';
 import { EditProfileModal } from '../components/profile/EditProfileModal.js';
 import { ImageViewerModal } from '../components/common/ImageViewerModal.js';
+import { resolveMediaUrl } from '../utils/mediaUrl.js';
 import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { PublicUser, Publication } from '@oomfy/shared';
@@ -83,7 +84,13 @@ export const ProfileView: React.FC = () => {
         }`}
         title={user?.banner_url ? 'Ampliar portada' : undefined}
       >
-        {user?.banner_url && <img src={user.banner_url} alt="Banner" className="w-full h-full object-cover" />}
+        {user?.banner_url && (
+          <img
+            src={resolveMediaUrl(user.banner_url) || ''}
+            alt="Banner"
+            className="w-full h-full object-cover"
+          />
+        )}
       </div>
 
       {user && (

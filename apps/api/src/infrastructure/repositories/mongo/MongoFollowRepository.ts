@@ -8,8 +8,8 @@ export class MongoFollowRepository {
   }
 
   private static idVariants(id: string): any[] {
-    const list: any[] = [id];
-    const mongoId = MongoIdHelper.toMongoId(id);
+    const list: any[] = [String(id)];
+    const mongoId = MongoIdHelper.toMongoId(String(id));
     if (mongoId && mongoId !== id) list.push(mongoId);
     return list;
   }
@@ -69,10 +69,43 @@ export class MongoFollowRepository {
     return Array.from(new Set(ids));
   }
 
+  public static async filterFollowing(viewerId: string, candidateIds: string[]): Promise<Set<string>> {
+    if (!viewerId || candidateIds.length === 0) return new Set();
+    const col = this.getCollection();
+    const viewerVariants = this.idVariants(viewerId);
+    const candidateVariants = candidateIds.flatMap((id) => this.idVariants(id));
+
+    const docs = await col
+      .find({
+        $or: [
+          { follower_id: { $in: viewerVariants } },
+          { 'follower.id': { $in: viewerVariants } },
+        ],
+        $and: [
+          {
+            $or: [
+              { followed_id: { $in: candidateVariants } },
+              { 'followed.id': { $in: candidateVariants } },
+            ],
+          },
+        ],
+      })
+      .project({ followed_id: 1, 'followed.id': 1 })
+      .toArray();
+
+    const set = new Set<string>();
+    for (const d of docs) {
+      if (d.followed_id) set.add(String(d.followed_id));
+      if (d.followed?.id) set.add(String(d.followed.id));
+    }
+    return set;
+  }
+
   public static async getFollowers(
     targetId: string,
     followedUsername: string,
     limit: number = 20,
+    offset: number = 0,
     olderId?: string
   ): Promise<FollowRelation[]> {
     const col = this.getCollection();
@@ -85,7 +118,7 @@ export class MongoFollowRepository {
       ],
     };
 
-    if (olderId) {
+    if (olderId && offset === 0) {
       const olderVariants = this.idVariants(olderId);
       const olderDoc = await col.findOne({
         $and: [
@@ -114,7 +147,8 @@ export class MongoFollowRepository {
 
     return col
       .find(query)
-      .sort({ created_at: -1 })
+      .sort({ created_at: -1, _id: -1 })
+      .skip(offset)
       .limit(limit)
       .toArray();
   }
@@ -123,6 +157,7 @@ export class MongoFollowRepository {
     targetId: string,
     followerUsername: string,
     limit: number = 20,
+    offset: number = 0,
     olderId?: string
   ): Promise<FollowRelation[]> {
     const col = this.getCollection();
@@ -135,7 +170,7 @@ export class MongoFollowRepository {
       ],
     };
 
-    if (olderId) {
+    if (olderId && offset === 0) {
       const olderVariants = this.idVariants(olderId);
       const olderDoc = await col.findOne({
         $and: [
@@ -164,9 +199,9 @@ export class MongoFollowRepository {
 
     return col
       .find(query)
-      .sort({ created_at: -1 })
+      .sort({ created_at: -1, _id: -1 })
+      .skip(offset)
       .limit(limit)
       .toArray();
   }
 }
-

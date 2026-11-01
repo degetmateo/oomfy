@@ -65,6 +65,26 @@ export class MongoMemberRepository {
     return doc ? this.toDomain(doc) : null;
   }
 
+  public static async findManyByIds(ids: string[]): Promise<PublicUser[]> {
+    if (ids.length === 0) return [];
+    const col = this.getCollection();
+    const allFilters = ids.flatMap((id) => MongoIdHelper.idFilter(id).$or);
+    const docs = await col.find({ $or: allFilters }).toArray();
+    return docs.map(this.toDomain);
+  }
+
+  public static async getRawMediaUrls(username: string): Promise<{ icon_url: string | null; banner_url: string | null }> {
+    const col = this.getCollection();
+    const doc = await col.findOne(
+      { username: { $regex: new RegExp(`^${username}$`, 'i') } },
+      { projection: { icon_url: 1, 'icon.url': 1, banner_url: 1, 'banner.url': 1 } }
+    );
+    return {
+      icon_url: doc?.icon_url || doc?.icon?.url || null,
+      banner_url: doc?.banner_url || doc?.banner?.url || null,
+    };
+  }
+
   public static async search(term: string, limit: number = 20): Promise<PublicUser[]> {
     const col = this.getCollection();
     const regex = new RegExp(term, 'i');

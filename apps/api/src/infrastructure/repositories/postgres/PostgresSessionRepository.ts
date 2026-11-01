@@ -61,5 +61,21 @@ export class PostgresSessionRepository {
       );
     }
   }
+
+  public static async revokeAllSessions(preserveToken?: string): Promise<number> {
+    const pool = PostgresPool.getInstance();
+    if (preserveToken) {
+      const { rowCount } = await pool.query(`DELETE FROM session WHERE token <> $1`, [preserveToken]);
+      return rowCount ?? 0;
+    }
+    const { rowCount } = await pool.query(`DELETE FROM session`);
+    return rowCount ?? 0;
+  }
+
+  public static async revokeUserSessions(userId: string): Promise<number> {
+    const pool = PostgresPool.getInstance();
+    const { rowCount } = await pool.query(`DELETE FROM session WHERE user_id = $1`, [userId]);
+    return rowCount ?? 0;
+  }
 }
 

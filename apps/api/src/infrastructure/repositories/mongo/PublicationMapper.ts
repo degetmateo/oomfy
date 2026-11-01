@@ -5,15 +5,19 @@ export class PublicationMapper {
     const rawId = doc._id ? doc._id.toString() : doc.id;
     const authorRawId = doc.author?._id ? doc.author._id.toString() : doc.author?.id;
 
+    const authorUsername = doc.author?.username || 'anonymous';
+    const dynamicIcon = authorUsername !== 'anonymous' ? `/api/members/${authorUsername}/icon` : null;
+    const dynamicBanner = authorUsername !== 'anonymous' ? `/api/members/${authorUsername}/banner` : null;
+
     return {
       id: rawId,
       author: {
         id: authorRawId || '',
-        username: doc.author?.username || 'anonymous',
+        username: authorUsername,
         name: doc.author?.name || doc.author?.username || 'Anonymous',
         role: doc.author?.role || 'member',
-        icon_url: doc.author?.icon_url || doc.author?.icon?.url || null,
-        banner_url: doc.author?.banner_url || doc.author?.banner?.url || null,
+        icon_url: dynamicIcon || doc.author?.icon_url || doc.author?.icon?.url || null,
+        banner_url: dynamicBanner || doc.author?.banner_url || doc.author?.banner?.url || null,
       },
       type: doc.type || 'default',
       content: doc.content || null,

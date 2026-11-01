@@ -81,51 +81,79 @@ export class FollowService {
   public static async getFollowers(
     username: string,
     limit: number = 20,
+    offset: number = 0,
     olderId?: string,
     viewerId?: string
   ): Promise<any[]> {
     const target = await MongoMemberRepository.findByUsername(username);
     if (!target) throw new NotFoundError('Usuario no encontrado.');
 
-    const relations = await MongoFollowRepository.getFollowers(target.id, target.username, limit, olderId);
-    const userIds = relations.map((r) => r.follower_id || r.follower?.id).filter(Boolean);
-    const users: any[] = [];
-
-    for (const uid of userIds) {
-      const u = await MongoMemberRepository.findById(uid);
-      if (u) {
-        if (viewerId) {
-          u.is_following = await MongoFollowRepository.isFollowing(viewerId, u.id);
-        }
-        users.push(u);
-      }
-    }
-    return users;
+    const relations = await MongoFollowRepository.getFollowers(target.id, target.username, limit, offset, olderId);
+    return this.decorateUsers(relations, 'follower', viewerId);
   }
 
   public static async getFollowed(
     username: string,
     limit: number = 20,
+    offset: number = 0,
     olderId?: string,
     viewerId?: string
   ): Promise<any[]> {
     const target = await MongoMemberRepository.findByUsername(username);
     if (!target) throw new NotFoundError('Usuario no encontrado.');
 
-    const relations = await MongoFollowRepository.getFollowed(target.id, target.username, limit, olderId);
-    const userIds = relations.map((r) => r.followed_id || r.followed?.id).filter(Boolean);
-    const users: any[] = [];
+    const relations = await MongoFollowRepository.getFollowed(target.id, target.username, limit, offset, olderId);
+    return this.decorateUsers(relations, 'followed', viewerId);
+  }
 
-    for (const uid of userIds) {
-      const u = await MongoMemberRepository.findById(uid);
+  private static async decorateUsers(
+    relations: any[],
+    targetKey: 'follower' | 'followed',
+    viewerId?: string
+  ): Promise<any[]> {
+    if (relations.length === 0) return [];
+
+    const userIds = relations
+      .map((r) => {
+        const raw = r[`${targetKey}_id`] || r[targetKey]?.id;
+        return raw ? String(raw) : null;
+      })
+      .filter(Boolean) as string[];
+
+    const members = await MongoMemberRepository.findManyByIds(userIds);
+    const memberMap = new Map<string, any>(members.map((m) => [String(m.id), m]));
+    const followingSet = viewerId
+      ? await MongoFollowRepository.filterFollowing(viewerId, userIds)
+      : new Set<string>();
+
+    const users: any[] = [];
+    for (const r of relations) {
+      const rawUid = r[`${targetKey}_id`] || r[targetKey]?.id;
+      const uid = rawUid ? String(rawUid) : '';
+      const fallback = r[targetKey];
+      let u = memberMap.get(uid);
+      if (!u && fallback) {
+        u = {
+          id: String(fallback.id || uid),
+          username: fallback.username,
+          name: fallback.name,
+          role: fallback.role || 'member',
+          icon_url: `/api/members/${fallback.username}/icon`,
+          banner_url: `/api/members/${fallback.username}/banner`,
+          follower_count: 0,
+          followed_count: 0,
+          publication_count: 0,
+        };
+      }
       if (u) {
-        if (viewerId) {
-          u.is_following = await MongoFollowRepository.isFollowing(viewerId, u.id);
-        }
-        users.push(u);
+        const uIdStr = String(u.id);
+        users.push({
+          ...u,
+          id: uIdStr,
+          is_following: viewerId ? followingSet.has(uIdStr) : false,
+        });
       }
     }
     return users;
   }
 }
-

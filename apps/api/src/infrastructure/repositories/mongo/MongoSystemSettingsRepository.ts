@@ -15,6 +15,7 @@ export class MongoSystemSettingsRepository {
       disable_post_creation: Boolean(doc?.disable_post_creation),
       disable_profile_editing: Boolean(doc?.disable_profile_editing),
       disable_signups: Boolean(doc?.disable_signups),
+      disable_signins: Boolean(doc?.disable_signins),
     };
   }
 

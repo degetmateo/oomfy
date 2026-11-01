@@ -4,6 +4,7 @@ export interface SystemSettings {
   disable_post_creation: boolean;
   disable_profile_editing: boolean;
   disable_signups: boolean;
+  disable_signins: boolean;
 }
 
 export interface AdminUserSummary {

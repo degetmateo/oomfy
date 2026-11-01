@@ -6,6 +6,7 @@ import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/M
 import { PasswordHasher } from '../../infrastructure/adapters/PasswordHasher.js';
 import { TokenService } from '../../infrastructure/adapters/TokenService.js';
 import { UnauthorizedError, ForbiddenError } from '../../errors/AppError.js';
+import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 
 export class SigninService {
   public static async execute(input: SigninInput, ip: string): Promise<{
@@ -29,6 +30,11 @@ export class SigninService {
 
     if (user.status === 'suspended') {
       throw new ForbiddenError('Esta cuenta ha sido suspendida por incumplimiento de términos.');
+    }
+
+    const settings = await SystemSettingsService.getSettings();
+    if (settings.disable_signins && user.role !== 'admin') {
+      throw new ForbiddenError('El inicio de sesión de usuarios está temporalmente deshabilitado por mantenimiento.');
     }
 
     const tokenPayload = {

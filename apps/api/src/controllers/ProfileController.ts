@@ -33,5 +33,33 @@ export class ProfileController {
       next(err);
     }
   }
+
+  public static async getUserIcon(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const iconUrl = await ProfileService.getUserIcon(req.params.username);
+      if (!iconUrl) {
+        res.status(404).send('Icon not found');
+        return;
+      }
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.redirect(302, iconUrl);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public static async getUserBanner(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const bannerUrl = await ProfileService.getUserBanner(req.params.username);
+      if (!bannerUrl) {
+        res.status(404).send('Banner not found');
+        return;
+      }
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.redirect(302, bannerUrl);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 

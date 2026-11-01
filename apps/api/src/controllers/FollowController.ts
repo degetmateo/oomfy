@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { FollowService } from '../services/follows/FollowService.js';
-import { MongoFollowRepository } from '../infrastructure/repositories/mongo/MongoFollowRepository.js';
 
 export class FollowController {
   public static async follow(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -27,9 +26,10 @@ export class FollowController {
     try {
       const { username } = req.params;
       const limit = Number(req.query.limit) || 20;
+      const offset = Number(req.query.offset) || 0;
       const olderId = req.query.older_id as string | undefined;
       const currentUserId = req.user?.id;
-      const followers = await FollowService.getFollowers(username, limit, olderId, currentUserId);
+      const followers = await FollowService.getFollowers(username, limit, offset, olderId, currentUserId);
       res.status(200).json({ success: true, data: followers });
     } catch (err) {
       next(err);
@@ -40,13 +40,13 @@ export class FollowController {
     try {
       const { username } = req.params;
       const limit = Number(req.query.limit) || 20;
+      const offset = Number(req.query.offset) || 0;
       const olderId = req.query.older_id as string | undefined;
       const currentUserId = req.user?.id;
-      const followed = await FollowService.getFollowed(username, limit, olderId, currentUserId);
+      const followed = await FollowService.getFollowed(username, limit, offset, olderId, currentUserId);
       res.status(200).json({ success: true, data: followed });
     } catch (err) {
       next(err);
     }
   }
 }
-

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Header } from '../components/layout/Header.js';
@@ -12,10 +12,9 @@ export const FollowListView: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isFollowersRoute = location.pathname.endsWith('/followers');
-  const [activeTab, setActiveTab] = useState<'followers' | 'following'>(
-    isFollowersRoute ? 'followers' : 'following'
-  );
+  const activeTab: 'followers' | 'following' = location.pathname.endsWith('/followers')
+    ? 'followers'
+    : 'following';
 
   const {
     data,
@@ -25,16 +24,16 @@ export const FollowListView: React.FC = () => {
     fetchNextPage,
   } = useInfiniteQuery<{ success: boolean; data: PublicUser[] }>({
     queryKey: ['user-follows', username, activeTab],
-    queryFn: ({ pageParam }: { pageParam: any }) => {
+    queryFn: ({ pageParam = 0 }) => {
       const p = new URLSearchParams();
       p.append('limit', '20');
-      if (pageParam) p.append('older_id', String(pageParam));
+      p.append('offset', String(pageParam));
       return ApiClient.get(`/follows/${username}/${activeTab}?${p.toString()}`);
     },
-    initialPageParam: null as string | null,
-    getNextPageParam: (lastPage) => {
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
       const users = lastPage?.data || [];
-      return users.length >= 20 ? users[users.length - 1]?.id : undefined;
+      return users.length >= 20 ? allPages.length * 20 : undefined;
     },
     enabled: Boolean(username),
   });
@@ -50,7 +49,6 @@ export const FollowListView: React.FC = () => {
   );
 
   const handleTabChange = (tab: 'followers' | 'following') => {
-    setActiveTab(tab);
     navigate(`/${username}/${tab}`, { replace: true });
   };
 
@@ -107,4 +105,3 @@ export const FollowListView: React.FC = () => {
     </div>
   );
 };
-

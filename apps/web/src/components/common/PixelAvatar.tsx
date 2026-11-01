@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { resolveMediaUrl } from '../../utils/mediaUrl.js';
 
 interface Props {
   src?: string | null;
@@ -17,15 +18,16 @@ export const PixelAvatar: React.FC<Props> = ({
 }) => {
   const [hasError, setHasError] = useState(false);
   const initials = (username || 'OM').slice(0, 2).toUpperCase();
+  const resolvedSrc = resolveMediaUrl(src);
 
   return (
     <div
       onClick={onClick}
       className={`${sizeClass} border border-dark-border bg-dark-bg flex items-center justify-center font-bold text-xs text-brand-400 flex-shrink-0 overflow-hidden select-none ${className}`}
     >
-      {!hasError && src ? (
+      {!hasError && resolvedSrc ? (
         <img
-          src={src}
+          src={resolvedSrc}
           alt={username}
           onError={() => setHasError(true)}
           className="w-full h-full object-cover"

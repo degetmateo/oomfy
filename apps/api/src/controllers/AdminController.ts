@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { SystemSettingsService } from '../services/admin/SystemSettingsService.js';
 import { AdminUserService } from '../services/admin/AdminUserService.js';
 import { AdminStatsService } from '../services/admin/AdminStatsService.js';
+import { AdminSessionService } from '../services/admin/AdminSessionService.js';
 import { DeletePublicationService } from '../services/publications/DeletePublicationService.js';
 
 export class AdminController {
@@ -74,6 +75,25 @@ export class AdminController {
     try {
       const stats = await AdminStatsService.getStats();
       res.status(200).json({ success: true, data: stats });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public static async revokeAllSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const preserveToken = req.cookies?.refresh_token || req.cookies?.access_token;
+      const result = await AdminSessionService.revokeAllSessions(preserveToken);
+      res.status(200).json({ success: true, ...result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public static async revokeUserSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AdminSessionService.revokeUserSessions(req.params.id);
+      res.status(200).json({ success: true, ...result });
     } catch (err) {
       next(err);
     }

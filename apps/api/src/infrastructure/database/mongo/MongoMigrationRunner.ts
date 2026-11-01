@@ -25,7 +25,9 @@ export class MongoMigrationRunner {
     // 1. Colección publications
     const publications = db.collection('publications');
     await this.safeCreateIndex(publications, { created_at: -1 });
-    await this.safeCreateIndex(publications, { 'author.username': 1 });
+    await this.safeCreateIndex(publications, { type: 1, created_at: -1 });
+    await this.safeCreateIndex(publications, { 'author.username': 1, created_at: -1 });
+    await this.safeCreateIndex(publications, { 'author.id': 1, type: 1 });
     await this.safeCreateIndex(publications, { parent_publication_id: 1 });
     await this.safeCreateIndex(publications, { root_publication_id: 1 });
     await this.safeCreateIndex(publications, { type: 1 });
@@ -41,7 +43,12 @@ export class MongoMigrationRunner {
     await this.safeCreateIndex(follows, { 'follower.username': 1 });
     await this.safeCreateIndex(follows, { 'followed.username': 1 });
 
-    // 4. Colección notifications
+    // 4. Colección upvotes
+    const upvotes = db.collection('upvotes');
+    await this.safeCreateIndex(upvotes, { user_id: 1, publication_id: 1 });
+    await this.safeCreateIndex(upvotes, { publication_id: 1 });
+
+    // 5. Colección notifications
     const notifications = db.collection('notifications');
     await this.safeCreateIndex(notifications, { recipient_id: 1, created_at: -1 });
     await this.safeCreateIndex(notifications, { recipient_id: 1, status: 1 });

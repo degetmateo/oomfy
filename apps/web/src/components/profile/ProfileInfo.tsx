@@ -4,6 +4,7 @@ import { Calendar, MapPin, Link as LinkIcon } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PixelBadge } from '../icons/PixelBadge.js';
 import { FormattedText } from '../common/FormattedText.js';
+import { resolveMediaUrl } from '../../utils/mediaUrl.js';
 import { PublicUser } from '@oomfy/shared';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
@@ -56,7 +57,7 @@ export const ProfileInfo: React.FC<Props> = ({ user, isOwnProfile = false, onEdi
           title={user.icon_url ? 'Ampliar foto de perfil' : undefined}
         >
           {user.icon_url ? (
-            <img src={user.icon_url} alt={user.username} className="w-full h-full object-cover" />
+            <img src={resolveMediaUrl(user.icon_url) || ''} alt={user.username} className="w-full h-full object-cover" />
           ) : (
             user.username.slice(0, 2).toUpperCase()
           )}

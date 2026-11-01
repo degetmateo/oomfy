@@ -17,3 +17,6 @@ adminRouter.put('/users/:id/role', AdminController.setUserRole);
 adminRouter.delete('/publications/:id', AdminController.deletePublication);
 adminRouter.get('/stats', AdminController.getStats);
 
+adminRouter.post('/sessions/revoke-all', AdminController.revokeAllSessions);
+adminRouter.post('/users/:id/revoke-sessions', AdminController.revokeUserSessions);
+
