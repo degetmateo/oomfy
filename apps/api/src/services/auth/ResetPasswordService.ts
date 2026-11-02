@@ -22,7 +22,7 @@ export class ResetPasswordService {
     const passwordHash = await PasswordHasher.hash(newPassword);
 
     await pool.query(
-      `UPDATE oomfy SET password = $1, updated_at = NOW() WHERE id = $2`,
+      `UPDATE members SET password = $1, updated_at = NOW() WHERE id = $2`,
       [passwordHash, userId]
     );
 

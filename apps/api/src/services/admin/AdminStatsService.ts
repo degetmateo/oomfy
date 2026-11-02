@@ -11,7 +11,7 @@ export class AdminStatsService {
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status = 'active')::int AS active,
         COUNT(*) FILTER (WHERE status = 'suspended')::int AS suspended
-      FROM oomfy;
+      FROM members;
     `);
 
     const userStats = userStatsRes.rows[0] || { total: 0, active: 0, suspended: 0 };

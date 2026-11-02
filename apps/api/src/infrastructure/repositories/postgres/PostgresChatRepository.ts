@@ -41,7 +41,7 @@ export class PostgresChatRepository {
         (SELECT json_agg(json_build_object(
           'id', p.id, 'user_id', p.user_id, 'username', u.username, 'name', u.name, 'icon_url', i.url
         )) FROM participant p
-           JOIN oomfy u ON u.id = p.user_id
+           JOIN members u ON u.id = p.user_id
            LEFT JOIN icon i ON i.id = u.id
            WHERE p.chat_id = c.id) AS participants,
         (SELECT json_build_object('id', m.id, 'content', m.content, 'created_at', m.created_at, 'sender_id', m.sender_id)
@@ -81,7 +81,7 @@ export class PostgresChatRepository {
         SELECT m.id, m.chat_id, m.sender_id, m.content, m.status, m.created_at,
                json_build_object('id', u.id, 'username', u.username, 'name', u.name, 'icon_url', i.url) as sender
         FROM message m
-        JOIN oomfy u ON u.id = m.sender_id
+        JOIN members u ON u.id = m.sender_id
         LEFT JOIN icon i ON i.id = u.id
         WHERE m.chat_id = $1
           AND ($3::timestamptz IS NULL OR m.created_at < $3)

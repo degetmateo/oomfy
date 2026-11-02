@@ -47,6 +47,14 @@ describe('Publications API Endpoints', () => {
     expect(Array.isArray(res.body.data.thread)).toBe(true);
     expect(Array.isArray(res.body.data.ancestors)).toBe(true);
     expect(Array.isArray(res.body.data.replies)).toBe(true);
+    expect(typeof res.body.data.total_ancestors).toBe('number');
+    expect(typeof res.body.data.has_more_ancestors).toBe('boolean');
+
+    const ancRes = await request(server.app).get(`/api/publications/${pubId}/ancestors`);
+    expect(ancRes.status).toBe(200);
+    expect(ancRes.body.success).toBe(true);
+    expect(Array.isArray(ancRes.body.data.ancestors)).toBe(true);
+    expect(typeof ancRes.body.data.has_more).toBe('boolean');
   });
 
   it('UrlPreviewAdapter should correctly extract and identify URLs', async () => {

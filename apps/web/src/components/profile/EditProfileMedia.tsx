@@ -1,6 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Camera, X } from 'lucide-react';
 import { resolveMediaUrl } from '../../utils/mediaUrl.js';
+import { ImageCropperModal } from '../common/ImageCropperModal.js';
 
 interface Props {
   username: string;
@@ -21,9 +22,23 @@ export const EditProfileMedia: React.FC<Props> = ({
 }) => {
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [cropTarget, setCropTarget] = useState<'banner' | 'icon' | null>(null);
 
   const resolvedBanner = bannerPreview?.startsWith('blob:') ? bannerPreview : resolveMediaUrl(bannerPreview);
   const resolvedIcon = iconPreview?.startsWith('blob:') ? iconPreview : resolveMediaUrl(iconPreview);
+
+  const handleFileSelected = (file: File, target: 'banner' | 'icon') => {
+    setCropFile(file);
+    setCropTarget(target);
+  };
+
+  const handleCropped = (cropped: File) => {
+    if (cropTarget === 'banner') onBannerChange(cropped);
+    if (cropTarget === 'icon') onIconChange(cropped);
+    setCropFile(null);
+    setCropTarget(null);
+  };
 
   return (
     <>
@@ -54,7 +69,8 @@ export const EditProfileMedia: React.FC<Props> = ({
           accept="image/*"
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) onBannerChange(file);
+            if (file) handleFileSelected(file, 'banner');
+            e.target.value = '';
           }}
         />
       </div>
@@ -82,12 +98,25 @@ export const EditProfileMedia: React.FC<Props> = ({
             accept="image/*"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) onIconChange(file);
+              if (file) handleFileSelected(file, 'icon');
+              e.target.value = '';
             }}
           />
         </div>
       </div>
+
+      <ImageCropperModal
+        file={cropFile}
+        isOpen={cropFile !== null}
+        aspectRatio={cropTarget === 'banner' ? 3 : 1}
+        title={cropTarget === 'banner' ? 'Recortar banner de perfil' : 'Recortar avatar de perfil'}
+        allowAspectChange={cropTarget === 'banner'}
+        onCrop={handleCropped}
+        onClose={() => {
+          setCropFile(null);
+          setCropTarget(null);
+        }}
+      />
     </>
   );
 };
-

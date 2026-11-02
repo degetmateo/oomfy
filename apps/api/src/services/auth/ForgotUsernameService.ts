@@ -9,7 +9,7 @@ export class ForgotUsernameService {
     }
 
     const { rows } = await PostgresPool.getInstance().query(
-      `SELECT username, name FROM oomfy WHERE LOWER(email) = LOWER($1)`,
+      `SELECT username, name FROM members WHERE LOWER(email) = LOWER($1)`,
       [cleanEmail]
     );
 

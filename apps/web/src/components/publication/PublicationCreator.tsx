@@ -5,6 +5,8 @@ import { ApiClient } from '../../services/api.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 import { KlipyGifModal } from './KlipyGifModal.js';
+import { ImageCropperModal } from '../common/ImageCropperModal.js';
+import { useImageCropQueue } from '../../hooks/useImageCropQueue.js';
 import { Publication } from '@oomfy/shared';
 
 interface Props {
@@ -28,6 +30,10 @@ export const PublicationCreator: React.FC<Props> = ({
   const [selectedGifs, setSelectedGifs] = useState<string[]>([]);
   const [showGifModal, setShowGifModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const cropQueue = useImageCropQueue((newCropped) => {
+    setImages((prev) => [...prev, ...newCropped].slice(0, 4));
+  });
 
   if (!isAuthenticated) return null;
 
@@ -146,7 +152,17 @@ export const PublicationCreator: React.FC<Props> = ({
                 accept="image/*"
                 multiple
                 className="hidden"
-                onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 4))}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length > 0) {
+                    cropQueue.startCropping(files.slice(0, 4 - images.length), {
+                      title: 'Recortar imagen',
+                      aspectRatio: 'free',
+                      allowAspectChange: true,
+                    });
+                  }
+                  e.target.value = '';
+                }}
               />
             </label>
 
@@ -181,6 +197,16 @@ export const PublicationCreator: React.FC<Props> = ({
           setSelectedGifs([url]);
           setShowGifModal(false);
         }}
+      />
+
+      <ImageCropperModal
+        file={cropQueue.currentFile}
+        isOpen={cropQueue.isCropping}
+        aspectRatio={cropQueue.options.aspectRatio ?? 'free'}
+        title={cropQueue.options.title ?? 'Recortar imagen'}
+        allowAspectChange={cropQueue.options.allowAspectChange ?? true}
+        onCrop={cropQueue.handleCrop}
+        onClose={cropQueue.handleClose}
       />
     </>
   );

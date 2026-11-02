@@ -29,25 +29,47 @@ export class MongoMemberRepository {
   public static async createOrUpdate(user: Partial<PublicUser> & { id: string; username: string }): Promise<void> {
     const col = this.getCollection();
     const mongoId = MongoIdHelper.toMongoId(user.id);
+
+    const setFields: Record<string, any> = {
+      _id: mongoId,
+      id: user.id,
+      username: user.username,
+    };
+    if (user.name !== undefined) setFields.name = user.name;
+    if (user.role !== undefined) setFields.role = user.role;
+    if (user.bio !== undefined) setFields.bio = user.bio;
+    if (user.location !== undefined) setFields.location = user.location;
+    if (user.link !== undefined) setFields.link = user.link;
+    if (user.icon_url !== undefined) {
+      setFields.icon_url = user.icon_url;
+      setFields.icon = user.icon_url ? { url: user.icon_url } : null;
+    }
+    if (user.banner_url !== undefined) {
+      setFields.banner_url = user.banner_url;
+      setFields.banner = user.banner_url ? { url: user.banner_url } : null;
+    }
+    if (user.created_at !== undefined) setFields.created_at = user.created_at;
+
+    const onInsertFields: Record<string, any> = {
+      follower_count: 0,
+      followed_count: 0,
+      publication_count: 0,
+    };
+    if (setFields.name === undefined) {
+      onInsertFields.name = user.name || user.username;
+    }
+    if (setFields.role === undefined) {
+      onInsertFields.role = user.role || 'member';
+    }
+    if (setFields.created_at === undefined) {
+      onInsertFields.created_at = new Date().toISOString();
+    }
+
     await col.updateOne(
       MongoIdHelper.idFilter(user.id),
       {
-        $set: {
-          _id: mongoId,
-          id: user.id,
-          username: user.username,
-          name: user.name || user.username,
-          role: user.role || 'member',
-          bio: user.bio || null,
-          location: user.location || null,
-          link: user.link || null,
-          'icon.url': user.icon_url !== undefined ? user.icon_url : undefined,
-          icon_url: user.icon_url !== undefined ? user.icon_url : undefined,
-          'banner.url': user.banner_url !== undefined ? user.banner_url : undefined,
-          banner_url: user.banner_url !== undefined ? user.banner_url : undefined,
-          created_at: user.created_at || new Date().toISOString(),
-        },
-        $setOnInsert: { follower_count: 0, followed_count: 0, publication_count: 0 },
+        $set: setFields,
+        $setOnInsert: onInsertFields,
       },
       { upsert: true }
     );

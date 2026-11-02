@@ -1,6 +1,7 @@
 import React from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Header } from '../components/layout/Header.js';
+import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { PublicationCreator } from '../components/publication/PublicationCreator.js';
 import { PublicationCard } from '../components/publication/PublicationCard.js';
 import { ApiClient } from '../services/api.js';
@@ -37,32 +38,34 @@ export const HomeView: React.FC = () => {
   const allPosts = data?.pages.flatMap((page) => page.data) || [];
 
   return (
-    <div className="flex flex-col min-h-screen font-mono">
-      <Header title="Inicio" />
-      <div className="hidden md:block">
-        <PublicationCreator onCreated={() => refetch()} />
-      </div>
-
-      {isLoading ? (
-        <div className="p-8 text-center text-xs text-dark-muted">Cargando publicaciones...</div>
-      ) : allPosts.length > 0 ? (
-        <>
-          <div className="divide-y divide-dark-border">
-            {allPosts.map((post) => (
-              <PublicationCard key={post.id} post={post} />
-            ))}
-          </div>
-
-          <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">
-            {isFetchingNextPage && <span>Cargando más publicaciones...</span>}
-          </div>
-        </>
-      ) : (
-        <div className="p-8 text-center text-xs text-dark-muted">
-          <p className="font-bold text-white">No hay publicaciones aún.</p>
-          <p className="mt-1">¡Sé el primero en compartir algo en oomfy!</p>
+    <PullToRefresh onRefresh={() => refetch()}>
+      <div className="flex flex-col min-h-screen font-mono">
+        <Header title="Inicio" onRefresh={() => refetch()} />
+        <div className="hidden md:block">
+          <PublicationCreator onCreated={() => refetch()} />
         </div>
-      )}
-    </div>
+
+        {isLoading ? (
+          <div className="p-8 text-center text-xs text-dark-muted">Cargando publicaciones...</div>
+        ) : allPosts.length > 0 ? (
+          <>
+            <div className="divide-y divide-dark-border">
+              {allPosts.map((post) => (
+                <PublicationCard key={post.id} post={post} />
+              ))}
+            </div>
+
+            <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">
+              {isFetchingNextPage && <span>Cargando más publicaciones...</span>}
+            </div>
+          </>
+        ) : (
+          <div className="p-8 text-center text-xs text-dark-muted">
+            <p className="font-bold text-white">No hay publicaciones aún.</p>
+            <p className="mt-1">¡Sé el primero en compartir algo en oomfy!</p>
+          </div>
+        )}
+      </div>
+    </PullToRefresh>
   );
 };

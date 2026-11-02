@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Header } from '../components/layout/Header.js';
+import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { PublicationCard } from '../components/publication/PublicationCard.js';
 import { ProfileInfo } from '../components/profile/ProfileInfo.js';
 import { EditProfileModal } from '../components/profile/EditProfileModal.js';
@@ -20,7 +21,7 @@ export const ProfileView: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
-  const { data: profile } = useQuery<{ success: boolean; data: PublicUser }>({
+  const { data: profile, refetch: refetchProfile } = useQuery<{ success: boolean; data: PublicUser }>({
     queryKey: ['profile', username],
     queryFn: () => ApiClient.get(`/members/${username}`),
     enabled: Boolean(username),
@@ -32,6 +33,7 @@ export const ProfileView: React.FC = () => {
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
+    refetch: refetchPosts,
   } = useInfiniteQuery<{ success: boolean; data: Publication[] }>({
     queryKey: ['user-posts', username, activeTab],
     queryFn: ({ pageParam }: { pageParam: any }) => {
@@ -73,9 +75,18 @@ export const ProfileView: React.FC = () => {
   );
   const posts = postsData?.pages.flatMap((page) => page.data) || [];
 
+  const handleRefresh = async () => {
+    await Promise.all([refetchProfile(), refetchPosts()]);
+  };
+
   return (
-    <div className="flex flex-col min-h-screen font-mono">
-      <Header title={user?.name || `@${username}`} subtitle={`${user?.publication_count || 0} publicaciones`} />
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="flex flex-col min-h-screen font-mono">
+        <Header
+          title={user?.name || `@${username}`}
+          subtitle={`${user?.publication_count || 0} publicaciones`}
+          onRefresh={handleRefresh}
+        />
 
       <div
         onClick={() => user?.banner_url && setZoomedImage(user.banner_url)}
@@ -176,6 +187,7 @@ export const ProfileView: React.FC = () => {
         imageUrl={zoomedImage}
         onClose={() => setZoomedImage(null)}
       />
-    </div>
+      </div>
+    </PullToRefresh>
   );
 };

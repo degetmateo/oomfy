@@ -1,19 +1,34 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
 import { ApiClient } from '../../services/api.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
-import { AdminUserSummary } from '@oomfy/shared';
+import { AdminUserSummary, Role } from '@oomfy/shared';
 import { AdminUserRow } from './AdminUserRow.js';
+import { AdminUserFiltersBar, AdminFiltersState } from './AdminUserFiltersBar.js';
+
+const initialFilters: AdminFiltersState = {
+  search: '',
+  role: 'all',
+  status: 'all',
+  createdFrom: '',
+  createdTo: '',
+};
 
 export const AdminUsersTab: React.FC = () => {
   const queryClient = useQueryClient();
   const dialog = useDialogStore();
-  const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState<AdminFiltersState>(initialFilters);
+
+  const queryParams = new URLSearchParams();
+  if (filters.search.trim()) queryParams.set('query', filters.search.trim());
+  if (filters.role !== 'all') queryParams.set('role', filters.role);
+  if (filters.status !== 'all') queryParams.set('status', filters.status);
+  if (filters.createdFrom) queryParams.set('created_from', filters.createdFrom);
+  if (filters.createdTo) queryParams.set('created_to', filters.createdTo);
 
   const { data, isLoading } = useQuery<{ success: boolean; data: AdminUserSummary[] }>({
-    queryKey: ['admin-users', search],
-    queryFn: () => ApiClient.get(`/admin/users?query=${encodeURIComponent(search.trim())}`),
+    queryKey: ['admin-users', queryParams.toString()],
+    queryFn: () => ApiClient.get(`/admin/users?${queryParams.toString()}`),
   });
 
   const statusMutation = useMutation({
@@ -21,6 +36,16 @@ export const AdminUsersTab: React.FC = () => {
       ApiClient.put(`/admin/users/${id}/status`, { status }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
     onError: (err: Error) => dialog.alert(err.message, 'Error al cambiar estado'),
+  });
+
+  const roleMutation = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: Role }) =>
+      ApiClient.put(`/admin/users/${id}/role`, { role }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      dialog.alert('Rol de usuario actualizado con éxito.', 'Rol actualizado');
+    },
+    onError: (err: Error) => dialog.alert(err.message, 'Error al cambiar rol'),
   });
 
   const revokeMutation = useMutation({
@@ -42,6 +67,18 @@ export const AdminUsersTab: React.FC = () => {
     }
   };
 
+  const handleRoleChange = async (user: AdminUserSummary, newRole: Role) => {
+    if (user.role === newRole) return;
+    const confirmed = await dialog.confirm({
+      title: 'Cambiar rol de usuario',
+      message: `¿Deseas cambiar el rol de @${user.username} de [${user.role.toUpperCase()}] a [${newRole.toUpperCase()}]?`,
+      confirmText: 'Cambiar rol',
+    });
+    if (confirmed) {
+      roleMutation.mutate({ id: user.id, role: newRole });
+    }
+  };
+
   const handleRevokeSessions = async (user: AdminUserSummary) => {
     const confirmed = await dialog.confirm({
       title: 'Cerrar sesiones de usuario',
@@ -58,16 +95,11 @@ export const AdminUsersTab: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-3 top-2.5 text-dark-muted" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por usuario, nombre o email..."
-          className="w-full pl-9 pr-3 py-2 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans"
-        />
-      </div>
+      <AdminUserFiltersBar
+        filters={filters}
+        onChange={setFilters}
+        onReset={() => setFilters(initialFilters)}
+      />
 
       <div className="divide-y divide-dark-border border border-dark-border bg-dark-bg">
         {isLoading ? (
@@ -79,10 +111,11 @@ export const AdminUsersTab: React.FC = () => {
               user={u}
               onToggleStatus={handleToggleStatus}
               onRevokeSessions={handleRevokeSessions}
+              onRoleChange={handleRoleChange}
             />
           ))
         ) : (
-          <div className="p-8 text-center text-xs text-dark-muted">No se encontraron usuarios.</div>
+          <div className="p-8 text-center text-xs text-dark-muted">No se encontraron usuarios con los filtros aplicados.</div>
         )}
       </div>
     </div>

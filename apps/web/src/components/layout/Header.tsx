@@ -1,22 +1,44 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 
 interface HeaderProps {
   title: string;
   subtitle?: string;
   showBack?: boolean;
+  onRefresh?: () => Promise<any> | void;
+  isRefreshing?: boolean;
   children?: React.ReactNode;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, subtitle, showBack, children }) => {
+export const Header: React.FC<HeaderProps> = ({
+  title,
+  subtitle,
+  showBack,
+  onRefresh,
+  isRefreshing: externalIsRefreshing,
+  children,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [internalRefreshing, setInternalRefreshing] = useState(false);
   const shouldShowBack = showBack !== undefined ? showBack : location.pathname !== '/';
+  const isRefreshing = externalIsRefreshing ?? internalRefreshing;
 
   const handleScrollTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleRefreshClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onRefresh || isRefreshing) return;
+    setInternalRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setInternalRefreshing(false);
+    }
   };
 
   return (
@@ -34,16 +56,27 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, showBack, child
           <ArrowLeft className="w-5 h-5" />
         </button>
       )}
-      <div
-        onClick={handleScrollTop}
-        className="cursor-pointer group flex-1 min-w-0"
-        title="Volver arriba"
-      >
+      <div onClick={handleScrollTop} className="cursor-pointer group flex-1 min-w-0" title="Volver arriba">
         <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white group-hover:text-brand-400 transition-colors truncate">
           {title}
         </h1>
         {subtitle && <p className="text-xs text-dark-muted truncate">{subtitle}</p>}
       </div>
+
+      {onRefresh && (
+        <button
+          type="button"
+          onClick={handleRefreshClick}
+          disabled={isRefreshing}
+          title="Actualizar contenido"
+          aria-label="Actualizar contenido"
+          className="hidden sm:flex p-1.5 border border-dark-border hover:border-brand-500 text-dark-muted hover:text-brand-400 pixel-button transition-colors items-center gap-1.5 text-xs"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-brand-400' : ''}`} />
+          <span className="text-[11px] font-mono">Actualizar</span>
+        </button>
+      )}
+
       {children && <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-2">{children}</div>}
     </header>
   );

@@ -1,23 +1,26 @@
 import React from 'react';
-import { Ban, CheckCircle, KeyRound } from 'lucide-react';
-import { AdminUserSummary } from '@oomfy/shared';
+import { Ban, CheckCircle, KeyRound, ShieldAlert } from 'lucide-react';
+import { AdminUserSummary, Role } from '@oomfy/shared';
 import { PixelBadge } from '../icons/PixelBadge.js';
 
 interface AdminUserRowProps {
   user: AdminUserSummary;
   onToggleStatus: (user: AdminUserSummary) => void;
   onRevokeSessions: (user: AdminUserSummary) => void;
+  onRoleChange: (user: AdminUserSummary, newRole: Role) => void;
 }
 
 export const AdminUserRow: React.FC<AdminUserRowProps> = ({
   user,
   onToggleStatus,
   onRevokeSessions,
+  onRoleChange,
 }) => {
   const isSuspended = user.status === 'suspended';
+  const formattedDate = user.created_at ? new Date(user.created_at).toLocaleDateString() : '';
 
   return (
-    <div className="p-3 flex items-center justify-between gap-3">
+    <div className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-xs font-bold text-white truncate">{user.name}</span>
@@ -29,10 +32,28 @@ export const AdminUserRow: React.FC<AdminUserRowProps> = ({
             </span>
           )}
         </div>
-        <p className="text-[10px] text-dark-muted truncate mt-0.5">{user.email}</p>
+        <p className="text-[10px] text-dark-muted truncate mt-0.5">
+          {user.email} · {formattedDate && `Creado: ${formattedDate}`}
+        </p>
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
+        {/* Role Selector */}
+        <div className="flex items-center gap-1">
+          <ShieldAlert className="w-3.5 h-3.5 text-dark-muted" />
+          <select
+            value={user.role}
+            onChange={(e) => onRoleChange(user, e.target.value as Role)}
+            className="bg-dark-card border border-dark-border text-[11px] text-white px-2 py-1 focus:outline-none focus:border-brand-500 font-mono"
+            title="Cambiar rol del usuario"
+          >
+            <option value="member">Miembro</option>
+            <option value="mod">Mod</option>
+            <option value="tester">Tester</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+
         <button
           type="button"
           onClick={() => onRevokeSessions(user)}
@@ -59,4 +80,3 @@ export const AdminUserRow: React.FC<AdminUserRowProps> = ({
     </div>
   );
 };
-

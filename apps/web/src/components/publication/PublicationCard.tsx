@@ -14,6 +14,7 @@ import { useAuthStore } from '../../stores/authStore.js';
 import { useUIStore } from '../../stores/uiStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 import { ApiClient } from '../../services/api.js';
+import { PublicationCacheService } from '../../services/PublicationCacheService.js';
 
 interface Props {
   post: Publication;
@@ -76,9 +77,16 @@ export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
     const original = post.target_publication;
     const targetUrl = original ? `/publication/${original.id}` : (post.parent_publication_id ? `/publication/${post.parent_publication_id}` : '#');
 
+    const handleSharedClick = () => {
+      if (original) {
+        PublicationCacheService.primePublication(queryClient, original);
+      }
+      if (targetUrl !== '#') navigate(targetUrl);
+    };
+
     return (
       <article
-        onClick={() => targetUrl !== '#' && navigate(targetUrl)}
+        onClick={handleSharedClick}
         className="p-3 sm:p-4 border-b border-dark-border hover:bg-dark-card/40 transition-colors cursor-pointer font-mono relative"
       >
         <div className="flex items-center justify-between text-xs text-dark-muted mb-2 font-mono">
@@ -169,9 +177,14 @@ export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
     );
   }
 
+  const handleArticleClick = () => {
+    PublicationCacheService.primePublication(queryClient, post);
+    navigate(`/publication/${post.id}`);
+  };
+
   return (
     <article
-      onClick={() => navigate(`/publication/${post.id}`)}
+      onClick={handleArticleClick}
       className="p-3 sm:p-4 border-b border-dark-border hover:bg-dark-card/40 transition-colors flex gap-3 cursor-pointer font-mono relative"
     >
       <div

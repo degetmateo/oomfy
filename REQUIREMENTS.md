@@ -378,3 +378,42 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
   - *Aislamiento del Modal de Edición (`EditProfileModal`):* Renderizado restringido al perfil propio (`isOwnProfile && isEditOpen`), clave única por ID de usuario (`key={user.id}`) y sincronización en `useEffect` al abrir el modal, erradicando la persistencia de datos del perfil visitado previamente.
   - *Refresco Reactivo en Perfil:* Invalidación simultánea en React Query (`profile`, `user-posts`, `publications`) para visualización instantánea del nuevo nombre en el timeline.
   - *Avatar en Publicaciones Citadas (`LinkPreviewCard`):* Incorporación de `<PixelAvatar />` en la tarjeta de previsualización de publicaciones citadas, resolviendo correctamente las URLs dinámicas con soporte de iniciales en caso de fallo.
+- **Hito 27:** Unificación de Esquema a 'members', Preservación de Medios, Recortador Universal, Cierre de Sesión Móvil y Gestión de Roles (Completado):
+  - *Unificación de Esquema PostgreSQL y MongoDB a `members`:*
+    - Migración formal `003_rename_oomfy_to_members.sql` para renombrar la tabla `oomfy` y sus índices a `members` de forma idempotente y segura.
+    - Creación de vista de compatibilidad `CREATE OR REPLACE VIEW oomfy AS SELECT * FROM members;` garantizando cero rupturas en consultas o dependencias externas.
+    - Actualización exhaustiva de consultas en repositorios y servicios SQL (`PostgresUserRepository`, `PostgresChatRepository`, `ResetPasswordService`, `ForgotUsernameService`, `SettingsService`, `ProfileService`, `AdminUserService`, `AdminStatsService`).
+  - *Preservación Precisa de Medios y Erradicación de Conflictos NoSQL al Editar Perfil:*
+    - Corrección de la mutación involuntaria en `MongoMemberRepository.createOrUpdate` donde valores `undefined` en `$set` causaban la eliminación de `icon_url` y `banner_url`.
+    - Eliminación del conflicto de operadores MongoDB (`Updating the path 'name' would create a conflict at 'name'`), garantizando exclusión mutua de campos entre `$set` y `$setOnInsert`.
+    - Generación dinámica del objeto de actualización NoSQL y sentencias SQL parametrizadas parciales en `ProfileService`, asegurando que solo los campos explícitamente modificados sean alterados.
+  - *Sincronización de Redundancias Cross-Collection en NoSQL (PEAA/POSAD):*
+    - Implementación de `CrossCollectionSyncRepository` y actualización de `UserSyncService` para sincronizar atómicamente autores de publicaciones directas y publicaciones citadas/republicadas (`target_publication.author`), así como el rol administrativo (`syncRole`).
+  - *Recortador de Imágenes Universal (Image Cropper):*
+    - Servicio encapsulado `ImageCropService` para recorte canvas 2D de alta calidad con preservación de formato y nombre original.
+    - Modal retro pixel interactivo `<ImageCropperModal />` con soporte de arrastre, zoom táctil/slider y selección de proporciones (1:1, 3:1, 16:9, libre).
+    - Hook de cola `useImageCropQueue` e integración en edición de avatar y banner (`EditProfileMedia`), publicaciones (`PublicationCreator`) y respuestas (`ReplyComposer`).
+  - *Sección de Cierre de Sesión en Configuración:*
+    - Componente `<LogoutSection />` en `/settings` con confirmación modal para usuarios móviles y refactorización de `SettingsView.tsx` dividida en pestañas modulares (`AccountSettingsTab`, `SecuritySettingsTab`, `SessionsSettingsTab`, `AppPwaSettingsTab`) respetando el límite de ~100 líneas por archivo.
+  - *Gestión de Roles y Filtros Multicriterio en Panel de Administración:*
+    - Selector interactivo de rol en `AdminUserRow` para promover usuarios a administrador o asignar roles con confirmación modal y sincronización reactiva en MongoDB y PostgreSQL.
+    - Barra de filtros `<AdminUserFiltersBar />` con búsqueda textual, selección de rol, estado y rango de fechas de creación, respaldada por el patrón `AdminUserQueryBuilder` en backend.
+- **Hito 28:** Recortador de Selección Libre, Sincronización Asíncrona en Servidor, Caché Instantánea de Publicaciones y Refresco Gestual (Completado):
+  - *Recortador de Selección Libre y Manipulable:*
+    - Creación de `useCropBox.ts` y `CropBoxView.tsx` para manipular libremente el recuadro de selección mediante 8 tiradores interactivos (`nw`, `n`, `ne`, `e`, `se`, `s`, `sw`, `w`) y desplazamiento interior (`inside`).
+    - Acción "Toda la imagen" (`selectAll()`) en `ImageCropperControls.tsx` para expandir el recuadro al 100% de las dimensiones de la imagen sin distorsión, procesando el corte en coordenadas nativas de alta resolución mediante `ImageCropService.cropFromRect`.
+    - Guías de composición visual por tercios (`rule-of-thirds`) y preservación de aspect ratios fijos o libres.
+  - *Sincronización Desacoplada en Segundo Plano (POSAD Task Dispatcher):*
+    - Módulo `BackgroundTaskDispatcher.ts` para ejecutar tareas asíncronas no bloqueantes vía `queueMicrotask` con control resiliente de excepciones.
+    - Desacoplamiento de la respuesta HTTP en `ProfileService.ts`, `SettingsService.ts` y `AdminUserService.ts`: el servidor responde inmediatamente con estado 200 OK una vez completadas las escrituras en la entidad primaria `members`, delegando la propagación cross-collection (`UserSyncService`) a segundo plano para erradicar cualquier latencia en la UI del usuario.
+  - *Caché Inteligente y Navegación Instantánea a Publicaciones (PEAA Identity Map):*
+    - Servicio `PublicationCacheService.ts` para recuperar de forma síncrona publicaciones existentes en las colecciones en memoria de `feed` o `user-posts`.
+    - Inyección de datos provisionales (`placeholderData`) en `PublicationDetailView.tsx`: la publicación y su ancestro directo se muestran inmediatamente (0 ms de espera), disparando automáticamente la carga de respuestas e hilos en segundo plano sin requerir ninguna acción ni clic adicional del usuario.
+  - *Carga de Hilos y Paginación Ascendente de Ancestros (Scroll Up Thread Pagination):*
+    - Implementación de `QueryPublicationService.getAncestors` y ruta `GET /api/publications/:id/ancestors?before_id=...&limit=4`.
+    - Al ingresar a una publicación de un hilo se cargan los ancestros inmediatos superiores; si el hilo es largo, se muestra el indicador y botón retro pixel *"Mostrar publicaciones anteriores del hilo (quedan X)"*, con soporte de auto-carga mediante `IntersectionObserver` al hacer scroll hacia arriba y preservación precisa de la posición de scroll (`scrollBy`).
+    - Componente modular encapsulado `<ThreadAncestorsList />` para desacoplar la renderización del hilo.
+  - *Pull-to-Refresh Gestual y Botón de Refresco en PC:*
+    - Hook táctil `usePullToRefresh.ts` con cálculo elástico de resistencia táctil e indicador animado retro pixel `<PullToRefresh />`.
+    - Botón de actualización en cabecera `<Header />` para usuarios de escritorio con retroalimentación visual de giro (`RefreshCw`).
+    - Implementación transversal en `HomeView`, `ProfileView`, `NotificationsView` y `PublicationDetailView`.

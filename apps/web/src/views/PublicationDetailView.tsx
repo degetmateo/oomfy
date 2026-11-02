@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal, Trash2, Copy, Check } from 'lucide-react';
+import { MoreHorizontal, Trash2, Copy, Check, RefreshCw } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
+import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { ApiClient } from '../services/api.js';
 import { PublicationCard } from '../components/publication/PublicationCard.js';
-import { ThreadAncestorCard } from '../components/publication/ThreadAncestorCard.js';
+import { ThreadAncestorsList } from '../components/publication/ThreadAncestorsList.js';
 import { PublicationActions } from '../components/publication/PublicationActions.js';
 import { MediaGrid } from '../components/publication/MediaGrid.js';
 import { LinkPreviewCard } from '../components/publication/LinkPreviewCard.js';
@@ -17,6 +18,7 @@ import { ReplyComposer } from '../components/publication/ReplyComposer.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useUIStore } from '../stores/uiStore.js';
 import { useDialogStore } from '../stores/dialogStore.js';
+import { PublicationCacheService } from '../services/PublicationCacheService.js';
 import { Publication } from '@oomfy/shared';
 
 export const PublicationDetailView: React.FC = () => {
@@ -29,12 +31,14 @@ export const PublicationDetailView: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ['publication', id],
     queryFn: async () => {
       const res = await ApiClient.get<any>(`/publications/${id}`);
       return res.data;
     },
+    placeholderData: () => PublicationCacheService.getPlaceholderDetailData(queryClient, id),
+    staleTime: 30 * 1000,
     enabled: Boolean(id),
   });
 
@@ -86,16 +90,16 @@ export const PublicationDetailView: React.FC = () => {
   };
 
   return (
-    <div className="font-mono">
-      <Header title="Publicación" />
+    <PullToRefresh onRefresh={() => refetch()}>
+      <div className="font-mono">
+        <Header title="Publicación" onRefresh={() => refetch()} isRefreshing={isFetching} />
 
-      {ancestors.length > 0 && (
-        <div className="border-b border-dark-border/60 bg-dark-card/10">
-          {ancestors.map((anc) => (
-            <ThreadAncestorCard key={anc.id} post={anc} />
-          ))}
-        </div>
-      )}
+        <ThreadAncestorsList
+          publicationId={publication.id}
+          initialAncestors={ancestors}
+          hasMoreInitial={Boolean(data?.has_more_ancestors)}
+          totalAncestors={data?.total_ancestors || ancestors.length}
+        />
 
       <article className="p-4 border-b border-dark-border bg-dark-card/20 relative">
         {publication.type === 'shared' && (
@@ -222,10 +226,16 @@ export const PublicationDetailView: React.FC = () => {
       <div>
         {replies.length > 0 ? (
           replies.map((comment: any) => <PublicationCard key={comment.id} post={comment} />)
+        ) : isFetching ? (
+          <div className="p-8 text-center text-xs text-dark-muted flex items-center justify-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin text-brand-400" />
+            <span>Cargando respuestas...</span>
+          </div>
         ) : (
           <div className="p-8 text-center text-xs text-dark-muted">No hay respuestas todavía. ¡Sé el primero en responder!</div>
         )}
       </div>
-    </div>
+      </div>
+    </PullToRefresh>
   );
 };

@@ -6,6 +6,7 @@ import { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } fro
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 import { UserSyncService } from './UserSyncService.js';
+import { BackgroundTaskDispatcher } from '../../infrastructure/async/BackgroundTaskDispatcher.js';
 
 export class SettingsService {
   public static async updateUsername(userId: string, newUsername: string): Promise<{ username: string }> {
@@ -24,7 +25,7 @@ export class SettingsService {
 
     const pool = PostgresPool.getInstance();
     const existing = await pool.query(
-      'SELECT id FROM oomfy WHERE LOWER(username) = LOWER($1) AND id <> $2',
+      'SELECT id FROM members WHERE LOWER(username) = LOWER($1) AND id <> $2',
       [cleanUsername, userId]
     );
 
@@ -32,7 +33,7 @@ export class SettingsService {
       throw new BadRequestError('Ese nombre de usuario ya está en uso por otra cuenta.');
     }
 
-    await pool.query('UPDATE oomfy SET username = $1, updated_at = NOW() WHERE id = $2', [cleanUsername, userId]);
+    await pool.query('UPDATE members SET username = $1, updated_at = NOW() WHERE id = $2', [cleanUsername, userId]);
 
     const db = MongoDatabase.getDb();
     await db.collection('members').updateOne(
@@ -40,7 +41,9 @@ export class SettingsService {
       { $set: { username: cleanUsername } }
     );
 
-    await UserSyncService.syncUsername(userId, user.username, cleanUsername);
+    BackgroundTaskDispatcher.dispatch(`sync-username-${userId}`, () =>
+      UserSyncService.syncUsername(userId, user.username, cleanUsername)
+    );
     return { username: cleanUsername };
   }
 
@@ -53,7 +56,7 @@ export class SettingsService {
     if (!user) throw new NotFoundError('Usuario no encontrado.');
 
     const pool = PostgresPool.getInstance();
-    const { rows } = await pool.query('SELECT password FROM oomfy WHERE id = $1', [userId]);
+    const { rows } = await pool.query('SELECT password FROM members WHERE id = $1', [userId]);
     if (!rows[0]) throw new NotFoundError('Usuario no encontrado.');
 
     const isValid = await PasswordHasher.compare(currentPass, rows[0].password);

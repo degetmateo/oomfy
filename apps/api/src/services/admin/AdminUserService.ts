@@ -3,29 +3,14 @@ import { PostgresPool } from '../../infrastructure/database/postgres/PostgresPoo
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { BadRequestError, NotFoundError } from '../../errors/AppError.js';
+import { UserSyncService } from '../users/UserSyncService.js';
+import { BackgroundTaskDispatcher } from '../../infrastructure/async/BackgroundTaskDispatcher.js';
+import { AdminUserFilters, AdminUserQueryBuilder } from './AdminUserQueryBuilder.js';
 
 export class AdminUserService {
-  public static async listUsers(
-    query?: string,
-    limit: number = 30,
-    offset: number = 0
-  ): Promise<AdminUserSummary[]> {
+  public static async listUsers(filters: AdminUserFilters): Promise<AdminUserSummary[]> {
     const pool = PostgresPool.getInstance();
-    let sql = `
-      SELECT id, username, name, email, role, status, created_at
-      FROM oomfy
-    `;
-    const params: any[] = [];
-
-    if (query && query.trim()) {
-      params.push(`%${query.trim()}%`);
-      sql += ` WHERE username ILIKE $1 OR name ILIKE $1 OR email ILIKE $1`;
-    }
-
-    params.push(limit);
-    params.push(offset);
-    sql += ` ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length};`;
-
+    const { sql, params } = AdminUserQueryBuilder.build(filters);
     const { rows } = await pool.query(sql, params);
     return rows;
   }
@@ -40,7 +25,7 @@ export class AdminUserService {
     }
 
     const pool = PostgresPool.getInstance();
-    const res = await pool.query('UPDATE oomfy SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING id', [
+    const res = await pool.query('UPDATE members SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING id', [
       status,
       userId,
     ]);
@@ -69,7 +54,7 @@ export class AdminUserService {
     }
 
     const pool = PostgresPool.getInstance();
-    const res = await pool.query('UPDATE oomfy SET role = $1, updated_at = NOW() WHERE id = $2 RETURNING id', [
+    const res = await pool.query('UPDATE members SET role = $1, updated_at = NOW() WHERE id = $2 RETURNING id, username', [
       role,
       userId,
     ]);
@@ -78,6 +63,8 @@ export class AdminUserService {
       throw new NotFoundError('Usuario no encontrado.');
     }
 
+    const username = res.rows[0]?.username;
+
     await MongoDatabase.getDb()
       .collection('members')
       .updateOne(
@@ -85,7 +72,12 @@ export class AdminUserService {
         { $set: { role, updated_at: new Date() } }
       );
 
+    if (username) {
+      BackgroundTaskDispatcher.dispatch(`sync-role-${userId}`, () =>
+        UserSyncService.syncRole(userId, username, role)
+      );
+    }
+
     return { message: `Rol del usuario actualizado a ${role}.` };
   }
 }
-

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { Image, Film, X } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore.js';
 import { KlipyGifModal } from './KlipyGifModal.js';
+import { ImageCropperModal } from '../common/ImageCropperModal.js';
+import { useImageCropQueue } from '../../hooks/useImageCropQueue.js';
 
 interface Props {
   targetId: string;
@@ -16,6 +18,10 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
   const [images, setImages] = useState<File[]>([]);
   const [selectedGifs, setSelectedGifs] = useState<string[]>([]);
   const [showGifModal, setShowGifModal] = useState(false);
+
+  const cropQueue = useImageCropQueue((newCropped) => {
+    setImages((prev) => [...prev, ...newCropped].slice(0, 4));
+  });
 
   if (!isAuthenticated) {
     return (
@@ -95,7 +101,17 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
                 accept="image/*"
                 multiple
                 className="hidden"
-                onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 4))}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length > 0) {
+                    cropQueue.startCropping(files.slice(0, 4 - images.length), {
+                      title: 'Recortar imagen de respuesta',
+                      aspectRatio: 'free',
+                      allowAspectChange: true,
+                    });
+                  }
+                  e.target.value = '';
+                }}
               />
             </label>
 
@@ -128,6 +144,16 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
           setSelectedGifs([url]);
           setShowGifModal(false);
         }}
+      />
+
+      <ImageCropperModal
+        file={cropQueue.currentFile}
+        isOpen={cropQueue.isCropping}
+        aspectRatio={cropQueue.options.aspectRatio ?? 'free'}
+        title={cropQueue.options.title ?? 'Recortar imagen'}
+        allowAspectChange={cropQueue.options.allowAspectChange ?? true}
+        onCrop={cropQueue.handleCrop}
+        onClose={cropQueue.handleClose}
       />
     </>
   );

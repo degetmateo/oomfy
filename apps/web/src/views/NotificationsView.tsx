@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, Heart, UserPlus, Repeat, MessageSquare, Quote, CheckCheck } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
+import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { PixelAvatar } from '../components/common/PixelAvatar.js';
 import { ApiClient } from '../services/api.js';
 import { SocketClient } from '../services/socket.js';
@@ -97,16 +98,17 @@ export const NotificationsView: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen font-mono">
-      <Header title="Notificaciones">
-        <button
-          onClick={() => markAllMutation.mutate()}
-          className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-semibold"
-        >
-          <CheckCheck className="w-4 h-4" />
-          <span>Leídas</span>
-        </button>
-      </Header>
+    <PullToRefresh onRefresh={() => refetch()}>
+      <div className="flex flex-col min-h-screen font-mono">
+        <Header title="Notificaciones" onRefresh={() => refetch()}>
+          <button
+            onClick={() => markAllMutation.mutate()}
+            className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-semibold"
+          >
+            <CheckCheck className="w-4 h-4" />
+            <span>Leídas</span>
+          </button>
+        </Header>
 
       {isError ? (
         <div className="p-8 text-center text-xs text-red-400">
@@ -166,7 +168,8 @@ export const NotificationsView: React.FC = () => {
           <p className="font-semibold text-white">No tienes notificaciones pendientes.</p>
         </div>
       )}
-    </div>
+      </div>
+    </PullToRefresh>
   );
 };
 
