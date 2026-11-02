@@ -215,7 +215,7 @@ export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
             </span>
             <PixelBadge role={post.author.role} />
             <span className="text-dark-muted text-xs truncate">@{post.author.username}</span>
-            <span className="text-dark-muted text-xs">· {new Date(post.created_at).toLocaleDateString()}</span>
+            <span className="text-dark-muted text-xs">• {new Date(post.created_at).toLocaleDateString()}</span>
           </div>
 
           <div className="relative">
@@ -260,6 +260,7 @@ export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
         )}
 
         <MediaGrid images={post.images || []} />
+
         <LinkPreviewCard
           embeds={post.embeds}
           targetPublication={post.type === 'quote' ? post.target_publication : undefined}

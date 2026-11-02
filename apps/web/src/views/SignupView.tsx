@@ -48,7 +48,7 @@ export const SignupView: React.FC = () => {
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-dark-muted mb-1">Nombre Completo</label>
+              <label className="block text-xs font-semibold text-dark-muted mb-1">Nombre</label>
               <input
                 type="text"
                 required

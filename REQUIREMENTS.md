@@ -373,3 +373,8 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Caché en memoria en `ProfileService` para minimizar llamadas a la base de datos e invalidación inmediata al editar perfil.
     - Mapeo dinámico en `PublicationMapper`, garantizando que las publicaciones no queden desactualizadas ni requieran migraciones masivas en base de datos cuando un autor modifique su foto o portada.
     - Utilidad cliente `resolveMediaUrl` con reglas de redirección en `apps/web/public/_redirects`.
+- **Hito 26:** Sincronización Cross-Collection de Datos de Usuario, Aislamiento del Modal de Edición y Avatar en Citas (Completado):
+  - *Sincronización Cross-Collection (`UserSyncService`):* Propagación atómica de cambios en nombre, avatar y portada a través de todas las colecciones NoSQL dependientes (`publications`, `follows`, `notifications`), garantizando que al cambiar de nombre u otros datos se actualicen retrospectivamente todas las publicaciones e interacciones históricas.
+  - *Aislamiento del Modal de Edición (`EditProfileModal`):* Renderizado restringido al perfil propio (`isOwnProfile && isEditOpen`), clave única por ID de usuario (`key={user.id}`) y sincronización en `useEffect` al abrir el modal, erradicando la persistencia de datos del perfil visitado previamente.
+  - *Refresco Reactivo en Perfil:* Invalidación simultánea en React Query (`profile`, `user-posts`, `publications`) para visualización instantánea del nuevo nombre en el timeline.
+  - *Avatar en Publicaciones Citadas (`LinkPreviewCard`):* Incorporación de `<PixelAvatar />` en la tarjeta de previsualización de publicaciones citadas, resolviendo correctamente las URLs dinámicas con soporte de iniciales en caso de fallo.

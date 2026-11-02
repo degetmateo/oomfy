@@ -4,6 +4,7 @@ import { ExternalLink, Play } from 'lucide-react';
 import { SpotifyPlayer } from './SpotifyPlayer.js';
 import { MediaGrid } from './MediaGrid.js';
 import { PixelBadge } from '../icons/PixelBadge.js';
+import { PixelAvatar } from '../common/PixelAvatar.js';
 
 interface Props {
   embeds?: any[];
@@ -26,21 +27,14 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
             e.stopPropagation();
             navigate(`/publication/${targetPublication.id}`);
           }}
-          className="border border-dark-border p-3 bg-dark-bg/60 hover:border-brand-500 transition-colors cursor-pointer"
+          className="border border-dark-border mb-2 p-3 bg-dark-bg/60 hover:border-brand-500 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-5 h-5 border border-dark-border bg-dark-card overflow-hidden flex items-center justify-center font-bold text-[10px] text-brand-400 flex-shrink-0">
-              {targetPublication.author?.icon_url ? (
-                <img
-                  src={targetPublication.author.icon_url}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
-                />
-              ) : (
-                targetPublication.author?.username?.slice(0, 2).toUpperCase()
-              )}
-            </div>
+            <PixelAvatar
+              src={targetPublication.author?.icon_url}
+              username={targetPublication.author?.username}
+              sizeClass="w-5 h-5"
+            />
             <span className="font-bold text-xs text-white truncate">{targetPublication.author?.name}</span>
             {targetPublication.author?.role && <PixelBadge role={targetPublication.author.role} />}
             <span className="text-[11px] text-dark-muted truncate">@{targetPublication.author?.username}</span>

@@ -147,36 +147,32 @@ export const SettingsView: React.FC = () => {
       <div className="flex border-b border-dark-border bg-dark-bg text-xs">
         <button
           onClick={() => selectTab('account')}
-          className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${
-            activeTab === 'account' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
-          }`}
+          className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${activeTab === 'account' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
+            }`}
         >
           <Shield className="w-3.5 h-3.5" />
           <span>Cuenta</span>
         </button>
         <button
           onClick={() => selectTab('security')}
-          className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${
-            activeTab === 'security' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
-          }`}
+          className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${activeTab === 'security' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
+            }`}
         >
           <Key className="w-3.5 h-3.5" />
           <span>Seguridad</span>
         </button>
         <button
           onClick={() => selectTab('sessions')}
-          className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${
-            activeTab === 'sessions' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
-          }`}
+          className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${activeTab === 'sessions' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
+            }`}
         >
           <Laptop className="w-3.5 h-3.5" />
           <span>Sesiones</span>
         </button>
         <button
           onClick={() => selectTab('app')}
-          className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${
-            activeTab === 'app' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
-          }`}
+          className={`flex-1 py-3 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 ${activeTab === 'app' ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
+            }`}
         >
           <Smartphone className="w-3.5 h-3.5" />
           <span>App (PWA)</span>
@@ -352,9 +348,9 @@ export const SettingsView: React.FC = () => {
         {activeTab === 'app' && (
           <div className="flex flex-col gap-6">
             <div>
-              <h3 className="text-sm font-bold text-white mb-1">Instalar Aplicación (PWA)</h3>
+              <h3 className="text-sm font-bold text-white mb-1">Instalar Aplicación</h3>
               <p className="text-xs text-dark-muted font-sans leading-relaxed">
-                Instala oomfy en tu teléfono móvil o escritorio para usarla como una aplicación nativa en pantalla completa y recibir notificaciones.
+                Instalá oomfy en tu teléfono móvil para acceder rápidamente y recibir notificaciones.
               </p>
             </div>
 
@@ -417,25 +413,22 @@ export const SettingsView: React.FC = () => {
               <div className="flex border-b border-dark-border mb-3 text-xs">
                 <button
                   onClick={() => setSelectedOs('android')}
-                  className={`pb-2 px-3 font-bold transition-colors border-b-2 ${
-                    selectedOs === 'android' ? 'border-brand-400 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
-                  }`}
+                  className={`pb-2 px-3 font-bold transition-colors border-b-2 ${selectedOs === 'android' ? 'border-brand-400 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
+                    }`}
                 >
                   Android
                 </button>
                 <button
                   onClick={() => setSelectedOs('ios')}
-                  className={`pb-2 px-3 font-bold transition-colors border-b-2 ${
-                    selectedOs === 'ios' ? 'border-brand-400 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
-                  }`}
+                  className={`pb-2 px-3 font-bold transition-colors border-b-2 ${selectedOs === 'ios' ? 'border-brand-400 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
+                    }`}
                 >
                   iOS (iPhone / iPad)
                 </button>
                 <button
                   onClick={() => setSelectedOs('desktop')}
-                  className={`pb-2 px-3 font-bold transition-colors border-b-2 ${
-                    selectedOs === 'desktop' ? 'border-brand-400 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
-                  }`}
+                  className={`pb-2 px-3 font-bold transition-colors border-b-2 ${selectedOs === 'desktop' ? 'border-brand-400 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
+                    }`}
                 >
                   Escritorio (PC / Mac)
                 </button>

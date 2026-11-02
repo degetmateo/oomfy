@@ -74,7 +74,7 @@ export const PublicationCreator: React.FC<Props> = ({
           autoFocus={autoFocus}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder={quotedPublication ? 'Añade un comentario a la cita...' : '¿Qué está pasando?'}
+          placeholder={quotedPublication ? 'Añade un comentario a la cita...' : '¿Qué estás pensando?'}
           rows={3}
           maxLength={500}
           className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans"

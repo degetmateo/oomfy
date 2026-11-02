@@ -158,12 +158,17 @@ export const ProfileView: React.FC = () => {
         )}
       </div>
 
-      {user && (
+      {isOwnProfile && isEditOpen && user && (
         <EditProfileModal
+          key={user.id}
           user={user}
           isOpen={isEditOpen}
           onClose={() => setIsEditOpen(false)}
-          onUpdated={() => queryClient.invalidateQueries({ queryKey: ['profile', username] })}
+          onUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ['profile'] });
+            queryClient.invalidateQueries({ queryKey: ['user-posts'] });
+            queryClient.invalidateQueries({ queryKey: ['publications'] });
+          }}
         />
       )}
 

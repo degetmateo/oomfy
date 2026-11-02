@@ -104,7 +104,7 @@ export const NotificationsView: React.FC = () => {
           className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-semibold"
         >
           <CheckCheck className="w-4 h-4" />
-          <span>Marcar todas como leídas</span>
+          <span>Leídas</span>
         </button>
       </Header>
 
@@ -127,9 +127,8 @@ export const NotificationsView: React.FC = () => {
               <div
                 key={notif.id}
                 onClick={() => handleNotificationClick(notif)}
-                className={`p-4 hover:bg-dark-card/40 transition-colors flex gap-3.5 items-start cursor-pointer ${
-                  notif.status === 'pending' ? 'bg-brand-500/5' : ''
-                }`}
+                className={`p-4 hover:bg-dark-card/40 transition-colors flex gap-3.5 items-start cursor-pointer ${notif.status === 'pending' ? 'bg-brand-500/5' : ''
+                  }`}
               >
                 {renderIcon(notif.type)}
                 <div className="flex items-start gap-3 flex-1 min-w-0">

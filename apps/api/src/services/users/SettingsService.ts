@@ -5,6 +5,7 @@ import { PasswordHasher } from '../../infrastructure/adapters/PasswordHasher.js'
 import { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } from '../../errors/AppError.js';
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
+import { UserSyncService } from './UserSyncService.js';
 
 export class SettingsService {
   public static async updateUsername(userId: string, newUsername: string): Promise<{ username: string }> {
@@ -34,28 +35,12 @@ export class SettingsService {
     await pool.query('UPDATE oomfy SET username = $1, updated_at = NOW() WHERE id = $2', [cleanUsername, userId]);
 
     const db = MongoDatabase.getDb();
-    const mongoId = MongoIdHelper.toMongoId(userId);
-
     await db.collection('members').updateOne(
       MongoIdHelper.idFilter(userId),
       { $set: { username: cleanUsername } }
     );
 
-    await db.collection('publications').updateMany(
-      { $or: [{ 'author.id': userId }, { 'author._id': mongoId }] },
-      { $set: { 'author.username': cleanUsername } }
-    );
-
-    await db.collection('follows').updateMany(
-      { $or: [{ follower_id: userId }, { follower_id: mongoId }, { 'follower.id': userId }] },
-      { $set: { 'follower.username': cleanUsername } }
-    );
-
-    await db.collection('follows').updateMany(
-      { $or: [{ followed_id: userId }, { followed_id: mongoId }, { 'followed.id': userId }] },
-      { $set: { 'followed.username': cleanUsername } }
-    );
-
+    await UserSyncService.syncUsername(userId, user.username, cleanUsername);
     return { username: cleanUsername };
   }
 
@@ -80,4 +65,3 @@ export class SettingsService {
     await PostgresUserRepository.updatePassword(userId, hashed);
   }
 }
-

@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
-import { Camera, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { PublicUser } from '@oomfy/shared';
 import { PixelField } from '../common/PixelField.js';
 import { ApiClient } from '../../services/api.js';
 import { useAuthStore } from '../../stores/authStore.js';
+import { EditProfileMedia } from './EditProfileMedia.js';
 
 interface Props {
   user: PublicUser;
@@ -25,9 +26,22 @@ export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpd
   const [iconAction, setIconAction] = useState<'none' | 'update' | 'delete'>('none');
   const [isSaving, setIsSaving] = useState(false);
 
-  const bannerInputRef = useRef<HTMLInputElement>(null);
-  const iconInputRef = useRef<HTMLInputElement>(null);
   const { setUser } = useAuthStore();
+
+  useEffect(() => {
+    if (isOpen) {
+      setName(user.name || '');
+      setBio(user.bio || '');
+      setLocation(user.location || '');
+      setLink(user.link || '');
+      setBannerPreview(user.banner_url || null);
+      setIconPreview(user.icon_url || null);
+      setBannerFile(null);
+      setIconFile(null);
+      setBannerAction('none');
+      setIconAction('none');
+    }
+  }, [user, isOpen]);
 
   if (!isOpen) return null;
 
@@ -72,63 +86,26 @@ export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpd
           </button>
         </div>
 
-        <div className="relative h-32 bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
-          {bannerPreview && <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover" />}
-          <div className="absolute inset-0 bg-black/30 flex items-center justify-center gap-3">
-            <button
-              onClick={() => bannerInputRef.current?.click()}
-              className="p-2 bg-black/60 hover:bg-black/80 border border-white/40 text-white rounded-none"
-            >
-              <Camera className="w-5 h-5" />
-            </button>
-            {bannerPreview && (
-              <button
-                onClick={() => { setBannerPreview(null); setBannerFile(null); setBannerAction('delete'); }}
-                className="p-2 bg-black/60 hover:bg-black/80 border border-white/40 text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-          <input
-            type="file"
-            ref={bannerInputRef}
-            className="hidden"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) { setBannerFile(file); setBannerPreview(URL.createObjectURL(file)); setBannerAction('update'); }
-            }}
-          />
-        </div>
-
-        <div className="px-4 -mt-10 mb-4 relative z-10 flex">
-          <div className="relative w-20 h-20 bg-[#161616] border-2 border-dark-border overflow-hidden group">
-            {iconPreview ? (
-              <img src={iconPreview} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-brand-400 font-bold text-xl bg-brand-950/40">
-                {user.username.slice(0, 2).toUpperCase()}
-              </div>
-            )}
-            <button
-              onClick={() => iconInputRef.current?.click()}
-              className="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-80 hover:opacity-100"
-            >
-              <Camera className="w-5 h-5" />
-            </button>
-            <input
-              type="file"
-              ref={iconInputRef}
-              className="hidden"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) { setIconFile(file); setIconPreview(URL.createObjectURL(file)); setIconAction('update'); }
-              }}
-            />
-          </div>
-        </div>
+        <EditProfileMedia
+          username={user.username}
+          bannerPreview={bannerPreview}
+          iconPreview={iconPreview}
+          onBannerChange={(file) => {
+            setBannerFile(file);
+            setBannerPreview(URL.createObjectURL(file));
+            setBannerAction('update');
+          }}
+          onBannerRemove={() => {
+            setBannerPreview(null);
+            setBannerFile(null);
+            setBannerAction('delete');
+          }}
+          onIconChange={(file) => {
+            setIconFile(file);
+            setIconPreview(URL.createObjectURL(file));
+            setIconAction('update');
+          }}
+        />
 
         <div className="p-4 space-y-3">
           <PixelField label="Nombre" value={name} onChange={setName} maxLength={16} />
