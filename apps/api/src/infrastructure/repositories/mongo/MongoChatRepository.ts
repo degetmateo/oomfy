@@ -34,13 +34,22 @@ export class MongoChatRepository {
     const col = this.getCollection();
     const userAVariants = MongoIdHelper.idVariants(userA);
     const userBVariants = MongoIdHelper.idVariants(userB);
+    const userAUuid = MongoIdHelper.toMongoId(userA);
+    const userBUuid = MongoIdHelper.toMongoId(userB);
+
     const chat = await col.findOne({
       type: 'private',
-      $and: [
-        { participant_ids: { $in: userAVariants } },
-        { participant_ids: { $in: userBVariants } },
+      $or: [
+        { participant_ids: { $all: [userAUuid, userBUuid], $size: 2 } },
+        { participant_ids: { $all: [userA, userB], $size: 2 } },
+        {
+          $and: [
+            { participant_ids: { $in: userAVariants } },
+            { participant_ids: { $in: userBVariants } },
+          ],
+          participant_ids: { $size: 2 },
+        },
       ],
-      participant_ids: { $size: 2 },
     });
     return chat ? String(chat.id || chat._id) : null;
   }
@@ -58,12 +67,12 @@ export class MongoChatRepository {
 
     const doc: any = {
       _id: chatUuid,
-      id: chatId,
+      id: chatUuid,
       type: 'private',
       participant_ids: [userAUuid, userBUuid],
       participants: [
-        { ...userA, id: userA.id, user_id: userAUuid },
-        { ...userB, id: userB.id, user_id: userBUuid },
+        { ...userA, id: userAUuid, user_id: userAUuid },
+        { ...userB, id: userBUuid, user_id: userBUuid },
       ],
       last_message: null,
       created_at: now,

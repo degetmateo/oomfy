@@ -1,8 +1,10 @@
 import { ObjectId, UUID } from 'mongodb';
 
 export class MongoIdHelper {
-  public static toMongoId(id: string | null | undefined): any {
+  public static toMongoId(id: any): any {
     if (!id) return id;
+    if (id instanceof UUID || (id && id._bsontype === 'Binary')) return id;
+    if (id instanceof ObjectId) return id;
     if (typeof id !== 'string') return id;
     if (ObjectId.isValid(id) && id.length === 24) {
       try {
@@ -30,34 +32,37 @@ export class MongoIdHelper {
     return id;
   }
 
-  public static idVariants(id: string | null | undefined): any[] {
+  public static idVariants(id: any): any[] {
     if (!id) return [];
-    const list: any[] = [String(id)];
-    const mongoId = this.toMongoId(String(id));
-    if (mongoId && mongoId.toString() !== String(id)) list.push(mongoId);
-    else if (mongoId && mongoId !== String(id)) list.push(mongoId);
+    const str = String(id);
+    const list: any[] = [str];
+    const mongoId = this.toMongoId(str);
+    if (mongoId && mongoId !== str) list.push(mongoId);
     return list;
   }
 
-  public static idFilter(id: string): any {
-    const conditions: any[] = [{ _id: id }, { id }];
-    if (ObjectId.isValid(id) && id.length === 24) {
+  public static idFilter(id: any): any {
+    if (!id) return { _id: id };
+    const strId = String(id);
+    const conditions: any[] = [{ _id: strId }, { id: strId }];
+    if (ObjectId.isValid(strId) && strId.length === 24) {
       try {
-        conditions.push({ _id: new ObjectId(id) });
+        conditions.push({ _id: new ObjectId(strId) });
       } catch {}
     }
     try {
-      conditions.push({ _id: new UUID(id) });
-      conditions.push({ id: new UUID(id) });
+      const uuidObj = new UUID(strId);
+      conditions.push({ _id: uuidObj });
+      conditions.push({ id: uuidObj });
     } catch {}
-    const num = Number(id);
+    const num = Number(strId);
     if (!isNaN(num) && num > 0) {
       conditions.push({ old_id: num });
     }
     return { $or: conditions };
   }
 
-  public static fieldFilter(fieldName: string, id: string | null | undefined): any {
+  public static fieldFilter(fieldName: string, id: any): any {
     if (!id) return { [fieldName]: id };
     const variants = this.idVariants(id);
     if (variants.length === 1) return { [fieldName]: variants[0] };

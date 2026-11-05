@@ -38,18 +38,25 @@ export class PublicationInteractionDecorator {
       }).toArray(),
     ]);
 
-    const upvotedSet = new Set(userUpvotes.map((u: any) => u.publication_id?.toString() || u.publication_id));
+    const upvotedSet = new Set(
+      userUpvotes.map((u: any) => (u.publication_id?.toString() || u.publication_id || '').toLowerCase())
+    );
     const sharedSet = new Set(
-      userShares.map((s: any) => s.parent_publication_id?.toString() || s.target_publication_id?.toString())
+      userShares.map((s: any) =>
+        (s.parent_publication_id?.toString() || s.target_publication_id?.toString() || '').toLowerCase()
+      )
     );
     const quotedSet = new Set(
-      userQuotes.map((q: any) => q.parent_publication_id?.toString() || q.target_publication_id?.toString())
+      userQuotes.map((q: any) =>
+        (q.parent_publication_id?.toString() || q.target_publication_id?.toString() || '').toLowerCase()
+      )
     );
 
     for (const post of posts) {
-      post.is_upvoted = upvotedSet.has(post.id);
-      post.is_shared = sharedSet.has(post.id);
-      post.is_quoted = quotedSet.has(post.id);
+      const pid = (post.id || '').toLowerCase();
+      post.is_upvoted = upvotedSet.has(pid);
+      post.is_shared = sharedSet.has(pid);
+      post.is_quoted = quotedSet.has(pid);
     }
 
     return posts;

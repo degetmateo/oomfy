@@ -105,5 +105,73 @@ export class CrossCollectionSyncRepository {
       { $set: senderSet }
     );
   }
-}
 
+  public static async updateChatsAndMessages(
+    variants: any[],
+    username: string,
+    userUpdates: { name?: string; icon_url?: string | null; username?: string }
+  ): Promise<void> {
+    const db = MongoDatabase.getDb();
+    const chatUpdates = {};
+    const msgUpdates = {};
+
+    if (userUpdates.name) {
+      chatUpdates['participants.$[elem].name'] = userUpdates.name;
+      msgUpdates['sender.name'] = userUpdates.name;
+    }
+    if (userUpdates.icon_url !== undefined) {
+      chatUpdates['participants.$[elem].icon_url'] = userUpdates.icon_url;
+      msgUpdates['sender.icon_url'] = userUpdates.icon_url;
+    }
+    if (userUpdates.username) {
+      chatUpdates['participants.$[elem].username'] = userUpdates.username;
+      msgUpdates['sender.username'] = userUpdates.username;
+    }
+
+    const promises = [];
+    if (Object.keys(chatUpdates).length > 0) {
+      promises.push(
+        db.collection('chats').updateMany(
+          {
+            $or: [
+              { participant_ids: { $in: variants } },
+              { 'participants.id': { $in: variants } },
+              { 'participants.user_id': { $in: variants } },
+              { 'participants.username': username },
+            ],
+          },
+          { $set: chatUpdates },
+          {
+            arrayFilters: [
+              {
+                $or: [
+                  { 'elem.id': { $in: variants } },
+                  { 'elem.user_id': { $in: variants } },
+                  { 'elem.username': username },
+                ],
+              },
+            ],
+          }
+        )
+      );
+    }
+
+    if (Object.keys(msgUpdates).length > 0) {
+      promises.push(
+        db.collection('messages').updateMany(
+          {
+            $or: [
+              { sender_id: { $in: variants } },
+              { 'sender.id': { $in: variants } },
+              { 'sender._id': { $in: variants } },
+              { 'sender.username': username },
+            ],
+          },
+          { $set: msgUpdates }
+        )
+      );
+    }
+
+    await Promise.all(promises);
+  }
+}

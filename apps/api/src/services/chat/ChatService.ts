@@ -3,6 +3,7 @@ import { MongoChatRepository } from '../../infrastructure/repositories/mongo/Mon
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { PostgresUserRepository } from '../../infrastructure/repositories/postgres/PostgresUserRepository.js';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
+import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { BadRequestError, NotFoundError } from '../../errors/AppError.js';
 
 export class ChatService {
@@ -58,22 +59,25 @@ export class ChatService {
     if (!chats.length) return [];
 
     const chatIds = chats.map((c) => c.id);
+    const chatVariants = chatIds.flatMap((id) => MongoIdHelper.idVariants(id));
+    const userVariants = MongoIdHelper.idVariants(userId);
+
     const unreadAgg = await MongoDatabase.getDb()
       .collection('messages')
       .aggregate([
-        { $match: { chat_id: { $in: chatIds }, sender_id: { $ne: userId }, status: 'sent' } },
+        { $match: { chat_id: { $in: chatVariants }, sender_id: { $nin: userVariants }, status: 'sent' } },
         { $group: { _id: '$chat_id', count: { $sum: 1 } } },
       ])
       .toArray();
 
     const unreadMap = new Map<string, number>();
     for (const item of unreadAgg) {
-      unreadMap.set(String(item._id), Number(item.count) || 0);
+      unreadMap.set(String(item._id).toLowerCase(), Number(item.count) || 0);
     }
 
     return chats.map((c) => ({
       ...c,
-      unread_count: unreadMap.get(c.id) || 0,
+      unread_count: unreadMap.get(c.id.toLowerCase()) || 0,
     }));
   }
 }

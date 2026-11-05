@@ -17,10 +17,22 @@ export class ShareService {
     if (!target) throw new NotFoundError('Publicación no encontrada.');
 
     const col = MongoDatabase.getDb().collection('publications');
+    const userVariants = MongoIdHelper.idVariants(user.id);
+    const pubVariants = MongoIdHelper.idVariants(publicationId);
     const existing = await col.findOne({
       type: 'shared',
-      'author.id': user.id,
-      $or: [{ target_publication_id: MongoIdHelper.toMongoId(publicationId) }, { parent_publication_id: publicationId }],
+      $or: [
+        { 'author.id': { $in: userVariants } },
+        { 'author._id': { $in: userVariants } },
+      ],
+      $and: [
+        {
+          $or: [
+            { target_publication_id: { $in: pubVariants } },
+            { parent_publication_id: { $in: pubVariants } },
+          ],
+        },
+      ],
     });
 
     if (existing) {
@@ -85,10 +97,22 @@ export class ShareService {
     if (!target) throw new NotFoundError('Publicación no encontrada.');
 
     const col = MongoDatabase.getDb().collection('publications');
+    const userVariants = MongoIdHelper.idVariants(userId);
+    const pubVariants = MongoIdHelper.idVariants(publicationId);
     const result = await col.deleteOne({
       type: 'shared',
-      'author.id': userId,
-      $or: [{ target_publication_id: MongoIdHelper.toMongoId(publicationId) }, { parent_publication_id: publicationId }],
+      $or: [
+        { 'author.id': { $in: userVariants } },
+        { 'author._id': { $in: userVariants } },
+      ],
+      $and: [
+        {
+          $or: [
+            { target_publication_id: { $in: pubVariants } },
+            { parent_publication_id: { $in: pubVariants } },
+          ],
+        },
+      ],
     });
 
     if (result.deletedCount > 0) {

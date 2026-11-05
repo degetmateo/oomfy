@@ -89,7 +89,15 @@ export class MongoPublicationRepository {
           user_id: { $in: userVariants },
         });
         if (olderUpvote?.created_at) {
-          upvoteQuery.created_at = { $lt: olderUpvote.created_at };
+          const olderDate = new Date(olderUpvote.created_at);
+          const olderIso = olderDate.toISOString();
+          upvoteQuery.$or = [
+            { created_at: { $lt: olderUpvote.created_at } },
+            { created_at: { $lt: olderDate } },
+            { created_at: { $lt: olderIso } },
+          ];
+        } else {
+          return [];
         }
       }
 
@@ -108,14 +116,15 @@ export class MongoPublicationRepository {
       const domainMap = new Map<string, Publication>();
       for (const d of docs) {
         const domain = PublicationMapper.toDomain(d);
-        domainMap.set(domain.id, domain);
-        if (d.id) domainMap.set(d.id, domain);
+        domainMap.set(domain.id.toLowerCase(), domain);
+        if (d.id) domainMap.set(String(d.id).toLowerCase(), domain);
+        if (d._id) domainMap.set(String(d._id).toLowerCase(), domain);
         if (d.old_id) domainMap.set(String(d.old_id), domain);
       }
 
       const orderedList: Publication[] = [];
       for (const id of pubIds) {
-        const post = domainMap.get(id);
+        const post = domainMap.get(String(id).toLowerCase());
         if (post && !orderedList.some((p) => p.id === post.id)) {
           orderedList.push(post);
         }
@@ -196,13 +205,13 @@ export class MongoPublicationRepository {
 
   public static async findReplies(id: string, userId?: string, limit: number = 50): Promise<Publication[]> {
     const col = this.getCollection();
-    const targetMongoId = MongoIdHelper.toMongoId(id);
+    const targetVariants = MongoIdHelper.idVariants(id);
     const docs = await col
       .find({
         type: 'reply',
         $or: [
-          { target_publication_id: targetMongoId },
-          { parent_publication_id: id },
+          { target_publication_id: { $in: targetVariants } },
+          { parent_publication_id: { $in: targetVariants } },
           { old_parent_publication_id: parseInt(id, 10) || -1 },
         ],
       })
