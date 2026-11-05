@@ -5,6 +5,7 @@ import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDialogStore } from '../stores/dialogStore.js';
 import { PixelLogo } from '../components/icons/PixelLogo.js';
+import { PushNotificationService } from '../services/PushNotificationService.js';
 
 export const SigninView: React.FC = () => {
   const navigate = useNavigate();
@@ -49,7 +50,23 @@ export const SigninView: React.FC = () => {
           navigate('/settings?tab=app');
         }
       } else {
-        navigate('/');
+        const hasPush = await PushNotificationService.isSubscribed();
+        if (!hasPush) {
+          navigate('/');
+          const wantPush = await useDialogStore.getState().confirm({
+            title: 'Notificaciones Push',
+            message:
+              'oomfy está instalada en tu dispositivo, pero aún no tienes las notificaciones activadas. ¿Deseas activarlas para no perderte mensajes ni menciones?',
+            confirmText: 'Activar notificaciones',
+            cancelText: 'Más tarde',
+          });
+          if (wantPush) {
+            navigate('/settings?tab=app');
+          }
+        } else {
+          await PushNotificationService.syncSubscription().catch(() => {});
+          navigate('/');
+        }
       }
     } catch (err) {
       setError((err as Error).message);

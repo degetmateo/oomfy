@@ -476,3 +476,28 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Previsualizador ampliable interactivo (`ImageViewerModal`) al hacer clic en cualquier medio adjunto del chat.
   - *Reporte de Mensajes Directos:*
     - Extensión de `ReportTargetType` a `'message'` con acción de reporte en menú de mensaje (`<Flag />`), apertura de `ReportModal` y gestión en `AdminReportsList` con opción de eliminación de mensaje para staff.
+- **Hito 31:** Estandarización Universal de Identificadores y Relaciones BSON `UUID` en MongoDB (Completado):
+  - *Identificadores y Claves Foráneas Nativas Binarias BSON `UUID` en MongoDB:*
+    - Conversión sistemática no solo del campo `_id` sino de **todos los campos de relación y claves UUID** (`publication_id`, `user_id`, `follower_id`, `followed_id`, `chat_id`, `sender_id`, `recipient_id`, `target_publication_id`, `parent_publication_id`, `participant_ids`, etc.) a instancias BSON `UUID("...")` (Subtipo 4) en todas las colecciones (`upvotes`, `chats`, `messages`, `push_subscriptions`, `notifications`, `follows`, `reports`, `publications`, `members`).
+    - Verificación exhaustiva de 0 campos UUID residuales en formato string crudo en la base de datos de MongoDB.
+    - Preservación transparente del campo `id: string` para garantizar interoperabilidad síncrona con el cliente frontend y contratos de API REST.
+  - *Servicio Automatizado de Migración Recursiva (`UuidMigrationService` y `UuidFieldConverter`):*
+    - Clases modulares `UuidFieldConverter` (detección y conversión profunda recursiva de UUIDs preservando tipos no UUID) y `UuidMigrationService` (orquestación y sincronización atómica) integradas en `MongoMigrationRunner`.
+    - Actualización integral de repositorios (`MongoChatRepository`, `MongoMessageRepository`, `MongoNotificationRepository`, `MongoReportRepository`, `MongoFollowRepository`, `MongoPublicationRepository`, `PublicationInteractionDecorator`) y servicios (`UpvoteService`, `WebPushService`) con `MongoIdHelper.idVariants()`, `MongoIdHelper.toMongoId()` y queries polimórficas seguras.
+- **Hito 32:** Gestión de Sesiones Push, Avisos PWA, Formato Semántico y Broadcast Administrativo (Completado):
+  - *Desactivación de Notificaciones al Cerrar Sesión y Aislamiento Multicuenta:*
+    - Al invocar `logout()`, `PushNotificationService.unsubscribe()` elimina la suscripción local del navegador mediante `pushManager` y despacha `POST /api/notifications/unsubscribe` para erradicar el endpoint de `push_subscriptions`.
+    - Al iniciar sesión en otra cuenta en el mismo dispositivo, si existen suscripciones previas, `PushNotificationService.syncSubscription()` reasocia atómicamente el endpoint de la máquina al nuevo usuario autenticado, impidiendo recepción cruzada de notificaciones.
+  - *Aviso Automático de Activación Push en PWA Instalada:*
+    - Al autenticarse en `SigninView`, si la aplicación está instalada como PWA (`isStandalone`) pero carece de suscripción push activa (`isSubscribed() === false`), se despliega un diálogo emergente modal invitando al usuario a activarlas y redirigiéndolo a `/settings?tab=app`.
+  - *Estandarización Semántica de Títulos y Cuerpos de Notificaciones:*
+    - Título estandarizado en formato `"@usuario hizo tal cosa"`:
+      - Respuestas: `@usuario respondió a tu publicación` y cuerpo con el texto de la respuesta o indicador de imagen.
+      - Citas: `@usuario citó tu publicación` y cuerpo con el texto de la cita o indicador de imagen.
+      - Mensajes directos: `@usuario te envió un mensaje` y cuerpo con el fragmento del mensaje.
+      - Me gusta: `@usuario le dio me gusta a tu publicación` con cuerpo vacío.
+      - Seguimientos: `@usuario comenzó a seguirte` con cuerpo vacío.
+      - Compartidos: `@usuario compartió tu publicación` con cuerpo vacío.
+  - *Herramienta de Envío Manual de Notificaciones en Panel de Administrador:*
+    - Pestaña *Notificaciones* en `AdminView` con `<AdminPushTab />` y `<AdminPushForm />`.
+    - Endpoint seguro `POST /api/admin/notifications/push/broadcast` gestionado por `AdminPushController` y `WebPushService.broadcastPush` con soporte de difusión masiva o envío selectivo por `@usuario`.

@@ -12,15 +12,33 @@ export class PushNotificationService {
     return outputArray;
   }
 
+  public static isSupported(): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      'serviceWorker' in navigator &&
+      'PushManager' in window &&
+      'Notification' in window
+    );
+  }
+
+  public static async isSubscribed(): Promise<boolean> {
+    if (!this.isSupported() || Notification.permission !== 'granted') return false;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      return Boolean(sub);
+    } catch {
+      return false;
+    }
+  }
+
   public static async subscribe(): Promise<boolean> {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (!this.isSupported()) {
       throw new Error('Tu navegador no soporta notificaciones push.');
     }
 
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      return false;
-    }
+    if (permission !== 'granted') return false;
 
     const keyRes = await ApiClient.get<{ success: boolean; publicKey: string }>(
       '/notifications/vapid-public-key'
@@ -44,14 +62,42 @@ export class PushNotificationService {
     if (subJson.endpoint && subJson.keys?.p256dh && subJson.keys?.auth) {
       await ApiClient.post('/notifications/subscribe', {
         endpoint: subJson.endpoint,
-        keys: {
-          p256dh: subJson.keys.p256dh,
-          auth: subJson.keys.auth,
-        },
+        keys: { p256dh: subJson.keys.p256dh, auth: subJson.keys.auth },
       });
       return true;
     }
+    return false;
+  }
 
+  public static async unsubscribe(): Promise<void> {
+    if (!this.isSupported()) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await ApiClient.post('/notifications/unsubscribe', { endpoint: sub.endpoint }).catch(() => {});
+        await sub.unsubscribe().catch(() => {});
+      }
+    } catch {
+      // Ignored on teardown
+    }
+  }
+
+  public static async syncSubscription(): Promise<boolean> {
+    if (!this.isSupported() || Notification.permission !== 'granted') return false;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub) return false;
+      const subJson = sub.toJSON();
+      if (subJson.endpoint && subJson.keys?.p256dh && subJson.keys?.auth) {
+        await ApiClient.post('/notifications/subscribe', {
+          endpoint: subJson.endpoint,
+          keys: { p256dh: subJson.keys.p256dh, auth: subJson.keys.auth },
+        });
+        return true;
+      }
+    } catch {}
     return false;
   }
 }

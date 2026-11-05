@@ -135,10 +135,11 @@ export class CreatePublicationService {
       };
       await MongoNotificationRepository.create(notif);
       SocketGateway.sendNotification(targetPublication.author.id, notif);
-      const pushTitle = pubType === 'quote' ? 'Te han citado en oomfy' : 'Nueva respuesta en oomfy';
-      const pushBody = pubType === 'quote'
-        ? `@${user.username} citó tu publicación.`
-        : `@${user.username} respondió a tu publicación.`;
+      const pushTitle = pubType === 'quote'
+        ? `@${user.username} citó tu publicación`
+        : `@${user.username} respondió a tu publicación`;
+      const pushBody = newPublication.content ||
+        (newPublication.images?.[0]?.url ? 'Imagen adjunta' : '');
       WebPushService.sendPushToUser(targetPublication.author.id, {
         title: pushTitle,
         body: pushBody,

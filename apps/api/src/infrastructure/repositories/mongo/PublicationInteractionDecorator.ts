@@ -7,38 +7,43 @@ export class PublicationInteractionDecorator {
     if (!userId || posts.length === 0) return posts;
 
     const postIds = posts.map((p) => p.id);
-    const mongoIds = postIds.map((id) => MongoIdHelper.toMongoId(id));
+    const allPostVariants = postIds.flatMap((id) => MongoIdHelper.idVariants(id));
+    const userVariants = MongoIdHelper.idVariants(userId);
     const db = MongoDatabase.getDb();
 
     const [userUpvotes, userShares, userQuotes] = await Promise.all([
       db.collection('upvotes').find({
-        user_id: userId,
-        publication_id: { $in: postIds },
+        user_id: { $in: userVariants },
+        publication_id: { $in: allPostVariants },
       }).toArray(),
       db.collection('publications').find({
         type: 'shared',
-        'author.id': userId,
-        $or: [
-          { parent_publication_id: { $in: postIds } },
-          { target_publication_id: { $in: mongoIds } },
-        ],
+        $or: [{ 'author.id': { $in: userVariants } }, { 'author._id': { $in: userVariants } }],
+        $and: [{
+          $or: [
+            { parent_publication_id: { $in: allPostVariants } },
+            { target_publication_id: { $in: allPostVariants } },
+          ],
+        }],
       }).toArray(),
       db.collection('publications').find({
         type: 'quote',
-        'author.id': userId,
-        $or: [
-          { parent_publication_id: { $in: postIds } },
-          { target_publication_id: { $in: mongoIds } },
-        ],
+        $or: [{ 'author.id': { $in: userVariants } }, { 'author._id': { $in: userVariants } }],
+        $and: [{
+          $or: [
+            { parent_publication_id: { $in: allPostVariants } },
+            { target_publication_id: { $in: allPostVariants } },
+          ],
+        }],
       }).toArray(),
     ]);
 
-    const upvotedSet = new Set(userUpvotes.map((u: any) => u.publication_id));
+    const upvotedSet = new Set(userUpvotes.map((u: any) => u.publication_id?.toString() || u.publication_id));
     const sharedSet = new Set(
-      userShares.map((s: any) => s.parent_publication_id || s.target_publication_id?.toString())
+      userShares.map((s: any) => s.parent_publication_id?.toString() || s.target_publication_id?.toString())
     );
     const quotedSet = new Set(
-      userQuotes.map((q: any) => q.parent_publication_id || q.target_publication_id?.toString())
+      userQuotes.map((q: any) => q.parent_publication_id?.toString() || q.target_publication_id?.toString())
     );
 
     for (const post of posts) {
@@ -50,4 +55,3 @@ export class PublicationInteractionDecorator {
     return posts;
   }
 }
-

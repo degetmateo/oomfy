@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { PublicUser } from '@oomfy/shared';
+import { PushNotificationService } from '../services/PushNotificationService.js';
 
 interface AuthState {
   user: PublicUser | null;
@@ -37,6 +38,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUser: (user) => set({ user }),
 
   logout: () => {
+    PushNotificationService.unsubscribe().catch(() => {});
     localStorage.removeItem('oomfy_token');
     localStorage.removeItem('oomfy_refresh_token');
     set({ user: null, token: null, refreshToken: null, isAuthenticated: false, isLoading: false });

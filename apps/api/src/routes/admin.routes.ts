@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AdminController } from '../controllers/AdminController.js';
+import { AdminPushController } from '../controllers/AdminPushController.js';
 import { AuthGuard } from '../middlewares/AuthGuard.js';
 
 export const adminRouter = Router();
@@ -19,4 +20,6 @@ adminRouter.get('/stats', AdminController.getStats);
 
 adminRouter.post('/sessions/revoke-all', AdminController.revokeAllSessions);
 adminRouter.post('/users/:id/revoke-sessions', AdminController.revokeUserSessions);
+
+adminRouter.post('/notifications/push/broadcast', AdminPushController.sendPush);
 

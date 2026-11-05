@@ -26,17 +26,36 @@ export class MongoPublicationRepository {
   public static async create(publication: Publication): Promise<Publication> {
     const col = this.getCollection();
     const createdAtDate = publication.created_at ? new Date(publication.created_at) : new Date();
+    const pubMongoId = MongoIdHelper.toMongoId(publication.id);
+    const parentMongoId = publication.parent_publication_id
+      ? MongoIdHelper.toMongoId(publication.parent_publication_id)
+      : null;
+    const rootMongoId = publication.root_publication_id
+      ? MongoIdHelper.toMongoId(publication.root_publication_id)
+      : null;
+    const authorMongoId = publication.author?.id
+      ? MongoIdHelper.toMongoId(publication.author.id)
+      : null;
+    const threadUuids = publication.thread_ids?.map((t) => MongoIdHelper.toMongoId(t)) || [];
+
     const doc = {
       ...publication,
-      _id: MongoIdHelper.toMongoId(publication.id),
+      _id: pubMongoId,
+      id: publication.id,
+      parent_publication_id: parentMongoId,
+      target_publication_id: parentMongoId,
+      root_publication_id: rootMongoId,
+      thread_ids: threadUuids,
+      author: {
+        ...publication.author,
+        _id: authorMongoId,
+        id: authorMongoId,
+      },
       created_at: createdAtDate,
       upvote_count: publication.upvotes_count || 0,
       share_count: publication.shares_count || 0,
       comment_count: publication.comments_count || 0,
       quote_count: publication.quotes_count || 0,
-      target_publication_id: publication.parent_publication_id
-        ? MongoIdHelper.toMongoId(publication.parent_publication_id)
-        : null,
     };
     await col.insertOne(doc);
     return publication;
@@ -61,12 +80,13 @@ export class MongoPublicationRepository {
       });
       if (!userDoc) return [];
       const userIds = [userDoc.id, userDoc._id ? userDoc._id.toString() : null].filter(Boolean);
+      const userVariants = userIds.flatMap((id) => MongoIdHelper.idVariants(id));
 
-      const upvoteQuery: any = { user_id: { $in: userIds } };
+      const upvoteQuery: any = { user_id: { $in: userVariants } };
       if (params.olderId) {
         const olderUpvote = await MongoDatabase.getDb().collection('upvotes').findOne({
-          publication_id: params.olderId,
-          user_id: { $in: userIds },
+          publication_id: { $in: MongoIdHelper.idVariants(params.olderId) },
+          user_id: { $in: userVariants },
         });
         if (olderUpvote?.created_at) {
           upvoteQuery.created_at = { $lt: olderUpvote.created_at };
@@ -80,7 +100,7 @@ export class MongoPublicationRepository {
         .limit(limit)
         .toArray();
 
-      const pubIds = upvotes.map((u: any) => u.publication_id).filter(Boolean);
+      const pubIds = upvotes.map((u: any) => u.publication_id?.toString() || u.publication_id).filter(Boolean);
       if (pubIds.length === 0) return [];
 
       const filters = pubIds.flatMap((id: string) => MongoIdHelper.idFilter(id).$or);

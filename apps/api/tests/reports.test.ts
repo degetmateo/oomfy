@@ -74,7 +74,8 @@ describe('Reports and Staff Moderation API', () => {
     const col = MongoDatabase.getDb().collection('reports');
     const saved = await col.findOne({ id: report.id });
     expect(saved).toBeDefined();
-    expect(saved?._id).toBe(report.id);
+    expect(saved?._id.toString()).toBe(report.id);
+    expect(saved?.id).toBe(report.id);
 
     const resolveRes = await ReportService.resolveReport(report.id, 'resolved', 'moderator1');
     expect(resolveRes.message).toContain('resolved');

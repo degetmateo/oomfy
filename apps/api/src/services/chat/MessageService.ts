@@ -76,7 +76,7 @@ export class MessageService {
       SocketGateway.sendToUser(p, 'new_chat_message', message);
       if (p !== sender.id) {
         WebPushService.sendPushToUser(p, {
-          title: `Mensaje de @${sender.username}`,
+          title: `@${sender.username} te envió un mensaje`,
           body: snippet,
           url: '/chats',
         }).catch(() => {});

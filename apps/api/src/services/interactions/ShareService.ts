@@ -68,8 +68,8 @@ export class ShareService {
       await MongoNotificationRepository.create(notif);
       SocketGateway.sendNotification(target.author.id, notif);
       WebPushService.sendPushToUser(target.author.id, {
-        title: 'Publicación compartida en oomfy',
-        body: `@${user.username} compartió tu publicación.`,
+        title: `@${user.username} compartió tu publicación`,
+        body: '',
         url: `/publication/${publicationId}`,
       }).catch(() => {});
     }

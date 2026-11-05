@@ -43,7 +43,7 @@ export class NotificationController {
 
   public static async unsubscribePush(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await WebPushService.removeSubscription(req.user!.id, req.body.endpoint);
+      await WebPushService.removeSubscription(req.user?.id, req.body.endpoint);
       res.status(200).json({ success: true, message: 'Suscripción push eliminada.' });
     } catch (err) {
       next(err);

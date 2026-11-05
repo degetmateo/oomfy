@@ -10,76 +10,77 @@ import { SocketGateway } from '../../socket/SocketGateway.js';
 
 export class UpvoteService {
   public static async upvote(
-    publicationId: string,
+    pubId: string,
     user: { id: string; username: string; name: string; role: any; icon_url?: string }
   ): Promise<{ upvoted: boolean; upvotes_count: number }> {
-    const pub = await MongoPublicationRepository.findById(publicationId);
+    const pub = await MongoPublicationRepository.findById(pubId);
     if (!pub) throw new NotFoundError('Publicación no encontrada.');
 
     const col = MongoDatabase.getDb().collection('upvotes');
-    const existing = await col.findOne({ publication_id: publicationId, user_id: user.id });
+    const existing = await col.findOne({
+      publication_id: { $in: MongoIdHelper.idVariants(pubId) },
+      user_id: { $in: MongoIdHelper.idVariants(user.id) },
+    });
 
     if (!existing) {
       const upvoteId = uuidv7();
+      const upvoteUuid = MongoIdHelper.toMongoId(upvoteId);
       await col.insertOne({
-        _id: upvoteId as any,
-        id: upvoteId,
-        publication_id: publicationId,
-        user_id: user.id,
+        _id: upvoteUuid,
+        id: upvoteUuid,
+        publication_id: MongoIdHelper.toMongoId(pubId),
+        user_id: MongoIdHelper.toMongoId(user.id),
         created_at: new Date().toISOString(),
       });
-      await MongoPublicationRepository.incrementCounters(publicationId, { upvotes_count: 1 });
+      await MongoPublicationRepository.incrementCounters(pubId, { upvotes_count: 1 });
       await MongoDatabase.getDb().collection('members').updateOne(
         MongoIdHelper.idFilter(pub.author.id),
         { $inc: { upvote_count: 1 } }
       );
 
       if (pub.author.id !== user.id) {
-        const senderMember = await MongoMemberRepository.findById(user.id);
-        const senderName = senderMember?.name || user.name || user.username;
-        const senderIcon = senderMember?.icon_url || `/api/members/${user.username}/icon`;
-
+        const sender = await MongoMemberRepository.findById(user.id);
         const notif = {
           id: uuidv7(),
           recipient_id: pub.author.id,
           sender: {
             id: user.id,
             username: user.username,
-            name: senderName,
+            name: sender?.name || user.name || user.username,
             role: user.role,
-            icon_url: senderIcon,
+            icon_url: sender?.icon_url || `/api/members/${user.username}/icon`,
             banner_url: null,
           },
           type: 'upvote' as const,
-          target_publication_id: publicationId,
+          target_publication_id: pubId,
           status: 'pending' as const,
           created_at: new Date().toISOString(),
         };
         await MongoNotificationRepository.create(notif);
         SocketGateway.sendNotification(pub.author.id, notif);
         WebPushService.sendPushToUser(pub.author.id, {
-          title: 'Nuevo me gusta en oomfy',
-          body: `@${user.username} le dio me gusta a tu publicación.`,
-          url: `/publication/${publicationId}`,
+          title: `@${user.username} le dio me gusta a tu publicación`,
+          body: '',
+          url: `/publication/${pubId}`,
         }).catch(() => {});
       }
       return { upvoted: true, upvotes_count: pub.upvotes_count + 1 };
     }
-    return this.downvote(publicationId, user.id);
+    return this.downvote(pubId, user.id);
   }
 
-  public static async downvote(
-    publicationId: string,
-    userId: string
-  ): Promise<{ upvoted: boolean; upvotes_count: number }> {
-    const pub = await MongoPublicationRepository.findById(publicationId);
+  public static async downvote(pubId: string, userId: string): Promise<{ upvoted: boolean; upvotes_count: number }> {
+    const pub = await MongoPublicationRepository.findById(pubId);
     if (!pub) throw new NotFoundError('Publicación no encontrada.');
 
     const col = MongoDatabase.getDb().collection('upvotes');
-    const result = await col.deleteOne({ publication_id: publicationId, user_id: userId });
+    const result = await col.deleteOne({
+      publication_id: { $in: MongoIdHelper.idVariants(pubId) },
+      user_id: { $in: MongoIdHelper.idVariants(userId) },
+    });
 
     if (result.deletedCount > 0) {
-      await MongoPublicationRepository.incrementCounters(publicationId, { upvotes_count: -1 });
+      await MongoPublicationRepository.incrementCounters(pubId, { upvotes_count: -1 });
       await MongoDatabase.getDb().collection('members').updateOne(
         MongoIdHelper.idFilter(pub.author.id),
         { $inc: { upvote_count: -1 } }

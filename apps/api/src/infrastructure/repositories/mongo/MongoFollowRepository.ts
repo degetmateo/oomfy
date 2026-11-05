@@ -1,3 +1,4 @@
+import { v7 as uuidv7 } from 'uuid';
 import { FollowRelation } from '@oomfy/shared';
 import { MongoDatabase } from '../../database/mongo/MongoDatabase.js';
 import { MongoIdHelper } from './MongoIdHelper.js';
@@ -18,6 +19,10 @@ export class MongoFollowRepository {
     const col = this.getCollection();
     const followerVariants = this.idVariants(relation.follower_id);
     const followedVariants = this.idVariants(relation.followed_id);
+    const followerUuid = MongoIdHelper.toMongoId(relation.follower_id);
+    const followedUuid = MongoIdHelper.toMongoId(relation.followed_id);
+    const idVal = relation.id || uuidv7();
+    const idUuid = MongoIdHelper.toMongoId(idVal);
 
     await col.updateOne(
       {
@@ -27,11 +32,23 @@ export class MongoFollowRepository {
       {
         $setOnInsert: {
           ...relation,
-          follower_id: relation.follower_id,
-          followed_id: relation.followed_id,
+          _id: idUuid,
+          id: idVal,
+          follower_id: followerUuid,
+          followed_id: followedUuid,
+          follower: relation.follower ? {
+            ...relation.follower,
+            id: followerUuid,
+          } : relation.follower,
+          followed: relation.followed ? {
+            ...relation.followed,
+            id: followedUuid,
+          } : relation.followed,
         },
       },
-      { upsert: true }
+      {
+        upsert: true,
+      }
     );
   }
 

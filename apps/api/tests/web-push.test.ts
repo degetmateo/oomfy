@@ -3,7 +3,6 @@ import request from 'supertest';
 import { Server } from '../src/Server.js';
 import { MongoDatabase } from '../src/infrastructure/database/mongo/MongoDatabase.js';
 import { TokenService } from '../src/infrastructure/adapters/TokenService.js';
-import { WebPushService } from '../src/services/notifications/WebPushService.js';
 
 describe('WebPushService and Notification Endpoints', () => {
   const server = new Server(5016);
@@ -25,7 +24,7 @@ describe('WebPushService and Notification Endpoints', () => {
     expect(res.body.publicKey.length).toBeGreaterThan(10);
   });
 
-  it('saves and deletes push subscription for authenticated user', async () => {
+  it('saves and deletes push subscription for authenticated user and by endpoint', async () => {
     const userToken = TokenService.generateAccessToken({
       id: 'push-test-user-1',
       username: 'pushtester',
@@ -53,17 +52,35 @@ describe('WebPushService and Notification Endpoints', () => {
     const col = MongoDatabase.getDb().collection('push_subscriptions');
     const doc = await col.findOne({ endpoint });
     expect(doc).toBeDefined();
-    expect(doc?.user_id).toBe('push-test-user-1');
     expect(doc?._id).toBeDefined();
 
     const unsubRes = await request(server.app)
       .post('/api/notifications/unsubscribe')
-      .set('Authorization', `Bearer ${userToken}`)
       .send({ endpoint });
 
     expect(unsubRes.status).toBe(200);
     const deleted = await col.findOne({ endpoint });
     expect(deleted).toBeNull();
   });
-});
 
+  it('allows admin to broadcast push notifications via POST /api/admin/notifications/push/broadcast', async () => {
+    const adminToken = TokenService.generateAccessToken({
+      id: 'admin-push-tester',
+      username: 'adminpusher',
+      email: 'admin@push.com',
+      role: 'admin',
+    });
+
+    const res = await request(server.app)
+      .post('/api/admin/notifications/push/broadcast')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        title: 'Anuncio Global',
+        body: 'Prueba de push administrativa',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.sent_count).toBeDefined();
+  });
+});

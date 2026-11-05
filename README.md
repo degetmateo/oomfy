@@ -30,7 +30,7 @@ Oomfy permite a los usuarios compartir pensamientos, participar en debates media
 - 🧵 **Hilos Jerárquicos y Citas:** Conversaciones anidadas organizadas con referencias a publicaciones raíz (`root`), padre (`parent`) y citas con comentarios (`quotes`).
 - ❤️ **Interacciones Sociales:** Upvotes atómicos, retweets/republicaciones directas con persistencia y reconocimiento del estado de interacción por usuario, y seguimiento mutuo con métricas en tiempo real.
 - 👤 **Perfiles de Usuario:** Biografías, ubicaciones, enlaces personales, avatares recortados y banners de perfil personalizables mediante modal retro pixel.
-- 🔔 **Notificaciones en Vivo & Web Push Móvil:** Alertas en tiempo real sobre likes, respuestas, citas y seguidores vía WebSockets, complementadas con Web Push (VAPID) en segundo plano para navegadores y móviles PWA, con auto-lectura al ingresar a la vista y nombres/avatares completos.
+- 🔔 **Notificaciones en Vivo & Web Push Móvil:** Alertas en tiempo real sobre likes, respuestas, citas y seguidores vía WebSockets, complementadas con Web Push (VAPID) en segundo plano para navegadores y móviles PWA, con desvinculación estricta al cerrar sesión (evitando alertas cruzadas entre cuentas), re-sincronización automática al iniciar sesión, popup de activación para PWAs instaladas, formato semántico de títulos (`@usuario hizo tal cosa`) y herramienta de difusión masiva/selectiva en el panel de administrador.
 - ✉️ **Mensajería Directa Privada (DM Estilo Discord):** Chats 1 a 1 en MongoDB de alta velocidad ordenados por actividad reciente, mensajes continuos agrupados sin espaciados artificiales, indicador de escritura continuo ("usuario está escribiendo..."), sistema de respuestas citadas, adjuntos multimedia (imágenes y GIFs de Klipy), visor interactivo con zoom, atajos de teclado inteligentes (PC vs móvil) y prevención de auto-zoom en smartphones.
 - 🛡️ **Moderación y Reportes de Staff:** Sistema transversal de reportes de publicaciones, perfiles de usuario y mensajes directos (`ReportModal`), con panel exclusivo de Moderación (`/moderation`) para Staff (`mod` y `admin`), integrado en el panel de control administrativo.
 - 🔍 **Exploración y Búsqueda Avanzada:** Pestañas de publicaciones y usuarios con filtros de contenido, autor, rango de fechas y multimedia.
@@ -296,6 +296,9 @@ pnpm --filter @oomfy/api migrate:pg:down
 # Ejecutar migraciones de MongoDB
 pnpm --filter @oomfy/api migrate:mongo:up
 ```
+
+### Estandarización Universal de Identificadores y Relaciones BSON UUID en MongoDB
+Todas las colecciones de MongoDB (`members`, `publications`, `upvotes`, `reports`, `push_subscriptions`, `notifications`, `messages`, `chats`, `follows`) utilizan de forma homogénea identificadores nativos BSON `UUID("...")` (Subtipo 4) tanto en el identificador primario `_id` como en todas las referencias y claves foráneas (`publication_id`, `user_id`, `follower_id`, `followed_id`, `chat_id`, `sender_id`, `recipient_id`, `target_publication_id`, `parent_publication_id`, `participant_ids`). El runner de migraciones (`MongoMigrationRunner`) integra `UuidMigrationService` y `UuidFieldConverter` para migrar y validar automáticamente cualquier registro histórico a BSON `UUID`.
 
 ---
 

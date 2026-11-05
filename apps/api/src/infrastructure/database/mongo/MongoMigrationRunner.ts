@@ -1,5 +1,6 @@
 import { Db, Collection, IndexSpecification, CreateIndexesOptions } from 'mongodb';
 import { MongoDatabase } from './MongoDatabase.js';
+import { UuidMigrationService } from './UuidMigrationService.js';
 
 export class MongoMigrationRunner {
   private static async safeCreateIndex(
@@ -65,6 +66,9 @@ export class MongoMigrationRunner {
       }
       console.log(`🟩 ${stringDocs.length} fechas normalizadas a BSON Date.`);
     }
+
+    // 6. Normalización y migración de _id a UUID BSON en colecciones secundarias
+    await UuidMigrationService.migrateAll();
 
     console.log('🟩 Índices y colecciones de MongoDB asegurados con éxito.');
   }

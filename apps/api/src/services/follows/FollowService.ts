@@ -60,8 +60,8 @@ export class FollowService {
       await MongoNotificationRepository.create(notif);
       SocketGateway.sendNotification(target.id, notif);
       WebPushService.sendPushToUser(target.id, {
-        title: 'Nuevo seguidor en oomfy',
-        body: `@${follower.username} comenzó a seguirte.`,
+        title: `@${follower.username} comenzó a seguirte`,
+        body: '',
         url: `/${follower.username}`,
       }).catch(() => {});
     }
