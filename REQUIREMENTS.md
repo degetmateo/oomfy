@@ -501,3 +501,10 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
   - *Herramienta de Envío Manual de Notificaciones en Panel de Administrador:*
     - Pestaña *Notificaciones* en `AdminView` con `<AdminPushTab />` y `<AdminPushForm />`.
     - Endpoint seguro `POST /api/admin/notifications/push/broadcast` gestionado por `AdminPushController` y `WebPushService.broadcastPush` con soporte de difusión masiva o envío selectivo por `@usuario`.
+- **Hito 33:** Resolución Determinista de Citas y Publicaciones Compartidas con IDs BSON UUID (Completado):
+  - *Desacoplamiento Estricto entre Citas (Quotes) e Hilos de Respuestas (Replies):*
+    - En `PublicationThreadResolver`, la búsqueda de ancestros jerárquicos se restringe estrictamente a publicaciones de tipo `reply` (`publication.type === 'reply'`). Las citas (`quote`) son publicaciones de primer nivel independientes con tarjeta embebida que no deben encadenarse como si fueran respuestas de hilo ni arrastrar el árbol de ancestros de la publicación citada en `PublicationDetailView`.
+    - La recursión de ancestros para respuestas se detiene de forma determinista al alcanzar una publicación que no sea `reply` (el origen del hilo o cita inicial).
+  - *Población y Mapeo Seguro de Publicación Destino (`PublicationTargetPopulator` y `PublicationMapper`):*
+    - En `PublicationMapper`, se garantiza que `parent_publication_id` y `root_publication_id` se conviertan de manera uniforme a cadenas al pasar al dominio, impidiendo que referencias de objetos BSON `UUID` rompan las comparaciones en estructuras `Map` de JavaScript.
+    - `PublicationTargetPopulator` aísla bajo SRP la resolución de publicaciones referenciadas para tipos `shared` y `quote`, indexando tanto en minúsculas como con variantes BSON `UUID` y resolviendo de forma secundaria citas anidadas dentro de compartidos, erradicando el aviso erróneo de "Publicación original no disponible o eliminada".

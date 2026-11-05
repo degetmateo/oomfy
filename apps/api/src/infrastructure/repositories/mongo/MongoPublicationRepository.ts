@@ -4,6 +4,8 @@ import { MongoDatabase } from '../../database/mongo/MongoDatabase.js';
 import { MongoIdHelper } from './MongoIdHelper.js';
 import { PublicationMapper } from './PublicationMapper.js';
 import { PublicationInteractionDecorator } from './PublicationInteractionDecorator.js';
+import { PublicationTargetPopulator } from './PublicationTargetPopulator.js';
+import { PublicationThreadResolver } from './PublicationThreadResolver.js';
 
 export interface FeedParams {
   olderId?: string | null;
@@ -41,7 +43,7 @@ export class MongoPublicationRepository {
     const doc = {
       ...publication,
       _id: pubMongoId,
-      id: publication.id,
+      id: pubMongoId,
       parent_publication_id: parentMongoId,
       target_publication_id: parentMongoId,
       root_publication_id: rootMongoId,
@@ -66,7 +68,7 @@ export class MongoPublicationRepository {
     const doc = await col.findOne(MongoIdHelper.idFilter(id));
     if (!doc) return null;
     const domain = PublicationMapper.toDomain(doc);
-    const [populated] = await this.populateTargetPublications([domain]);
+    const [populated] = await PublicationTargetPopulator.populate([domain]);
     const [decorated] = await PublicationInteractionDecorator.decorate([populated], userId);
     return decorated;
   }
@@ -130,7 +132,7 @@ export class MongoPublicationRepository {
         }
       }
 
-      const populated = await this.populateTargetPublications(orderedList);
+      const populated = await PublicationTargetPopulator.populate(orderedList);
       return PublicationInteractionDecorator.decorate(populated, params.userId);
     }
 
@@ -174,33 +176,12 @@ export class MongoPublicationRepository {
     const limit = params.limit ? Number(params.limit) : 20;
     const docs = await col.find(query).sort({ created_at: -1, _id: -1 }).limit(limit).toArray();
     const domainPosts = docs.map(PublicationMapper.toDomain);
-    const populated = await this.populateTargetPublications(domainPosts);
+    const populated = await PublicationTargetPopulator.populate(domainPosts);
     return PublicationInteractionDecorator.decorate(populated, params.userId);
   }
 
   public static async findAncestors(publication: Publication, userId?: string, maxLevels: number = 20): Promise<Publication[]> {
-    const col = this.getCollection();
-    const ancestors: Publication[] = [];
-
-    if (publication.thread_ids && publication.thread_ids.length > 0) {
-      const threadFilters = publication.thread_ids.flatMap((id) => MongoIdHelper.idFilter(id).$or);
-      const docs = await col.find({ $or: threadFilters }).sort({ created_at: 1 }).toArray();
-      const domainList = docs.map(PublicationMapper.toDomain);
-      const populated = await this.populateTargetPublications(domainList);
-      return PublicationInteractionDecorator.decorate(populated, userId);
-    }
-
-    let currentParentId = publication.parent_publication_id;
-    while (currentParentId && ancestors.length < maxLevels) {
-      const parentDoc = await col.findOne(MongoIdHelper.idFilter(currentParentId));
-      if (!parentDoc) break;
-      const domain = PublicationMapper.toDomain(parentDoc);
-      ancestors.unshift(domain);
-      currentParentId = domain.parent_publication_id;
-    }
-
-    const populated = await this.populateTargetPublications(ancestors);
-    return PublicationInteractionDecorator.decorate(populated, userId);
+    return PublicationThreadResolver.findAncestors(publication, userId, maxLevels);
   }
 
   public static async findReplies(id: string, userId?: string, limit: number = 50): Promise<Publication[]> {
@@ -220,39 +201,12 @@ export class MongoPublicationRepository {
       .toArray();
 
     const domainPosts = docs.map(PublicationMapper.toDomain);
-    const populated = await this.populateTargetPublications(domainPosts);
+    const populated = await PublicationTargetPopulator.populate(domainPosts);
     return PublicationInteractionDecorator.decorate(populated, userId);
   }
 
   public static async findThread(id: string, userId?: string): Promise<Publication[]> {
     return this.findReplies(id, userId);
-  }
-
-  private static async populateTargetPublications(posts: Publication[]): Promise<Publication[]> {
-    const col = this.getCollection();
-    const needed = posts.filter(
-      (p) => !p.target_publication && p.parent_publication_id
-    );
-    if (needed.length === 0) return posts;
-
-    const targetIds = Array.from(new Set(needed.map((p) => p.parent_publication_id!)));
-    const filters = targetIds.flatMap((id) => MongoIdHelper.idFilter(id).$or);
-    const targetDocs = await col.find({ $or: filters }).toArray();
-    const map = new Map<string, Publication>();
-    for (const doc of targetDocs) {
-      const domain = PublicationMapper.toDomain(doc);
-      map.set(domain.id, domain);
-      if (doc.id) map.set(doc.id, domain);
-      if (doc.old_id) map.set(String(doc.old_id), domain);
-    }
-
-    for (const p of posts) {
-      if (!p.target_publication && p.parent_publication_id) {
-        const found = map.get(p.parent_publication_id);
-        if (found) p.target_publication = found;
-      }
-    }
-    return posts;
   }
 
   public static async incrementCounters(
