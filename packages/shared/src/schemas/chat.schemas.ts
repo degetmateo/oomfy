@@ -9,9 +9,12 @@ export const SendMessageSchema = z.object({
   chat_id: z.string().uuid(),
   content: z
     .string()
-    .min(1, 'El mensaje no puede estar vacío.')
     .max(LIMITS.MESSAGE_CONTENT_MAX, `Máximo ${LIMITS.MESSAGE_CONTENT_MAX} caracteres.`)
-    .refine((val) => val.trim().length > 0, 'El mensaje no puede ser solo espacios.'),
+    .optional()
+    .default(''),
+  reply_to_id: z.string().uuid().nullable().optional(),
+  gif_url: z.string().url().nullable().optional(),
+  media_urls: z.array(z.string().url()).max(4).optional().default([]),
 });
 
 export type CreateChatInput = z.infer<typeof CreateChatSchema>;

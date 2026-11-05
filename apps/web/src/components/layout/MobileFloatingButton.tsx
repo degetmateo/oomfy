@@ -15,6 +15,7 @@ export const MobileFloatingButton: React.FC = () => {
     location.pathname.startsWith('/settings') ||
     location.pathname.startsWith('/chats') ||
     location.pathname.startsWith('/messages') ||
+    location.pathname.startsWith('/moderation') ||
     location.pathname.startsWith('/admin');
 
   if (isHiddenRoute) return null;

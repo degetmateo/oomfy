@@ -1,6 +1,8 @@
 import { v7 as uuidv7 } from 'uuid';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 import { MongoNotificationRepository } from '../../infrastructure/repositories/mongo/MongoNotificationRepository.js';
+import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
+import { WebPushService } from '../notifications/WebPushService.js';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { NotFoundError } from '../../errors/AppError.js';
@@ -25,14 +27,18 @@ export class ShareService {
       return this.unshare(publicationId, user.id);
     }
 
+    const senderMember = await MongoMemberRepository.findById(user.id);
+    const authorName = senderMember?.name || user.name || user.username;
+    const authorIcon = senderMember?.icon_url || `/api/members/${user.username}/icon`;
+
     const sharePost = {
       id: uuidv7(),
       author: {
         id: user.id,
         username: user.username,
-        name: user.name,
+        name: authorName,
         role: user.role,
-        icon_url: user.icon_url || null,
+        icon_url: authorIcon,
         banner_url: null,
       },
       type: 'shared' as const,
@@ -61,6 +67,11 @@ export class ShareService {
       };
       await MongoNotificationRepository.create(notif);
       SocketGateway.sendNotification(target.author.id, notif);
+      WebPushService.sendPushToUser(target.author.id, {
+        title: 'Publicación compartida en oomfy',
+        body: `@${user.username} compartió tu publicación.`,
+        url: `/publication/${publicationId}`,
+      }).catch(() => {});
     }
 
     return { shared: true, shares_count: target.shares_count + 1 };

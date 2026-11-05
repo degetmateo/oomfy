@@ -64,6 +64,11 @@ export class Environment {
   public static readonly KLIPY_KEY: string = process.env.KLIPY_KEY || '';
   public static readonly RECAPTCHA_KEY: string = process.env.RECAPTCHA_KEY || '';
 
+  public static readonly VAPID_PUBLIC_KEY: string = process.env.VAPID_PUBLIC_KEY || '';
+  public static readonly VAPID_PRIVATE_KEY: string = process.env.VAPID_PRIVATE_KEY || '';
+  public static readonly VAPID_SUBJECT: string =
+    process.env.VAPID_SUBJECT || 'mailto:soporte@oomfy.online';
+
   public static isProduction(): boolean {
     return this.NODE_ENV === 'production' || process.env.PRODUCTION === 'TRUE';
   }

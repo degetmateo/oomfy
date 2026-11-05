@@ -5,7 +5,7 @@ import { Role } from '@oomfy/shared';
 
 interface Props {
   children: React.ReactNode;
-  requiredRole?: Role;
+  requiredRole?: Role | Role[];
 }
 
 export const ProtectedRoute: React.FC<Props> = ({ children, requiredRole }) => {
@@ -15,8 +15,11 @@ export const ProtectedRoute: React.FC<Props> = ({ children, requiredRole }) => {
     return <Navigate to="/signin" replace />;
   }
 
-  if (requiredRole && user?.role !== requiredRole) {
-    return <Navigate to="/" replace />;
+  if (requiredRole) {
+    const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    if (!user || !roles.includes(user.role)) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <>{children}</>;

@@ -42,6 +42,26 @@ export class SocketGateway {
 
     socket.on('join-chat', (chatId: string) => socket.join(`chat:${chatId}`));
 
+    socket.on('typing-start', (data: { chatId: string }) => {
+      if (data?.chatId) {
+        socket.to(`chat:${data.chatId}`).emit('user-typing', {
+          chatId: data.chatId,
+          userId: user.id,
+          username: user.username,
+        });
+      }
+    });
+
+    socket.on('typing-stop', (data: { chatId: string }) => {
+      if (data?.chatId) {
+        socket.to(`chat:${data.chatId}`).emit('user-stop-typing', {
+          chatId: data.chatId,
+          userId: user.id,
+          username: user.username,
+        });
+      }
+    });
+
     socket.on('send-message', async (data: { chatId: string; content: string }) => {
       try {
         if (!data.content?.trim()) return;

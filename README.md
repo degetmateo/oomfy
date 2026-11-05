@@ -30,11 +30,12 @@ Oomfy permite a los usuarios compartir pensamientos, participar en debates media
 - 🧵 **Hilos Jerárquicos y Citas:** Conversaciones anidadas organizadas con referencias a publicaciones raíz (`root`), padre (`parent`) y citas con comentarios (`quotes`).
 - ❤️ **Interacciones Sociales:** Upvotes atómicos, retweets/republicaciones directas con persistencia y reconocimiento del estado de interacción por usuario, y seguimiento mutuo con métricas en tiempo real.
 - 👤 **Perfiles de Usuario:** Biografías, ubicaciones, enlaces personales, avatares recortados y banners de perfil personalizables mediante modal retro pixel.
-- 🔔 **Notificaciones en Vivo:** Alertas en tiempo real sobre likes, respuestas, menciones y nuevos seguidores vía WebSockets.
-- ✉️ **Mensajería Directa Privada (DM):** Chats uno a uno con mensajería instantánea, estados de entrega y control de frecuencia (rate limiting).
+- 🔔 **Notificaciones en Vivo & Web Push Móvil:** Alertas en tiempo real sobre likes, respuestas, citas y seguidores vía WebSockets, complementadas con Web Push (VAPID) en segundo plano para navegadores y móviles PWA, con auto-lectura al ingresar a la vista y nombres/avatares completos.
+- ✉️ **Mensajería Directa Privada (DM Estilo Discord):** Chats 1 a 1 en MongoDB de alta velocidad ordenados por actividad reciente, mensajes continuos agrupados sin espaciados artificiales, indicador de escritura continuo ("usuario está escribiendo..."), sistema de respuestas citadas, adjuntos multimedia (imágenes y GIFs de Klipy), visor interactivo con zoom, atajos de teclado inteligentes (PC vs móvil) y prevención de auto-zoom en smartphones.
+- 🛡️ **Moderación y Reportes de Staff:** Sistema transversal de reportes de publicaciones, perfiles de usuario y mensajes directos (`ReportModal`), con panel exclusivo de Moderación (`/moderation`) para Staff (`mod` y `admin`), integrado en el panel de control administrativo.
 - 🔍 **Exploración y Búsqueda Avanzada:** Pestañas de publicaciones y usuarios con filtros de contenido, autor, rango de fechas y multimedia.
-- 📱 **Mobile-First & Botón Flotante:** Experiencia optimizada para smartphones con barra de navegación inferior, modal de publicación rápida y botón flotante de acción rápida.
-- 🔐 **Seguridad y Control de Sesiones:** Autenticación JWT con Refresh Tokens en cookies `HttpOnly`, activación por correo mediante **Resend**, auditoría de sesiones activas por IP/dispositivo y protección reCAPTCHA v3.
+- 📱 **Mobile-First & Botón Flotante:** Experiencia optimizada para smartphones con barra de navegación inferior, modal de publicación rápida y botón flotante contextual (oculto en chats y configuraciones).
+- 🔐 **Seguridad y Control de Sesiones:** Autenticación JWT con Refresh Tokens en cookies `HttpOnly`, activación por correo mediante **Resend**, auditoría precisa de sesiones activas por IP real y dispositivo/navegador, y protección reCAPTCHA v3.
 
 ---
 

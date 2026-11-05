@@ -8,7 +8,10 @@ export class MongoNotificationRepository {
 
   public static async create(notification: Notification): Promise<void> {
     const col = this.getCollection();
-    await col.insertOne(notification as any);
+    await col.insertOne({
+      _id: notification.id,
+      ...notification,
+    } as any);
   }
 
   public static async listByRecipient(recipientId: string, limit: number = 20, olderId?: string | null): Promise<Notification[]> {

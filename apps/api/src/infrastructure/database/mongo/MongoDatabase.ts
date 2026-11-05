@@ -29,5 +29,9 @@ export class MongoDatabase {
       this.db = null;
     }
   }
+
+  public static async disconnect(): Promise<void> {
+    await this.close();
+  }
 }
 

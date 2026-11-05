@@ -2,31 +2,36 @@ import React, { useState } from 'react';
 import { Smartphone, Bell } from 'lucide-react';
 import { usePwaStore } from '../../stores/pwaStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
+import { PushNotificationService } from '../../services/PushNotificationService.js';
 
 export const AppPwaSettingsTab: React.FC = () => {
   const dialog = useDialogStore();
   const { isInstallable, promptInstall, isInstalled } = usePwaStore();
   const [selectedOs, setSelectedOs] = useState<'android' | 'ios' | 'desktop'>('android');
+  const [isSubscribing, setIsSubscribing] = useState(false);
   const [notificationsGranted, setNotificationsGranted] = useState(
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission === 'granted' : false
   );
 
   const handleRequestNotifications = async () => {
-    if ('Notification' in window) {
-      const res = await Notification.requestPermission();
-      if (res === 'granted') {
+    setIsSubscribing(true);
+    try {
+      const ok = await PushNotificationService.subscribe();
+      if (ok) {
         setNotificationsGranted(true);
-        dialog.alert('¡Notificaciones activadas con éxito!', 'Notificaciones');
+        dialog.alert('¡Notificaciones push activadas y sincronizadas con éxito!', 'Notificaciones');
       } else {
         dialog.alert('Permiso no concedido. Puedes habilitarlo en los ajustes de tu navegador.', 'Aviso');
       }
-    } else {
-      dialog.alert('Tu navegador no soporta notificaciones push.', 'Aviso');
+    } catch (err: any) {
+      dialog.alert(err.message || 'Error al activar notificaciones.', 'Aviso');
+    } finally {
+      setIsSubscribing(false);
     }
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 font-mono">
       <div>
         <h3 className="text-sm font-bold text-white mb-1">Instalar Aplicación</h3>
         <p className="text-xs text-dark-muted font-sans leading-relaxed">
@@ -60,15 +65,16 @@ export const AppPwaSettingsTab: React.FC = () => {
         </h4>
         {notificationsGranted ? (
           <span className="text-xs text-brand-400 font-bold flex items-center gap-1">
-            ✓ Notificaciones push activadas en este navegador
+            ✓ Notificaciones push activadas en este dispositivo
           </span>
         ) : (
           <button
             type="button"
+            disabled={isSubscribing}
             onClick={handleRequestNotifications}
-            className="py-2 px-3.5 border border-dark-border text-white hover:border-brand-500 hover:text-brand-400 font-bold text-xs pixel-button transition-colors"
+            className="py-2 px-3.5 border border-dark-border text-white hover:border-brand-500 hover:text-brand-400 font-bold text-xs pixel-button transition-colors disabled:opacity-50"
           >
-            Activar notificaciones
+            {isSubscribing ? 'Activando...' : 'Activar notificaciones'}
           </button>
         )}
       </div>
@@ -112,4 +118,3 @@ export const AppPwaSettingsTab: React.FC = () => {
     </div>
   );
 };
-

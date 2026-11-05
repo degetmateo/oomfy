@@ -119,6 +119,26 @@ Tras una auditoría minuciosa del repositorio existente, se han identificado las
 - **RF-08.1 (Búsqueda de Usuarios):** Búsqueda por coincidencia en nombre, nombre de usuario y biografía con ponderación y paginación.
 - **RF-08.2 (Búsqueda de Publicaciones):** Búsqueda de contenido textual en publicaciones activas.
 
+### RF-09: Notificaciones Web Push y Auto-lectura
+- **RF-09.1 (Web Push VAPID en Segundo Plano):** Suscripción segura mediante `pushManager`, almacenamiento en colección `push_subscriptions` (`_id: uuidv7()`), y despacho de notificaciones push para upvotes, citas, respuestas y mensajes directos.
+- **RF-09.2 (Auto-marcado de Lectura):** Marcado automático de notificaciones como leídas al ingresar a la vista de notificaciones y de mensajes al abrir una conversación.
+- **RF-09.3 (Navegación e Identidad Visual):** Notificaciones con nombre completo, `@username` y avatar dinámico (`/api/members/:username/icon`) con navegación diferenciada al contenido generado o al perfil del emisor.
+
+### RF-10: Sistema de Reportes y Moderación de Staff
+- **RF-10.1 (Reporte de Contenido y Usuarios):** Modal interactivo para reportar publicaciones y perfiles con motivos estructurados y detalles opcionales, almacenado en colección `reports` (`_id: uuidv7()`).
+- **RF-10.2 (Panel Exclusivo de Moderación):** Vista `/moderation` protegida para roles `admin` y `mod`, además de pestaña integrada en el panel de Administración.
+- **RF-10.3 (Acciones de Moderación):** Flujos para resolver o descartar reportes, eliminación directa de publicaciones reportadas y suspensión de cuentas de usuario reportadas.
+
+### RF-11: Arquitectura de Chat Rápida en MongoDB y UI Discord
+- **RF-11.1 (Persistencia NoSQL de Chats):** Chats y mensajes migrados a MongoDB (`chats` y `messages`), eliminando locks y contención en PostgreSQL.
+- **RF-11.2 (Ordenamiento Reciente):** Conversaciones ordenadas por `updated_at: -1` al registrar mensajes nuevos.
+- **RF-11.3 (Diseño de Bloques Discord):** Agrupación temporal de mensajes consecutivos del mismo emisor con cabecera y avatar común, tipografía Inter y scroll fluido.
+
+### RF-12: Experiencia de Hilos y Navegación de Publicaciones
+- **RF-12.1 (Enfoque Automático de Hilos):** Scroll automático suave sobre la publicación seleccionada cuando existen publicaciones ancestro.
+- **RF-12.2 (Zonas de Clic Precisas):** Avatar y nombres conducen al perfil del autor; imágenes abren exclusivamente el visor de medios; el resto de la tarjeta navega a los detalles del post.
+- **RF-12.3 (Auditoría de Sesiones):** Detección de IP real cliente (`trust proxy`) y desglose de Sistema Operativo y Navegador a partir de `User-Agent`.
+
 ---
 
 ## 4. Requerimientos No Funcionales (RNF)
@@ -417,3 +437,42 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Hook táctil `usePullToRefresh.ts` con cálculo elástico de resistencia táctil e indicador animado retro pixel `<PullToRefresh />`.
     - Botón de actualización en cabecera `<Header />` para usuarios de escritorio con retroalimentación visual de giro (`RefreshCw`).
     - Implementación transversal en `HomeView`, `ProfileView`, `NotificationsView` y `PublicationDetailView`.
+- **Hito 29:** Notificaciones WebPush, Migración de Chats a MongoDB, Reportes de Contenido y Detección de Dispositivos (Completado):
+  - *Notificaciones Push en Navegador y Móvil (`WebPushService`):*
+    - Servicio push con clave VAPID, endpoints `/api/notifications/push/subscribe` y `/push/vapid-public-key`.
+    - Envío automático de notificaciones web push ante nuevos mensajes directos, menciones y respuestas en segundo plano.
+  - *Migración de Chats y Mensajes a NoSQL:*
+    - Repositorios `MongoChatRepository` y `MongoMessageRepository` con identificación homogénea en `UUIDv7`.
+    - Marcado automático de mensajes leídos al entrar a la vista `/chats` y cálculo en tiempo real de no leídos.
+  - *Sistema Integral de Reportes de Contenido (`ReportService`, `ReportModal`, `AdminReportsList`):*
+    - Endpoints y repositorio para reportar publicaciones y perfiles de usuarios infractores con detalles y motivos estructurados.
+    - Pestaña de moderación en panel de administración y vista de Staff (`/moderation`) con acciones resolutivas (eliminar post, suspender usuario, descartar reporte).
+  - *Detección de Dispositivo e IP en Sesiones (`ClientInfoParser`):*
+    - Parser de cabeceras (`x-forwarded-for`, `user-agent`) para registrar con precisión el dispositivo, navegador e IP de cada sesión activa en PostgreSQL.
+- **Hito 30:** Experiencia de Mensajería Directa Avanzada (Estilo Discord, Respuestas, Multimedia y Fijación de Layout) (Completado):
+  - *Indicador de Escritura en Tiempo Real Continuo ("Usuario está escribiendo..."):*
+    - Emisión periódica de latido de tipeo (`typing-start` cada 1.8s) y cancelación por inactividad (`typing-stop` tras 2.5s o al enviar) en `ChatThread.tsx` y `SocketGateway.ts`.
+    - Temporizador dinámico en el receptor que renueva la visibilidad del aviso mientras el remitente continúe digitando sin cortes prematuros.
+  - *Atajos de Teclado Diferenciados (PC vs Móvil) y Entrada Expandible:*
+    - Reemplazo de input estándar por `<textarea>` autorregulable (`ChatInputBar.tsx`) de altura dinámica.
+    - En PC: <kbd>Enter</kbd> envía el mensaje directamente y <kbd>Shift</kbd> + <kbd>Enter</kbd> inserta un salto de línea.
+    - En dispositivos táctiles/móviles: la tecla <kbd>Enter</kbd> inserta salto de línea y el envío se ejecuta exclusivamente mediante el botón táctil de envío.
+  - *Prevención de Zoom Automático en Dispositivos Móviles:*
+    - Dimensionamiento tipográfico base de al menos 16px (`text-base md:text-sm`) en áreas de texto e inputs, erradicando el auto-zoom forzado por navegadores WebKit/Blink en iOS y Android.
+    - Configuración en viewport meta `maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content`.
+  - *Fijación Inamovible de Cabecera y Controles en Pantallas de Chat:*
+    - Estructura `h-[100dvh] overflow-hidden` en `AppLayout.tsx` sobre rutas `/chats` y cabecera `sticky top-0 z-20 flex-shrink-0` con botón de retroceso (`ArrowLeft`).
+    - Desplazamiento confinado estrictamente al contenedor interno de mensajes (`overflow-y-auto`), evitando que el scroll desplace el layout global o esconda al usuario con el que se chatea.
+  - *Aumento de Escala Visual en Escritorio:*
+    - Avatares ampliados (`w-8 h-8 md:w-10 md:h-10`) y tipografía más legible (`text-xs md:text-sm`) con interlineado holgado (`leading-snug md:leading-relaxed`) en `ChatMessageItem.tsx`.
+  - *Sistema de Respuestas a Mensajes:*
+    - Soporte en modelo y base de datos de referencias `reply_to` anidadas.
+    - En PC: botón flotante de respuesta (`<Reply />`) al posar el cursor sobre cualquier mensaje.
+    - En móvil: gesto táctil deslizable hacia la izquierda (> 50px) y pulsación prolongada (500ms) para responder rápidamente.
+    - Previsualización visual de cita previa en barra de entrada y banner estilo Discord en el mensaje publicado.
+  - *Adjuntos Multimedia (Imágenes y GIFs):*
+    - Selección de hasta 4 imágenes con previsualización miniatura y botón de descarte.
+    - Integración de buscador modal de GIFs (`KlipyGifModal`) para adjuntar animaciones en el chat.
+    - Previsualizador ampliable interactivo (`ImageViewerModal`) al hacer clic en cualquier medio adjunto del chat.
+  - *Reporte de Mensajes Directos:*
+    - Extensión de `ReportTargetType` a `'message'` con acción de reporte en menú de mensaje (`<Flag />`), apertura de `ReportModal` y gestión en `AdminReportsList` con opción de eliminación de mensaje para staff.

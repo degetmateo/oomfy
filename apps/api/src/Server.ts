@@ -24,6 +24,7 @@ export class Server {
   }
 
   private configureMiddlewares(): void {
+    this.app.set('trust proxy', true);
     this.app.use(
       cors({
         origin: (origin, callback) => {

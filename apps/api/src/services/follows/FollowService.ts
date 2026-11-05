@@ -4,6 +4,7 @@ import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/M
 import { MongoNotificationRepository } from '../../infrastructure/repositories/mongo/MongoNotificationRepository.js';
 import { BadRequestError, NotFoundError } from '../../errors/AppError.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
+import { WebPushService } from '../notifications/WebPushService.js';
 
 export class FollowService {
   public static async follow(
@@ -58,6 +59,11 @@ export class FollowService {
       };
       await MongoNotificationRepository.create(notif);
       SocketGateway.sendNotification(target.id, notif);
+      WebPushService.sendPushToUser(target.id, {
+        title: 'Nuevo seguidor en oomfy',
+        body: `@${follower.username} comenzó a seguirte.`,
+        url: `/${follower.username}`,
+      }).catch(() => {});
     }
 
     return { message: `Ahora sigues a @${target.username}.` };

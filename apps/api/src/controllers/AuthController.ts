@@ -6,6 +6,7 @@ import { TokenRefreshService } from '../services/auth/TokenRefreshService.js';
 import { ForgotPasswordService } from '../services/auth/ForgotPasswordService.js';
 import { ResetPasswordService } from '../services/auth/ResetPasswordService.js';
 import { ForgotUsernameService } from '../services/auth/ForgotUsernameService.js';
+import { ClientInfoParser } from '../infrastructure/adapters/ClientInfoParser.js';
 
 export class AuthController {
   public static async signup(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -20,8 +21,8 @@ export class AuthController {
   public static async verify(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const token = (req.query.token as string) || req.body.token;
-      const ip = req.ip || req.socket.remoteAddress || '127.0.0.1';
-      const platform = (req.headers['user-agent'] as string) || 'Web';
+      const ip = ClientInfoParser.extractClientIp(req);
+      const platform = ClientInfoParser.parseDevicePlatform(req.headers['user-agent']);
 
       const result = await VerifyService.execute(token, ip, platform);
       res.cookie('refresh_token', result.refreshToken, {
@@ -40,8 +41,9 @@ export class AuthController {
 
   public static async signin(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const ip = req.ip || req.socket.remoteAddress || '127.0.0.1';
-      const result = await SigninService.execute(req.body, ip);
+      const ip = ClientInfoParser.extractClientIp(req);
+      const platform = ClientInfoParser.parseDevicePlatform(req.headers['user-agent']);
+      const result = await SigninService.execute(req.body, ip, platform);
 
       res.cookie('refresh_token', result.refreshToken, {
         httpOnly: true,

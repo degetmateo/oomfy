@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Calendar, MapPin, Link as LinkIcon } from 'lucide-react';
+import { Calendar, MapPin, Link as LinkIcon, Flag } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PixelBadge } from '../icons/PixelBadge.js';
 import { FormattedText } from '../common/FormattedText.js';
@@ -9,6 +9,7 @@ import { PublicUser } from '@oomfy/shared';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 import { ApiClient } from '../../services/api.js';
+import { ReportModal } from '../modals/ReportModal.js';
 
 interface Props {
   user: PublicUser;
@@ -24,6 +25,7 @@ export const ProfileInfo: React.FC<Props> = ({ user, isOwnProfile = false, onEdi
   const dialog = useDialogStore();
   const [isHoveringFollow, setIsHoveringFollow] = useState(false);
   const [isLoadingFollow, setIsLoadingFollow] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   const handleFollowToggle = async () => {
     if (!isAuthenticated) {
@@ -72,25 +74,37 @@ export const ProfileInfo: React.FC<Props> = ({ user, isOwnProfile = false, onEdi
               Editar perfil
             </button>
           ) : (
-            <button
-              onClick={handleFollowToggle}
-              onMouseEnter={() => setIsHoveringFollow(true)}
-              onMouseLeave={() => setIsHoveringFollow(false)}
-              disabled={isLoadingFollow}
-              className={`px-3.5 sm:px-4 py-1.5 text-xs font-bold transition-colors pixel-button ${
-                user.is_following
+            <div className="flex items-center gap-2">
+              {isAuthenticated && (
+                <button
+                  type="button"
+                  onClick={() => setIsReportOpen(true)}
+                  className="p-2 border border-dark-border text-dark-muted hover:text-red-400 hover:border-red-500/50 bg-dark-card pixel-button transition-colors"
+                  title="Reportar perfil"
+                >
+                  <Flag className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                onClick={handleFollowToggle}
+                onMouseEnter={() => setIsHoveringFollow(true)}
+                onMouseLeave={() => setIsHoveringFollow(false)}
+                disabled={isLoadingFollow}
+                className={`px-3.5 sm:px-4 py-1.5 text-xs font-bold transition-colors pixel-button ${
+                  user.is_following
+                    ? isHoveringFollow
+                      ? 'border border-red-500 text-red-400 bg-red-950/20'
+                      : 'border border-dark-border text-white bg-dark-card'
+                    : 'border border-brand-500 text-black bg-brand-500 hover:bg-brand-600'
+                }`}
+              >
+                {user.is_following
                   ? isHoveringFollow
-                    ? 'border border-red-500 text-red-400 bg-red-950/20'
-                    : 'border border-dark-border text-white bg-dark-card'
-                  : 'border border-brand-500 text-black bg-brand-500 hover:bg-brand-600'
-              }`}
-            >
-              {user.is_following
-                ? isHoveringFollow
-                  ? 'Dejar de seguir'
-                  : 'Siguiendo'
-                : 'Seguir'}
-            </button>
+                    ? 'Dejar de seguir'
+                    : 'Siguiendo'
+                  : 'Seguir'}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -147,6 +161,14 @@ export const ProfileInfo: React.FC<Props> = ({ user, isOwnProfile = false, onEdi
           <strong className="text-white">{user.follower_count || 0}</strong> Seguidores
         </button>
       </div>
+
+      <ReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        targetType="user"
+        targetId={user.id}
+        targetUsername={user.username}
+      />
     </div>
   );
 };

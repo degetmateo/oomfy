@@ -8,6 +8,7 @@ import { UrlPreviewAdapter } from '../../infrastructure/adapters/UrlPreviewAdapt
 import { AuthorProfileResolver } from './AuthorProfileResolver.js';
 import { BadRequestError, ForbiddenError } from '../../errors/AppError.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
+import { WebPushService } from '../notifications/WebPushService.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 
 export class CreatePublicationService {
@@ -134,6 +135,15 @@ export class CreatePublicationService {
       };
       await MongoNotificationRepository.create(notif);
       SocketGateway.sendNotification(targetPublication.author.id, notif);
+      const pushTitle = pubType === 'quote' ? 'Te han citado en oomfy' : 'Nueva respuesta en oomfy';
+      const pushBody = pubType === 'quote'
+        ? `@${user.username} citó tu publicación.`
+        : `@${user.username} respondió a tu publicación.`;
+      WebPushService.sendPushToUser(targetPublication.author.id, {
+        title: pushTitle,
+        body: pushBody,
+        url: `/publication/${newPublication.id}`,
+      }).catch(() => {});
     }
 
     return newPublication;

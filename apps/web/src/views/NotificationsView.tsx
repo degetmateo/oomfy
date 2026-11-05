@@ -66,6 +66,12 @@ export const NotificationsView: React.FC = () => {
     },
   });
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      markAllMutation.mutate();
+    }
+  }, [isAuthenticated]);
+
   if (!isAuthenticated) {
     return <Navigate to="/signin" replace />;
   }
@@ -110,66 +116,91 @@ export const NotificationsView: React.FC = () => {
           </button>
         </Header>
 
-      {isError ? (
-        <div className="p-8 text-center text-xs text-red-400">
-          <p>No se pudieron cargar las notificaciones.</p>
-          <button
-            onClick={() => refetch()}
-            className="mt-3 px-3 py-1 border border-brand-500 text-brand-400 hover:bg-brand-500 hover:text-black font-bold pixel-button"
-          >
-            Reintentar
-          </button>
-        </div>
-      ) : isLoading ? (
-        <div className="p-8 text-center text-xs text-dark-muted">Cargando notificaciones...</div>
-      ) : allNotifications.length > 0 ? (
-        <>
-          <div className="divide-y divide-dark-border">
-            {allNotifications.map((notif) => (
-              <div
-                key={notif.id}
-                onClick={() => handleNotificationClick(notif)}
-                className={`p-4 hover:bg-dark-card/40 transition-colors flex gap-3.5 items-start cursor-pointer ${notif.status === 'pending' ? 'bg-brand-500/5' : ''
+        {isError ? (
+          <div className="p-8 text-center text-xs text-red-400">
+            <p>No se pudieron cargar las notificaciones.</p>
+            <button
+              onClick={() => refetch()}
+              className="mt-3 px-3 py-1 border border-brand-500 text-brand-400 hover:bg-brand-500 hover:text-black font-bold pixel-button"
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : isLoading ? (
+          <div className="p-8 text-center text-xs text-dark-muted">Cargando notificaciones...</div>
+        ) : allNotifications.length > 0 ? (
+          <>
+            <div className="divide-y divide-dark-border">
+              {allNotifications.map((notif) => (
+                <div
+                  key={notif.id}
+                  onClick={() => handleNotificationClick(notif)}
+                  className={`p-4 hover:bg-dark-card/40 transition-colors flex gap-3.5 items-start cursor-pointer ${
+                    notif.status === 'pending' ? 'bg-brand-500/5' : ''
                   }`}
-              >
-                {renderIcon(notif.type)}
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <PixelAvatar
-                    src={notif.sender.icon_url}
-                    username={notif.sender.username}
-                    sizeClass="w-9 h-9"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-white">
-                      <span className="font-bold hover:underline">@{notif.sender.username}</span>{' '}
-                      <span className="text-dark-text">
-                        {notif.type === 'upvote' && 'le dio me gusta a tu publicación.'}
-                        {notif.type === 'share' && 'compartió tu publicación.'}
-                        {notif.type === 'comment' && 'respondió a tu publicación.'}
-                        {notif.type === 'quote' && 'citó tu publicación.'}
-                        {notif.type === 'follow' && 'comenzó a seguirte.'}
+                >
+                  {renderIcon(notif.type)}
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/${notif.sender.username}`);
+                      }}
+                      className="cursor-pointer flex-shrink-0"
+                    >
+                      <PixelAvatar
+                        src={notif.sender.icon_url || `/api/members/${notif.sender.username}/icon`}
+                        username={notif.sender.username}
+                        sizeClass="w-9 h-9"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-white">
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/${notif.sender.username}`);
+                          }}
+                          className="font-bold hover:underline cursor-pointer mr-1.5"
+                        >
+                          {notif.sender.name || notif.sender.username}
+                        </span>
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/${notif.sender.username}`);
+                          }}
+                          className="text-dark-muted font-mono hover:underline cursor-pointer"
+                        >
+                          @{notif.sender.username}
+                        </span>{' '}
+                        <span className="text-dark-text font-sans">
+                          {notif.type === 'upvote' && 'le dio me gusta a tu publicación.'}
+                          {notif.type === 'share' && 'compartió tu publicación.'}
+                          {notif.type === 'comment' && 'respondió a tu publicación.'}
+                          {notif.type === 'quote' && 'citó tu publicación.'}
+                          {notif.type === 'follow' && 'comenzó a seguirte.'}
+                        </span>
+                      </p>
+                      <span className="text-[10px] text-dark-muted mt-1 block font-mono">
+                        {new Date(notif.created_at).toLocaleDateString()}
                       </span>
-                    </p>
-                    <span className="text-[10px] text-dark-muted mt-1 block">
-                      {new Date(notif.created_at).toLocaleDateString()}
-                    </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">
-            {isFetchingNextPage && <span>Cargando más notificaciones...</span>}
+            <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">
+              {isFetchingNextPage && <span>Cargando más notificaciones...</span>}
+            </div>
+          </>
+        ) : (
+          <div className="p-8 text-center text-xs text-dark-muted">
+            <p className="font-semibold text-white">No tienes notificaciones pendientes.</p>
           </div>
-        </>
-      ) : (
-        <div className="p-8 text-center text-xs text-dark-muted">
-          <p className="font-semibold text-white">No tienes notificaciones pendientes.</p>
-        </div>
-      )}
+        )}
       </div>
     </PullToRefresh>
   );
 };
-

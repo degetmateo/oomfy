@@ -1,6 +1,8 @@
 import { v7 as uuidv7 } from 'uuid';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 import { MongoNotificationRepository } from '../../infrastructure/repositories/mongo/MongoNotificationRepository.js';
+import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
+import { WebPushService } from '../notifications/WebPushService.js';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { NotFoundError } from '../../errors/AppError.js';
@@ -18,8 +20,10 @@ export class UpvoteService {
     const existing = await col.findOne({ publication_id: publicationId, user_id: user.id });
 
     if (!existing) {
+      const upvoteId = uuidv7();
       await col.insertOne({
-        id: uuidv7(),
+        _id: upvoteId as any,
+        id: upvoteId,
         publication_id: publicationId,
         user_id: user.id,
         created_at: new Date().toISOString(),
@@ -31,15 +35,19 @@ export class UpvoteService {
       );
 
       if (pub.author.id !== user.id) {
+        const senderMember = await MongoMemberRepository.findById(user.id);
+        const senderName = senderMember?.name || user.name || user.username;
+        const senderIcon = senderMember?.icon_url || `/api/members/${user.username}/icon`;
+
         const notif = {
           id: uuidv7(),
           recipient_id: pub.author.id,
           sender: {
             id: user.id,
             username: user.username,
-            name: user.name,
+            name: senderName,
             role: user.role,
-            icon_url: user.icon_url || null,
+            icon_url: senderIcon,
             banner_url: null,
           },
           type: 'upvote' as const,
@@ -49,6 +57,11 @@ export class UpvoteService {
         };
         await MongoNotificationRepository.create(notif);
         SocketGateway.sendNotification(pub.author.id, notif);
+        WebPushService.sendPushToUser(pub.author.id, {
+          title: 'Nuevo me gusta en oomfy',
+          body: `@${user.username} le dio me gusta a tu publicación.`,
+          url: `/publication/${publicationId}`,
+        }).catch(() => {});
       }
       return { upvoted: true, upvotes_count: pub.upvotes_count + 1 };
     }

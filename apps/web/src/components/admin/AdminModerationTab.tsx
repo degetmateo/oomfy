@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
 import { ApiClient } from '../../services/api.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
+import { AdminReportsList } from './AdminReportsList.js';
 
 export const AdminModerationTab: React.FC = () => {
   const queryClient = useQueryClient();
@@ -40,10 +41,10 @@ export const AdminModerationTab: React.FC = () => {
   };
 
   return (
-    <div className="p-4 flex flex-col gap-4">
+    <div className="p-4 flex flex-col gap-6">
       <div className="p-4 bg-dark-card border border-dark-border">
         <h3 className="text-xs font-bold text-white mb-1">Eliminación directa de publicación</h3>
-        <p className="text-[11px] text-dark-muted mb-4">
+        <p className="text-[11px] text-dark-muted mb-4 font-sans">
           Ingresa el UUID o el enlace completo de la publicación que deseas dar de baja de la plataforma.
         </p>
 
@@ -66,7 +67,13 @@ export const AdminModerationTab: React.FC = () => {
           </button>
         </form>
       </div>
+
+      <div>
+        <h3 className="text-xs font-bold text-white mb-2 uppercase tracking-wider">
+          Reportes de la Comunidad
+        </h3>
+        <AdminReportsList />
+      </div>
     </div>
   );
 };
-

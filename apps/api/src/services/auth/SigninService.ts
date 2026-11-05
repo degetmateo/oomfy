@@ -9,7 +9,7 @@ import { UnauthorizedError, ForbiddenError } from '../../errors/AppError.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 
 export class SigninService {
-  public static async execute(input: SigninInput, ip: string): Promise<{
+  public static async execute(input: SigninInput, ip: string, platform?: string): Promise<{
     accessToken: string;
     refreshToken: string;
     user: any;
@@ -52,7 +52,7 @@ export class SigninService {
       id: uuidv7(),
       user_id: user.id,
       ip,
-      platform: input.platform || 'Web',
+      platform: platform || input.platform || 'Web',
       token: refreshToken,
     });
 

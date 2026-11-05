@@ -38,6 +38,7 @@ export const Navbar: React.FC = () => {
     { to: user ? `/${user.username}` : '/signin', label: 'Perfil', icon: 'member' },
     { to: '/settings', label: 'Configuración', icon: 'settings' },
     ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Administración', icon: 'settings' as const }] : []),
+    ...(user?.role === 'mod' ? [{ to: '/moderation', label: 'Moderación', icon: 'settings' as const }] : []),
   ];
 
   return (

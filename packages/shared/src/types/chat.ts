@@ -9,6 +9,13 @@ export interface Participant {
   user: AuthorSnapshot;
 }
 
+export interface ChatMessageReply {
+  id: string;
+  content: string;
+  sender_username: string;
+  sender_name?: string;
+}
+
 export interface ChatMessage {
   id: string; // UUID v7
   chat_id: string;
@@ -16,8 +23,12 @@ export interface ChatMessage {
   content: string;
   created_at: string;
   updated_at: string | null;
-  status: 'sent' | 'delivered' | 'read';
+  status: 'sent' | 'delivered' | 'read' | 'seen';
   sender?: AuthorSnapshot;
+  reply_to?: ChatMessageReply | null;
+  reply_to_id?: string | null;
+  media_urls?: string[];
+  gif_url?: string | null;
 }
 
 export interface Chat {

@@ -33,6 +33,7 @@ export const MobileBottomNav: React.FC = () => {
     { to: user ? `/${user.username}` : '/signin', name: 'member' as const },
     { to: '/settings', name: 'settings' as const },
     ...(user?.role === 'admin' ? [{ to: '/admin', name: 'settings' as const }] : []),
+    ...(user?.role === 'mod' ? [{ to: '/moderation', name: 'settings' as const }] : []),
   ];
 
   return (
