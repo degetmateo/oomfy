@@ -43,3 +43,4 @@ describe('PublicationMapper & ThreadResolver Unit Tests', () => {
     expect(sharedAncestors).toEqual([]);
   });
 });
+

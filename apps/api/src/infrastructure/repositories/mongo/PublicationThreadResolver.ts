@@ -42,3 +42,4 @@ export class PublicationThreadResolver {
     return PublicationInteractionDecorator.decorate(populated, userId);
   }
 }
+
