@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
 import { AdminPushForm } from './AdminPushForm.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 

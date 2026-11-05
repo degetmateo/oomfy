@@ -30,9 +30,9 @@ export class UuidMigrationService {
         if (UuidFieldConverter.isUuidString(rawId)) {
           try {
             const bsonUuid = new UUID(rawId);
-            await col.deleteOne({ _id: doc._id });
-            currentDoc = { ...doc, _id: bsonUuid, id: rawId };
-            await col.insertOne(currentDoc);
+            await col.deleteOne({ _id: doc._id } as any);
+            currentDoc = { ...doc, _id: bsonUuid as any, id: rawId };
+            await col.insertOne(currentDoc as any);
             updatedCount++;
           } catch {}
         }
@@ -47,7 +47,7 @@ export class UuidMigrationService {
       }
 
       if (Object.keys(changes).length > 0) {
-        await col.updateOne({ _id: currentDoc._id }, { $set: changes });
+        await col.updateOne({ _id: currentDoc._id } as any, { $set: changes });
         updatedCount++;
       }
     }

@@ -112,8 +112,8 @@ export class CrossCollectionSyncRepository {
     userUpdates: { name?: string; icon_url?: string | null; username?: string }
   ): Promise<void> {
     const db = MongoDatabase.getDb();
-    const chatUpdates = {};
-    const msgUpdates = {};
+    const chatUpdates: Record<string, any> = {};
+    const msgUpdates: Record<string, any> = {};
 
     if (userUpdates.name) {
       chatUpdates['participants.$[elem].name'] = userUpdates.name;
