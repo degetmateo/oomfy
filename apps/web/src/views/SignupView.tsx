@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { ApiClient } from '../services/api.js';
+import { useAuthStore } from '../stores/authStore.js';
 import { PixelLogo } from '../components/icons/PixelLogo.js';
 
 export const SignupView: React.FC = () => {
+  const { isAuthenticated } = useAuthStore();
   const [formData, setFormData] = useState({ email: '', username: '', name: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

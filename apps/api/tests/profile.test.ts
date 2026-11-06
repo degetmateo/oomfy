@@ -18,22 +18,22 @@ describe('Profile Media Dynamic Redirection', () => {
     });
   });
 
-  it('should redirect GET /api/members/:username/icon to avatar URL with 302', async () => {
-    const res = await request(server.app).get('/api/members/test_media_user/icon').redirects(0);
+  it('should redirect GET /members/:username/icon to avatar URL with 302', async () => {
+    const res = await request(server.app).get('/members/test_media_user/icon').redirects(0);
     expect(res.status).toBe(302);
     expect(res.headers.location).toBe('https://i.ibb.co/test-icon.png');
     expect(res.headers['cache-control']).toBe('public, max-age=300');
   });
 
-  it('should redirect GET /api/members/:username/banner to banner URL with 302', async () => {
-    const res = await request(server.app).get('/api/members/test_media_user/banner').redirects(0);
+  it('should redirect GET /members/:username/banner to banner URL with 302', async () => {
+    const res = await request(server.app).get('/members/test_media_user/banner').redirects(0);
     expect(res.status).toBe(302);
     expect(res.headers.location).toBe('https://i.ibb.co/test-banner.png');
     expect(res.headers['cache-control']).toBe('public, max-age=300');
   });
 
   it('should return 404 when requested media does not exist', async () => {
-    const res = await request(server.app).get('/api/members/non_existent_oomfy_user/icon').redirects(0);
+    const res = await request(server.app).get('/members/non_existent_oomfy_user/icon').redirects(0);
     expect(res.status).toBe(404);
   });
 });

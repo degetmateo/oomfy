@@ -24,8 +24,8 @@ describe('WebPushService and Notification Endpoints', () => {
     await MongoDatabase.disconnect();
   });
 
-  it('provides a public VAPID key via GET /api/notifications/vapid-public-key', async () => {
-    const res = await request(server.app).get('/api/notifications/vapid-public-key');
+  it('provides a public VAPID key via GET /notifications/vapid-public-key', async () => {
+    const res = await request(server.app).get('/notifications/vapid-public-key');
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.publicKey).toBeDefined();
@@ -59,7 +59,7 @@ describe('WebPushService and Notification Endpoints', () => {
 
     // 1. User A activates push
     const subRes = await request(server.app)
-      .post('/api/notifications/subscribe')
+      .post('/notifications/subscribe')
       .set('Authorization', `Bearer ${userAToken}`)
       .send(subPayload);
     expect(subRes.status).toBe(200);
@@ -71,7 +71,7 @@ describe('WebPushService and Notification Endpoints', () => {
 
     // 2. User A logs out -> deactivates without deleting document
     const unsubRes = await request(server.app)
-      .post('/api/notifications/unsubscribe')
+      .post('/notifications/unsubscribe')
       .send({ endpoint });
     expect(unsubRes.status).toBe(200);
 
@@ -81,7 +81,7 @@ describe('WebPushService and Notification Endpoints', () => {
 
     // 3. User B logs in on same device -> transfers ownership and reactivates
     const subBRes = await request(server.app)
-      .post('/api/notifications/subscribe')
+      .post('/notifications/subscribe')
       .set('Authorization', `Bearer ${userBToken}`)
       .send(subPayload);
     expect(subBRes.status).toBe(200);
@@ -107,7 +107,7 @@ describe('WebPushService and Notification Endpoints', () => {
 
     const endpoint = `https://fcm.googleapis.com/fcm/send/fake-pref-endpoint-${Date.now()}`;
     await request(server.app)
-      .post('/api/notifications/subscribe')
+      .post('/notifications/subscribe')
       .set('Authorization', `Bearer ${userToken}`)
       .send({
         endpoint,
@@ -116,7 +116,7 @@ describe('WebPushService and Notification Endpoints', () => {
 
     // Check defaults
     const prefRes1 = await request(server.app)
-      .get(`/api/notifications/preferences?endpoint=${encodeURIComponent(endpoint)}`)
+      .get(`/notifications/preferences?endpoint=${encodeURIComponent(endpoint)}`)
       .set('Authorization', `Bearer ${userToken}`);
     expect(prefRes1.status).toBe(200);
     expect(prefRes1.body.preferences.messages).toBe(true);
@@ -124,7 +124,7 @@ describe('WebPushService and Notification Endpoints', () => {
 
     // Disable messages
     const updateRes = await request(server.app)
-      .patch('/api/notifications/preferences')
+      .patch('/notifications/preferences')
       .set('Authorization', `Bearer ${userToken}`)
       .send({ endpoint, preferences: { messages: false } });
     expect(updateRes.status).toBe(200);
@@ -154,7 +154,7 @@ describe('WebPushService and Notification Endpoints', () => {
 
     const oldEndpoint = `https://fcm.googleapis.com/fcm/send/fake-expired-endpoint-${Date.now()}`;
     await request(server.app)
-      .post('/api/notifications/subscribe')
+      .post('/notifications/subscribe')
       .set('Authorization', `Bearer ${userToken}`)
       .send({
         endpoint: oldEndpoint,
@@ -164,14 +164,14 @@ describe('WebPushService and Notification Endpoints', () => {
     await PushSubscriptionRepository.markExpired(oldEndpoint);
 
     const statusRes = await request(server.app)
-      .get(`/api/notifications/preferences?endpoint=${encodeURIComponent(oldEndpoint)}`)
+      .get(`/notifications/preferences?endpoint=${encodeURIComponent(oldEndpoint)}`)
       .set('Authorization', `Bearer ${userToken}`);
     expect(statusRes.body.status).toBe('expired');
     expect(statusRes.body.is_active).toBe(false);
 
     const newEndpoint = `https://fcm.googleapis.com/fcm/send/fake-renewed-endpoint-${Date.now()}`;
     const renewRes = await request(server.app)
-      .post('/api/notifications/subscribe')
+      .post('/notifications/subscribe')
       .set('Authorization', `Bearer ${userToken}`)
       .send({
         endpoint: newEndpoint,
@@ -181,13 +181,13 @@ describe('WebPushService and Notification Endpoints', () => {
     expect(renewRes.status).toBe(200);
 
     const renewedCheck = await request(server.app)
-      .get(`/api/notifications/preferences?endpoint=${encodeURIComponent(newEndpoint)}`)
+      .get(`/notifications/preferences?endpoint=${encodeURIComponent(newEndpoint)}`)
       .set('Authorization', `Bearer ${userToken}`);
     expect(renewedCheck.body.status).toBe('active');
     expect(renewedCheck.body.is_active).toBe(true);
   });
 
-  it('allows admin to broadcast push notifications via POST /api/admin/notifications/push/broadcast', async () => {
+  it('allows admin to broadcast push notifications via POST /admin/notifications/push/broadcast', async () => {
     const adminToken = TokenService.generateAccessToken({
       id: 'admin-push-tester',
       username: 'adminpusher',
@@ -196,7 +196,7 @@ describe('WebPushService and Notification Endpoints', () => {
     });
 
     const res = await request(server.app)
-      .post('/api/admin/notifications/push/broadcast')
+      .post('/admin/notifications/push/broadcast')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         title: 'Anuncio Global',

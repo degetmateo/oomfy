@@ -16,8 +16,8 @@ describe('Reports and Staff Moderation API', () => {
     await MongoDatabase.disconnect();
   });
 
-  it('rejects unauthenticated requests to POST /api/reports', async () => {
-    const res = await request(server.app).post('/api/reports').send({
+  it('rejects unauthenticated requests to POST /reports', async () => {
+    const res = await request(server.app).post('/reports').send({
       target_type: 'publication',
       target_id: 'test-id',
       reason: 'Spam',
@@ -25,7 +25,7 @@ describe('Reports and Staff Moderation API', () => {
     expect(res.status).toBe(401);
   });
 
-  it('rejects standard users from accessing GET /api/staff/reports', async () => {
+  it('rejects standard users from accessing GET /staff/reports', async () => {
     const userToken = TokenService.generateAccessToken({
       id: 'normal-user-1',
       username: 'normaluser',
@@ -34,13 +34,13 @@ describe('Reports and Staff Moderation API', () => {
     });
 
     const res = await request(server.app)
-      .get('/api/staff/reports')
+      .get('/staff/reports')
       .set('Authorization', `Bearer ${userToken}`);
 
     expect(res.status).toBe(403);
   });
 
-  it('allows staff with mod role to access GET /api/staff/reports', async () => {
+  it('allows staff with mod role to access GET /staff/reports', async () => {
     const modToken = TokenService.generateAccessToken({
       id: 'mod-user-1',
       username: 'moderator1',
@@ -49,7 +49,7 @@ describe('Reports and Staff Moderation API', () => {
     });
 
     const res = await request(server.app)
-      .get('/api/staff/reports')
+      .get('/staff/reports')
       .set('Authorization', `Bearer ${modToken}`);
 
     expect(res.status).toBe(200);

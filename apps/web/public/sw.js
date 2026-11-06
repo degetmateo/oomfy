@@ -49,7 +49,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
     (async () => {
       try {
         const oldEndpoint = event.oldSubscription ? event.oldSubscription.endpoint : null;
-        const keyRes = await fetch('/api/notifications/vapid-public-key');
+        const keyRes = await fetch('/notifications/vapid-public-key');
         const keyData = await keyRes.json();
         if (!keyData || !keyData.publicKey) return;
 
@@ -65,7 +65,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
         });
 
         const json = newSub.toJSON();
-        await fetch('/api/notifications/subscribe', {
+        await fetch('/notifications/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

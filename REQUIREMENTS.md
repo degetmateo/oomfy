@@ -529,3 +529,22 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Al consultar el estado del dispositivo (`getPreferences`), se expone el campo `status`. En `PushNotificationService.syncSubscription()`, si el endpoint local fue marcado como caducado o está desactualizado, se invoca automáticamente `renewSubscription()`, la cual desuscribe la clave obsoleta del `pushManager`, genera una nueva suscripción VAPID y la asocia en MongoDB mediante `previous_endpoint` conservando las preferencias del usuario.
     - Se implementa el evento estándar `pushsubscriptionchange` en `sw.js` para renovación desatendida en segundo plano por el Service Worker.
     - En `<AppPwaSettingsTab />`, si una suscripción caduca y no puede autorenovarse (por ejemplo, permisos modificados), se presenta un aviso visual contextual con botón de acción para renovarla manualmente. Se extrae `<PwaInstallCard />` manteniendo el cumplimiento estricto del límite de 100 líneas por archivo.
+- **Hito 36:** Protección Universal de Rutas contra Accesos No Autenticados y Migración de URL Base de API a `/` (Completado):
+  - *Bloqueo Total de Acceso y Redirección Obligatoria a `/signin`:*
+    - En el frontend (`App.tsx`), toda la jerarquía de rutas principales contenida en `<AppLayout />` (`/`, `/explore`, `/notifications`, `/chats`, `/settings`, `/admin`, `/moderation`, `/publication/:id`, `/external`, `/:username/followers`, `/:username/following`, `/:username`) se encapsula dentro del guardián `<ProtectedRoute>`.
+    - Cualquier intento de acceder o navegar a cualquier vista de la plataforma sin una sesión activa redirige de forma inmediata y determinista a `/signin`.
+    - En `SigninView` y `SignupView`, los usuarios que ya cuentan con sesión activa son redirigidos automáticamente a `/`.
+  - *Protección Estricta de Endpoints de Datos en el Backend:*
+    - En la capa de transporte HTTP (`apps/api/src/routes/`), todos los endpoints de contenido y lectura que anteriormente permitían acceso opcional o anónimo fueron elevados a `AuthGuard.requireAuth`:
+      - `publication.routes.ts`: `GET /`, `GET /:id/ancestors`, `GET /:id`.
+      - `profile.routes.ts`: `GET /:username` (manteniendo exclusivamente públicos los redirects dinámicos de imágenes estáticas `/:username/icon` y `/:username/banner` para renderizado de tags HTML `<img>`).
+      - `follow.routes.ts`: `GET /:username/followers`, `GET /:username/followed`, `GET /:username/following`.
+      - `auxiliary.routes.ts`: `GET /gifs`, `GET /preview-url`, `GET /online-members`, `GET /suggested-members`, `GET /search-users`.
+  - *Migración de la URL Base de la API del Servidor de `/api` a `/`:*
+    - Dado que el subdominio de producción ya incluye la palabra `api` (`https://api-oomfy.onrender.com`), se eliminó el prefijo redundante `/api`.
+    - En `Server.ts`, las rutas de la API se montan directamente en la raíz `/` (manteniendo `/api` como alias secundario seguro).
+    - En el cliente web (`api.ts`), la URL base en desarrollo es `''` y en producción `https://api-oomfy.onrender.com`.
+    - En `vite.config.ts`, la regla de proxying local redirige todas las rutas API (`auth`, `members`, `publications`, `interactions`, `follows`, `notifications`, `chats`, `sessions`, `aux`, `settings`, `reports`, `staff`, `admin`, `health`) al puerto 4000 sin prefijo `/api`.
+    - En `sw.js`, las llamadas de suscripción push y clave pública VAPID apuntan a `/notifications/vapid-public-key` y `/notifications/subscribe`.
+    - En `mediaUrl.ts`, se soportan rutas `/members/${username}/icon` y `/members/${username}/banner`.
+    - Se actualizaron todos los archivos de prueba en `apps/api/tests/` para verificar el enrutamiento directo sobre `/`.

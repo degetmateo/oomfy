@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Eye, EyeOff, X } from 'lucide-react';
 import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
@@ -9,7 +9,7 @@ import { PushNotificationService } from '../services/PushNotificationService.js'
 
 export const SigninView: React.FC = () => {
   const navigate = useNavigate();
-  const { setAuth } = useAuthStore();
+  const { setAuth, isAuthenticated } = useAuthStore();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,6 +22,10 @@ export const SigninView: React.FC = () => {
   const [recoveryMsg, setRecoveryMsg] = useState('');
   const [recoveryError, setRecoveryError] = useState('');
   const [recoveryLoading, setRecoveryLoading] = useState(false);
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -35,7 +35,7 @@ export class ShareService {
         username: user.username,
         name: sender?.name || user.name || user.username,
         role: user.role,
-        icon_url: sender?.icon_url || `/api/members/${user.username}/icon`,
+        icon_url: sender?.icon_url || `/members/${user.username}/icon`,
         banner_url: null,
       },
       type: 'shared' as const,

@@ -14,17 +14,12 @@ interface Props {
 }
 
 export const ChatMessageItem: React.FC<Props> = ({
-  message,
-  isMe = false,
-  isFirstInGroup = true,
-  onReply,
-  onReport,
-  onImageClick,
+  message, isMe = false, isFirstInGroup = true, onReply, onReport, onImageClick,
 }) => {
   const sender = message.sender || {};
   const senderName = sender.name || (isMe ? 'Tú' : 'Usuario');
   const senderUsername = sender.username || '';
-  const iconUrl = sender.icon_url || (senderUsername ? `/api/members/${senderUsername}/icon` : null);
+  const iconUrl = sender.icon_url || (senderUsername ? `/members/${senderUsername}/icon` : null);
   const timeStr = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h24' });
 
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -94,9 +89,7 @@ export const ChatMessageItem: React.FC<Props> = ({
           </div>
         )}
         {message.content && (
-          <p className="text-sm md:text-base text-dark-text/95 font-sans leading-relaxed whitespace-pre-wrap break-words">
-            {message.content}
-          </p>
+          <p className="text-sm md:text-base text-dark-text/95 font-sans leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
         )}
         <ChatMessageMedia mediaUrls={message.media_urls} gifUrl={message.gif_url} onImageClick={onImageClick} />
       </div>

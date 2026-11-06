@@ -24,7 +24,7 @@ export class MessageService {
     const messageId = uuidv7();
     const senderMember = await MongoMemberRepository.findById(sender.id);
     const senderName = senderMember?.name || sender.name || sender.username;
-    const senderIcon = senderMember?.icon_url || `/api/members/${sender.username}/icon`;
+    const senderIcon = senderMember?.icon_url || `/members/${sender.username}/icon`;
 
     let replyTo: any = null;
     if (data.reply_to_id) {
@@ -40,33 +40,20 @@ export class MessageService {
     }
 
     const senderObj = {
-      id: sender.id,
-      username: sender.username,
-      name: senderName,
-      role: (sender as any).role || 'member',
-      icon_url: senderIcon,
-      banner_url: null,
+      id: sender.id, username: sender.username, name: senderName,
+      role: (sender as any).role || 'member', icon_url: senderIcon, banner_url: null,
     };
 
     const message = await MongoMessageRepository.insertMessage({
-      id: messageId,
-      chat_id: chatId,
-      sender_id: sender.id,
-      sender: senderObj,
-      content,
-      reply_to: replyTo,
-      reply_to_id: data.reply_to_id || null,
-      media_urls: data.media_urls || [],
-      gif_url: data.gif_url || null,
+      id: messageId, chat_id: chatId, sender_id: sender.id, sender: senderObj,
+      content, reply_to: replyTo, reply_to_id: data.reply_to_id || null,
+      media_urls: data.media_urls || [], gif_url: data.gif_url || null,
     });
 
     const snippet = content || (data.gif_url ? 'GIF' : data.media_urls?.length ? 'Imagen' : 'Mensaje');
 
     await MongoChatRepository.updateLastMessage(chatId, {
-      id: messageId,
-      content: snippet,
-      sender_id: sender.id,
-      created_at: (message as any).created_at,
+      id: messageId, content: snippet, sender_id: sender.id, created_at: (message as any).created_at,
     });
 
     SocketGateway.broadcastChatMessage(chatId, message);
@@ -76,9 +63,7 @@ export class MessageService {
       SocketGateway.sendToUser(p, 'new_chat_message', message);
       if (p !== sender.id) {
         WebPushService.sendPushToUser(p, {
-          title: `${sender.name} te envió un mensaje`,
-          body: snippet,
-          url: '/chats',
+          title: `${sender.name} te envió un mensaje`, body: snippet, url: '/chats',
         }, 'messages').catch(() => { });
       }
     }
@@ -86,12 +71,7 @@ export class MessageService {
     return message;
   }
 
-  public static async getChatMessages(
-    chatId: string,
-    userId: string,
-    limit: number = 30,
-    olderId?: string
-  ): Promise<any[]> {
+  public static async getChatMessages(chatId: string, userId: string, limit = 30, olderId?: string): Promise<any[]> {
     await MongoMessageRepository.markChatMessagesAsRead(chatId, userId);
     return MongoMessageRepository.listChatMessages(chatId, limit, olderId);
   }

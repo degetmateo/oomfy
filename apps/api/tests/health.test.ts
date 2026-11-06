@@ -13,7 +13,7 @@ describe('API Server Health & Endpoints', () => {
   });
 
   it('should return 401 on protected route without auth token', async () => {
-    const res = await request(server.app).get('/api/members/me');
+    const res = await request(server.app).get('/members/me');
     expect(res.status).toBe(401);
     expect(res.body.success).toBe(false);
   });

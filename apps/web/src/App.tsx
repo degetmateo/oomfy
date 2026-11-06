@@ -53,33 +53,18 @@ export const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          <Route element={<AppLayout />}>
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/" element={<HomeView />} />
             <Route path="/explore" element={<ExploreView />} />
-            <Route
-              path="/notifications"
-              element={
-                <ProtectedRoute>
-                  <NotificationsView />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/chats"
-              element={
-                <ProtectedRoute>
-                  <ChatsView />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <SettingsView />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/notifications" element={<NotificationsView />} />
+            <Route path="/chats" element={<ChatsView />} />
+            <Route path="/settings" element={<SettingsView />} />
             <Route
               path="/admin"
               element={

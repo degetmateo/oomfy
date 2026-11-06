@@ -14,14 +14,14 @@ export class ChatService {
     let target = await MongoMemberRepository.findByUsername(targetUsername);
     let targetId = target?.id;
     let targetName = target?.name || targetUsername;
-    let targetIcon = target?.icon_url || `/api/members/${targetUsername}/icon`;
+    let targetIcon = target?.icon_url || `/members/${targetUsername}/icon`;
 
     if (!target) {
       const pgTarget = await PostgresUserRepository.findByUsernameOrEmail(targetUsername);
       if (!pgTarget) throw new NotFoundError('Usuario destinatario no encontrado.');
       targetId = pgTarget.id;
       targetName = pgTarget.name || pgTarget.username;
-      targetIcon = `/api/members/${pgTarget.username}/icon`;
+      targetIcon = `/members/${pgTarget.username}/icon`;
     }
 
     if (targetId === currentUserId) {
@@ -39,7 +39,7 @@ export class ChatService {
         name: currentUserMember?.name || 'Usuario',
         icon_url:
           currentUserMember?.icon_url ||
-          `/api/members/${currentUserMember?.username || currentUserId}/icon`,
+          `/members/${currentUserMember?.username || currentUserId}/icon`,
       };
       const userB = {
         id: targetId!,

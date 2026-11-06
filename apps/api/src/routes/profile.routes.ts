@@ -9,7 +9,7 @@ const router = Router();
 router.get('/me', AuthGuard.requireAuth, ProfileController.getMe);
 router.get('/:username/icon', ProfileController.getUserIcon);
 router.get('/:username/banner', ProfileController.getUserBanner);
-router.get('/:username', AuthGuard.optionalAuth, ProfileController.getProfile);
+router.get('/:username', AuthGuard.requireAuth, ProfileController.getProfile);
 router.put(
   '/me',
   AuthGuard.requireAuth,
@@ -18,4 +18,3 @@ router.put(
 );
 
 export default router;
-

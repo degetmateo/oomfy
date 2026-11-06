@@ -6,8 +6,8 @@ export class PublicationMapper {
     const authorRawId = doc.author?._id ? doc.author._id.toString() : (doc.author?.id ? doc.author.id.toString() : '');
 
     const authorUsername = doc.author?.username || 'anonymous';
-    const dynamicIcon = authorUsername !== 'anonymous' ? `/api/members/${authorUsername}/icon` : null;
-    const dynamicBanner = authorUsername !== 'anonymous' ? `/api/members/${authorUsername}/banner` : null;
+    const dynamicIcon = authorUsername !== 'anonymous' ? `/members/${authorUsername}/icon` : null;
+    const dynamicBanner = authorUsername !== 'anonymous' ? `/members/${authorUsername}/banner` : null;
 
     const parentId = doc.parent_publication_id
       ? doc.parent_publication_id.toString()

@@ -148,7 +148,7 @@ export const NotificationsView: React.FC = () => {
                       className="cursor-pointer flex-shrink-0"
                     >
                       <PixelAvatar
-                        src={notif.sender.icon_url || `/api/members/${notif.sender.username}/icon`}
+                        src={notif.sender.icon_url || `/members/${notif.sender.username}/icon`}
                         username={notif.sender.username}
                         sizeClass="w-9 h-9"
                       />

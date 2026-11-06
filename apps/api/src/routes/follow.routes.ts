@@ -6,9 +6,8 @@ const router = Router();
 
 router.post('/:username', AuthGuard.requireAuth, FollowController.follow);
 router.delete('/:username', AuthGuard.requireAuth, FollowController.unfollow);
-router.get('/:username/followers', AuthGuard.optionalAuth, FollowController.getFollowers);
-router.get('/:username/followed', AuthGuard.optionalAuth, FollowController.getFollowed);
-router.get('/:username/following', AuthGuard.optionalAuth, FollowController.getFollowed);
+router.get('/:username/followers', AuthGuard.requireAuth, FollowController.getFollowers);
+router.get('/:username/followed', AuthGuard.requireAuth, FollowController.getFollowed);
+router.get('/:username/following', AuthGuard.requireAuth, FollowController.getFollowed);
 
 export default router;
-

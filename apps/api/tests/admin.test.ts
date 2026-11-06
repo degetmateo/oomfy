@@ -32,20 +32,20 @@ describe('Admin API & System Moderation', () => {
   });
 
   it('should block unauthenticated access to admin settings (401)', async () => {
-    const res = await request(server.app).get('/api/admin/settings');
+    const res = await request(server.app).get('/admin/settings');
     expect(res.status).toBe(401);
   });
 
   it('should block non-admin users from admin settings (403)', async () => {
     const res = await request(server.app)
-      .get('/api/admin/settings')
+      .get('/admin/settings')
       .set('Authorization', `Bearer ${memberToken}`);
     expect(res.status).toBe(403);
   });
 
   it('should allow admin to retrieve system settings (200)', async () => {
     const res = await request(server.app)
-      .get('/api/admin/settings')
+      .get('/admin/settings')
       .set('Authorization', `Bearer ${adminToken}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -57,7 +57,7 @@ describe('Admin API & System Moderation', () => {
 
   it('should allow admin to update system settings including disable_signins', async () => {
     const res = await request(server.app)
-      .put('/api/admin/settings')
+      .put('/admin/settings')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ disable_signins: true });
     expect(res.status).toBe(200);
@@ -69,7 +69,7 @@ describe('Admin API & System Moderation', () => {
 
   it('should allow admin to query stats', async () => {
     const res = await request(server.app)
-      .get('/api/admin/stats')
+      .get('/admin/stats')
       .set('Authorization', `Bearer ${adminToken}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -83,7 +83,7 @@ describe('Admin API & System Moderation', () => {
       count: 5,
     });
     const res = await request(server.app)
-      .post('/api/admin/sessions/revoke-all')
+      .post('/admin/sessions/revoke-all')
       .set('Authorization', `Bearer ${adminToken}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -97,7 +97,7 @@ describe('Admin API & System Moderation', () => {
       count: 2,
     });
     const res = await request(server.app)
-      .post('/api/admin/users/target-user-123/revoke-sessions')
+      .post('/admin/users/target-user-123/revoke-sessions')
       .set('Authorization', `Bearer ${adminToken}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
