@@ -11,6 +11,11 @@ export default defineConfig({
       '^/(auth|members|publications|interactions|follows|notifications|chats|sessions|aux|settings|reports|staff|admin|health|api)': {
         target: 'http://localhost:4000',
         changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('text/html')) {
+            return '/index.html';
+          }
+        },
       },
       '/socket.io': {
         target: 'http://localhost:4000',
