@@ -136,8 +136,8 @@ export class CreatePublicationService {
       await MongoNotificationRepository.create(notif);
       SocketGateway.sendNotification(targetPublication.author.id, notif);
       const pushTitle = pubType === 'quote'
-        ? `@${user.username} citó tu publicación`
-        : `@${user.username} respondió a tu publicación`;
+        ? `${user.name} te citó`
+        : `${user.name} te respondió`;
       const pushBody = newPublication.content ||
         (newPublication.images?.[0]?.url ? 'Imagen adjunta' : '');
       WebPushService.sendPushToUser(
@@ -148,7 +148,7 @@ export class CreatePublicationService {
           url: `/publication/${newPublication.id}`,
         },
         pubType === 'quote' ? 'quotes' : 'replies'
-      ).catch(() => {});
+      ).catch(() => { });
     }
 
     return newPublication;

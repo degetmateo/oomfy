@@ -82,12 +82,12 @@ export class ShareService {
       WebPushService.sendPushToUser(
         target.author.id,
         {
-          title: `@${user.username} compartió tu publicación`,
+          title: `${user.name} compartió tu publicación`,
           body: '',
           url: `/publication/${publicationId}`,
         },
         'shares'
-      ).catch(() => {});
+      ).catch(() => { });
     }
 
     return { shared: true, shares_count: target.shares_count + 1 };

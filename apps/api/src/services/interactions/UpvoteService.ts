@@ -61,12 +61,12 @@ export class UpvoteService {
         WebPushService.sendPushToUser(
           pub.author.id,
           {
-            title: `@${user.username} le dio me gusta a tu publicación`,
+            title: `${user.name} indicó que le gusta tu publicación.`,
             body: '',
             url: `/publication/${pubId}`,
           },
           'upvotes'
-        ).catch(() => {});
+        ).catch(() => { });
       }
       return { upvoted: true, upvotes_count: pub.upvotes_count + 1 };
     }

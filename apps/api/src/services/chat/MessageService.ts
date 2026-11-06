@@ -76,10 +76,10 @@ export class MessageService {
       SocketGateway.sendToUser(p, 'new_chat_message', message);
       if (p !== sender.id) {
         WebPushService.sendPushToUser(p, {
-          title: `@${sender.username} te envió un mensaje`,
+          title: `${sender.name} te envió un mensaje`,
           body: snippet,
           url: '/chats',
-        }, 'messages').catch(() => {});
+        }, 'messages').catch(() => { });
       }
     }
 
