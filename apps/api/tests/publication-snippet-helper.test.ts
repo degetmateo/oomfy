@@ -40,3 +40,4 @@ describe('PublicationSnippetHelper', () => {
     expect(PublicationSnippetHelper.extractSnippet({ content: '', images: [] })).toBe('');
   });
 });
+

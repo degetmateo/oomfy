@@ -32,3 +32,4 @@ export const PwaInstallCard: React.FC = () => {
     </div>
   );
 };
+
