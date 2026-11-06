@@ -49,3 +49,4 @@ describe('PushPreferencesList Component', () => {
     });
   });
 });
+

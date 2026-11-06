@@ -49,3 +49,4 @@ export class WebPushClient {
     await webpush.sendNotification(subscription, dataString);
   }
 }
+

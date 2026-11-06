@@ -88,3 +88,4 @@ export const PushPreferencesList: React.FC<Props> = ({ endpoint }) => {
     </div>
   );
 };
+

@@ -42,3 +42,4 @@ export const PwaInstallGuide: React.FC = () => {
     </div>
   );
 };
+
