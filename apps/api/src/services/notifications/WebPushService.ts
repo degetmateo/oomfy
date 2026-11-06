@@ -1,11 +1,11 @@
 import { PushPreferences } from '@oomfy/shared';
 import {
   PushSubscriptionRepository,
-  PushSubscriptionData,
+  type PushSubscriptionData,
 } from '../../infrastructure/repositories/mongo/PushSubscriptionRepository.js';
-import { WebPushClient, WebPushPayload } from '../../infrastructure/adapters/WebPushClient.js';
+import { WebPushClient, type WebPushPayload } from '../../infrastructure/adapters/WebPushClient.js';
 
-export { PushSubscriptionData, WebPushPayload };
+export type { PushSubscriptionData, WebPushPayload };
 
 export class WebPushService {
   public static getPublicKey(): string {
