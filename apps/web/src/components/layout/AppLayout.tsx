@@ -6,6 +6,7 @@ import { MobileBottomNav } from './MobileBottomNav.js';
 import { MobileFloatingButton } from './MobileFloatingButton.js';
 import { CreatePostModal } from '../publication/CreatePostModal.js';
 import { PixelDialogModal } from '../common/PixelDialogModal.js';
+import { PushReconnectBanner } from '../notifications/PushReconnectBanner.js';
 import { useUIStore } from '../../stores/uiStore.js';
 
 export const AppLayout: React.FC = () => {
@@ -28,6 +29,7 @@ export const AppLayout: React.FC = () => {
           isChatsRoute ? 'max-w-none h-full overflow-hidden' : 'max-w-2xl min-h-screen pb-16 md:pb-0'
         } border-x-0 md:border-r border-dark-border`}
       >
+        <PushReconnectBanner />
         <Outlet />
       </main>
 

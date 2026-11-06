@@ -548,3 +548,16 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - En `sw.js`, las llamadas de suscripción push y clave pública VAPID apuntan a `/notifications/vapid-public-key` y `/notifications/subscribe`.
     - En `mediaUrl.ts`, se soportan rutas `/members/${username}/icon` y `/members/${username}/banner`.
     - Se actualizaron todos los archivos de prueba en `apps/api/tests/` para verificar el enrutamiento directo sobre `/`.
+- **Hito 37:** Blindaje Anti-Caducidad y Recuperación Pasiva de Notificaciones Push en iOS / Safari PWA (Completado):
+  - *Blindaje contra la Regla de los '3 Strikes' de Apple:*
+    - En `sw.js`, el listener del evento `push` se encapsula de inmediato dentro de `event.waitUntil()`. Se asegura de forma infalible que cada push recibido termine en la invocación de `self.registration.showNotification(title, options)`.
+    - En caso de payloads vacíos, fallos en parsing JSON o errores en red, se utiliza un mecanismo de recuperación inmediata que despacha una notificación visible predeterminada (`title: "oomfy"`, `body: "Tienes una nueva notificación en oomfy."`), evitando que iOS Safari penalice a la aplicación con silent pushes no visibles y revoque la suscripción del dispositivo al tercer intento.
+  - *Renovación Automática en Background (`pushsubscriptionchange`):*
+    - En `sw.js`, se implementa el soporte completo para rotación de claves e invalidación por parte del navegador (Safari iOS 16.4+).
+    - Se detecta si el navegador ya provee `event.newSubscription` o, en su defecto, se solicita la clave pública VAPID mediante `getApiBase()` y se genera la nueva suscripción con `pushManager.subscribe()`.
+    - La nueva suscripción se persiste automáticamente en el backend vía `POST /notifications/subscribe` asociando `previous_endpoint`.
+  - *Recuperación Pasiva con Gesto de Usuario para iOS:*
+    - Debido a que iOS Safari restringe y bloquea `pushManager.subscribe()` si se invoca pasivamente en segundo plano sin interacción explícita del usuario, se implementa `checkSubscriptionHealth()` en `PushNotificationService`.
+    - Si el permiso de notificaciones sigue concedido (`Notification.permission === 'granted'`) pero la suscripción local fue purgada o caducó en el backend, se despliega el componente `<PushReconnectBanner />` en la interfaz.
+    - El banner alerta al usuario y provee un botón de acción `"Reconectar"` que, al ser accionado mediante clic directo (user gesture legítimo), reestablece la suscripción push sin necesidad de reinstalar la PWA.
+    - Se extraen `VapidKeyHelper` y `PushPreferencesApi` bajo SRP manteniendo todos los módulos bajo el límite estricto de 100 líneas por archivo.

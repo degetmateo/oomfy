@@ -57,20 +57,20 @@ export const AppPwaSettingsTab: React.FC = () => {
           <Bell className="w-3.5 h-3.5 text-brand-400" />
           <span>Notificaciones Push</span>
         </h4>
-        {notificationsGranted && status === 'expired' && (
-          <div className="p-3 bg-yellow-950/20 border border-yellow-500/40 text-xs text-yellow-400 flex items-center justify-between gap-3 mb-2">
-            <span>⚠️ Tu suscripción push caducó.</span>
+        {notificationsGranted && (!endpoint || status === 'expired') && (
+          <div className="p-3 bg-amber-950/30 border border-amber-500/40 text-xs text-amber-300 flex items-center justify-between gap-3 mb-2">
+            <span>⚠️ Tu suscripción push se desconectó o caducó en este dispositivo.</span>
             <button
               type="button"
               disabled={isSubscribing}
               onClick={handleSubscribeOrRenew}
-              className="py-1 px-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-[11px] pixel-button transition-colors"
+              className="py-1 px-3 bg-amber-400 hover:bg-amber-500 text-black font-bold text-[11px] pixel-button transition-colors"
             >
-              Renovar
+              Reconectar
             </button>
           </div>
         )}
-        {notificationsGranted ? (
+        {notificationsGranted && endpoint && status !== 'expired' ? (
           <div>
             <span className="text-xs text-brand-400 font-bold flex items-center gap-1">
               ✓ Notificaciones push activadas en este dispositivo
