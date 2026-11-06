@@ -12,8 +12,12 @@ export class WebPushService {
     return WebPushClient.getPublicKey();
   }
 
-  public static async saveSubscription(userId: string, subscription: PushSubscriptionData): Promise<void> {
-    await PushSubscriptionRepository.upsertSubscription(userId, subscription);
+  public static async saveSubscription(
+    userId: string,
+    subscription: PushSubscriptionData,
+    previousEndpoint?: string | null
+  ): Promise<void> {
+    await PushSubscriptionRepository.upsertSubscription(userId, subscription, previousEndpoint);
   }
 
   public static async deactivateSubscription(endpoint?: string | null, userId?: string | null): Promise<void> {
@@ -27,7 +31,7 @@ export class WebPushService {
   public static async getPreferences(
     userId: string,
     endpoint?: string | null
-  ): Promise<{ preferences: PushPreferences; is_active: boolean }> {
+  ): Promise<{ preferences: PushPreferences; is_active: boolean; status: string }> {
     return PushSubscriptionRepository.getPreferences(userId, endpoint);
   }
 

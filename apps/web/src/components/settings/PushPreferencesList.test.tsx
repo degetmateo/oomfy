@@ -16,6 +16,7 @@ describe('PushPreferencesList Component', () => {
         follows: true,
       },
       is_active: true,
+      status: 'active',
     });
     vi.spyOn(PushNotificationService, 'updatePreferences').mockResolvedValue({
       messages: false,

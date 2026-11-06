@@ -1,38 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, Bell } from 'lucide-react';
-import { usePwaStore } from '../../stores/pwaStore.js';
+import { Bell } from 'lucide-react';
 import { useDialogStore } from '../../stores/dialogStore.js';
 import { PushNotificationService } from '../../services/PushNotificationService.js';
 import { PushPreferencesList } from './PushPreferencesList.js';
+import { PwaInstallCard } from './PwaInstallCard.js';
 import { PwaInstallGuide } from './PwaInstallGuide.js';
 
 export const AppPwaSettingsTab: React.FC = () => {
   const dialog = useDialogStore();
-  const { isInstallable, promptInstall, isInstalled } = usePwaStore();
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [notificationsGranted, setNotificationsGranted] = useState(PushNotificationService.isPermissionGranted());
   const [endpoint, setEndpoint] = useState<string | null>(null);
+  const [status, setStatus] = useState<'active' | 'inactive' | 'expired'>('active');
 
   useEffect(() => {
     if (notificationsGranted) {
-      PushNotificationService.getEndpoint().then(setEndpoint);
+      PushNotificationService.getEndpoint().then((ep) => {
+        setEndpoint(ep);
+        PushNotificationService.getPreferences(ep || undefined).then((res) => setStatus(res.status as any)).catch(() => {});
+      });
     }
   }, [notificationsGranted]);
 
-  const handleRequestNotifications = async () => {
+  const handleSubscribeOrRenew = async () => {
     setIsSubscribing(true);
     try {
       const ok = await PushNotificationService.subscribe();
       if (ok) {
         setNotificationsGranted(true);
-        const ep = await PushNotificationService.getEndpoint();
-        setEndpoint(ep);
-        dialog.alert('¡Notificaciones push activadas y sincronizadas con éxito!', 'Notificaciones');
+        setStatus('active');
+        setEndpoint(await PushNotificationService.getEndpoint());
+        dialog.alert('¡Suscripción push activada y renovada con éxito!', 'Notificaciones');
       } else {
         dialog.alert('Permiso no concedido. Puedes habilitarlo en los ajustes de tu navegador.', 'Aviso');
       }
     } catch (err: any) {
-      dialog.alert(err.message || 'Error al activar notificaciones.', 'Aviso');
+      dialog.alert(err.message || 'Error al procesar suscripción.', 'Aviso');
     } finally {
       setIsSubscribing(false);
     }
@@ -47,30 +50,26 @@ export const AppPwaSettingsTab: React.FC = () => {
         </p>
       </div>
 
-      {isInstalled ? (
-        <div className="p-3.5 bg-brand-950/20 border border-brand-500/40 text-xs text-brand-400">
-          ✓ oomfy ya se encuentra instalada en este dispositivo.
-        </div>
-      ) : isInstallable ? (
-        <button
-          type="button"
-          onClick={() => promptInstall()}
-          className="py-3 px-5 bg-brand-500 hover:bg-brand-600 text-black font-bold text-xs uppercase tracking-wider pixel-button transition-colors flex items-center justify-center gap-2 self-start"
-        >
-          <Smartphone className="w-4 h-4" />
-          <span>Instalar oomfy directamente</span>
-        </button>
-      ) : (
-        <div className="p-3 bg-dark-card border border-dark-border text-xs text-dark-muted font-sans">
-          La instalación directa no está disponible en este navegador. Sigue la guía a continuación:
-        </div>
-      )}
+      <PwaInstallCard />
 
       <div>
         <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-2 flex items-center gap-1.5">
           <Bell className="w-3.5 h-3.5 text-brand-400" />
           <span>Notificaciones Push</span>
         </h4>
+        {notificationsGranted && status === 'expired' && (
+          <div className="p-3 bg-yellow-950/20 border border-yellow-500/40 text-xs text-yellow-400 flex items-center justify-between gap-3 mb-2">
+            <span>⚠️ Tu suscripción push caducó.</span>
+            <button
+              type="button"
+              disabled={isSubscribing}
+              onClick={handleSubscribeOrRenew}
+              className="py-1 px-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-[11px] pixel-button transition-colors"
+            >
+              Renovar
+            </button>
+          </div>
+        )}
         {notificationsGranted ? (
           <div>
             <span className="text-xs text-brand-400 font-bold flex items-center gap-1">
@@ -82,7 +81,7 @@ export const AppPwaSettingsTab: React.FC = () => {
           <button
             type="button"
             disabled={isSubscribing}
-            onClick={handleRequestNotifications}
+            onClick={handleSubscribeOrRenew}
             className="py-2 px-3.5 border border-dark-border text-white hover:border-brand-500 hover:text-brand-400 font-bold text-xs pixel-button transition-colors disabled:opacity-50"
           >
             {isSubscribing ? 'Activando...' : 'Activar notificaciones'}

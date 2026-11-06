@@ -3,6 +3,7 @@ import { MongoPublicationRepository } from '../../infrastructure/repositories/mo
 import { MongoNotificationRepository } from '../../infrastructure/repositories/mongo/MongoNotificationRepository.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { WebPushService } from '../notifications/WebPushService.js';
+import { PublicationSnippetHelper } from '../publications/PublicationSnippetHelper.js';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { NotFoundError } from '../../errors/AppError.js';
@@ -58,15 +59,16 @@ export class UpvoteService {
         };
         await MongoNotificationRepository.create(notif);
         SocketGateway.sendNotification(pub.author.id, notif);
+        const snippet = PublicationSnippetHelper.extractSnippet(pub);
         WebPushService.sendPushToUser(
           pub.author.id,
           {
-            title: `${user.name} indicó que le gusta tu publicación.`,
-            body: '',
+            title: `${user.name} indicó que le gusta`,
+            body: snippet,
             url: `/publication/${pubId}`,
           },
           'upvotes'
-        ).catch(() => { });
+        ).catch(() => {});
       }
       return { upvoted: true, upvotes_count: pub.upvotes_count + 1 };
     }

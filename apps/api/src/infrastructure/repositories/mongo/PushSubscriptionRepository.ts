@@ -13,26 +13,29 @@ export class PushSubscriptionRepository {
     return MongoDatabase.getDb().collection('push_subscriptions');
   }
 
-  public static async upsertSubscription(userId: string, data: PushSubscriptionData): Promise<void> {
+  public static async upsertSubscription(
+    userId: string,
+    data: PushSubscriptionData,
+    previousEndpoint?: string | null
+  ): Promise<void> {
     const col = this.getCollection();
+    const now = new Date().toISOString();
+    const updateSet = {
+      user_id: MongoIdHelper.toMongoId(userId),
+      endpoint: data.endpoint,
+      keys: data.keys,
+      is_active: true,
+      status: 'active',
+      updated_at: now,
+    };
+    if (previousEndpoint && previousEndpoint !== data.endpoint) {
+      const prev = await col.updateOne({ endpoint: previousEndpoint }, { $set: updateSet });
+      if (prev.matchedCount > 0) return;
+    }
     const id = uuidv7();
     await col.updateOne(
       { endpoint: data.endpoint },
-      {
-        $set: {
-          user_id: MongoIdHelper.toMongoId(userId),
-          keys: data.keys,
-          is_active: true,
-          status: 'active',
-          updated_at: new Date().toISOString(),
-        },
-        $setOnInsert: {
-          _id: MongoIdHelper.toMongoId(id),
-          id,
-          preferences: { ...DEFAULT_PUSH_PREFERENCES },
-          created_at: new Date().toISOString(),
-        },
-      },
+      { $set: updateSet, $setOnInsert: { _id: MongoIdHelper.toMongoId(id), id, preferences: { ...DEFAULT_PUSH_PREFERENCES }, created_at: now } },
       { upsert: true }
     );
   }
@@ -49,13 +52,14 @@ export class PushSubscriptionRepository {
   public static async getPreferences(
     userId: string,
     endpoint?: string | null
-  ): Promise<{ preferences: PushPreferences; is_active: boolean }> {
+  ): Promise<{ preferences: PushPreferences; is_active: boolean; status: string }> {
     const col = this.getCollection();
     const filter = endpoint ? { endpoint } : { user_id: { $in: MongoIdHelper.idVariants(userId) } };
     const doc = await col.findOne(filter);
     return {
       preferences: { ...DEFAULT_PUSH_PREFERENCES, ...(doc?.preferences || {}) },
       is_active: doc?.is_active !== false,
+      status: (doc?.status as string) || (doc?.is_active === false ? 'inactive' : 'active'),
     };
   }
 

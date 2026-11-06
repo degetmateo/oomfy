@@ -62,12 +62,12 @@ export class FollowService {
       WebPushService.sendPushToUser(
         target.id,
         {
-          title: `@${follower.username} comenzó a seguirte`,
+          title: `${follower.name} te siguió`,
           body: '',
           url: `/${follower.username}`,
         },
         'follows'
-      ).catch(() => {});
+      ).catch(() => { });
     }
 
     return { message: `Ahora sigues a @${target.username}.` };

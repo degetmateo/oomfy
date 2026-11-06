@@ -34,7 +34,7 @@ export class NotificationController {
 
   public static async subscribePush(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await WebPushService.saveSubscription(req.user!.id, req.body);
+      await WebPushService.saveSubscription(req.user!.id, req.body, req.body.previous_endpoint);
       res.status(200).json({ success: true, message: 'Suscripción push guardada.' });
     } catch (err) {
       next(err);

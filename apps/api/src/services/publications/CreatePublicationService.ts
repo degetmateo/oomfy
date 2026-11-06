@@ -9,6 +9,7 @@ import { AuthorProfileResolver } from './AuthorProfileResolver.js';
 import { BadRequestError, ForbiddenError } from '../../errors/AppError.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
 import { WebPushService } from '../notifications/WebPushService.js';
+import { PublicationSnippetHelper } from './PublicationSnippetHelper.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 
 export class CreatePublicationService {
@@ -138,8 +139,7 @@ export class CreatePublicationService {
       const pushTitle = pubType === 'quote'
         ? `${user.name} te citó`
         : `${user.name} te respondió`;
-      const pushBody = newPublication.content ||
-        (newPublication.images?.[0]?.url ? 'Imagen adjunta' : '');
+      const pushBody = PublicationSnippetHelper.extractSnippet(newPublication);
       WebPushService.sendPushToUser(
         targetPublication.author.id,
         {

@@ -144,6 +144,49 @@ describe('WebPushService and Notification Endpoints', () => {
     expect(forReplies.length).toBe(1);
   });
 
+  it('detects expired subscriptions and seamlessly renews them linking previous endpoint', async () => {
+    const userToken = TokenService.generateAccessToken({
+      id: '019e6d84-f119-7088-8e10-5d287b352b44',
+      username: 'user_d',
+      email: 'userd@test.com',
+      role: 'member',
+    });
+
+    const oldEndpoint = `https://fcm.googleapis.com/fcm/send/fake-expired-endpoint-${Date.now()}`;
+    await request(server.app)
+      .post('/api/notifications/subscribe')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        endpoint: oldEndpoint,
+        keys: { p256dh: 'p256-old', auth: 'auth-old' },
+      });
+
+    await PushSubscriptionRepository.markExpired(oldEndpoint);
+
+    const statusRes = await request(server.app)
+      .get(`/api/notifications/preferences?endpoint=${encodeURIComponent(oldEndpoint)}`)
+      .set('Authorization', `Bearer ${userToken}`);
+    expect(statusRes.body.status).toBe('expired');
+    expect(statusRes.body.is_active).toBe(false);
+
+    const newEndpoint = `https://fcm.googleapis.com/fcm/send/fake-renewed-endpoint-${Date.now()}`;
+    const renewRes = await request(server.app)
+      .post('/api/notifications/subscribe')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        endpoint: newEndpoint,
+        keys: { p256dh: 'p256-new', auth: 'auth-new' },
+        previous_endpoint: oldEndpoint,
+      });
+    expect(renewRes.status).toBe(200);
+
+    const renewedCheck = await request(server.app)
+      .get(`/api/notifications/preferences?endpoint=${encodeURIComponent(newEndpoint)}`)
+      .set('Authorization', `Bearer ${userToken}`);
+    expect(renewedCheck.body.status).toBe('active');
+    expect(renewedCheck.body.is_active).toBe(true);
+  });
+
   it('allows admin to broadcast push notifications via POST /api/admin/notifications/push/broadcast', async () => {
     const adminToken = TokenService.generateAccessToken({
       id: 'admin-push-tester',
