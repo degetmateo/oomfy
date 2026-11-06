@@ -43,8 +43,28 @@ export class NotificationController {
 
   public static async unsubscribePush(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await WebPushService.removeSubscription(req.user?.id, req.body.endpoint);
-      res.status(200).json({ success: true, message: 'Suscripción push eliminada.' });
+      await WebPushService.deactivateSubscription(req.body.endpoint, req.user?.id);
+      res.status(200).json({ success: true, message: 'Suscripción push desactivada.' });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public static async getPreferences(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const endpoint = req.query.endpoint as string | undefined;
+      const data = await WebPushService.getPreferences(req.user!.id, endpoint);
+      res.status(200).json({ success: true, ...data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public static async updatePreferences(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { endpoint, preferences } = req.body;
+      const updated = await WebPushService.updatePreferences(req.user!.id, endpoint, preferences || {});
+      res.status(200).json({ success: true, preferences: updated });
     } catch (err) {
       next(err);
     }

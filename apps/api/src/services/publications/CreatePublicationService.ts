@@ -140,11 +140,15 @@ export class CreatePublicationService {
         : `@${user.username} respondió a tu publicación`;
       const pushBody = newPublication.content ||
         (newPublication.images?.[0]?.url ? 'Imagen adjunta' : '');
-      WebPushService.sendPushToUser(targetPublication.author.id, {
-        title: pushTitle,
-        body: pushBody,
-        url: `/publication/${newPublication.id}`,
-      }).catch(() => {});
+      WebPushService.sendPushToUser(
+        targetPublication.author.id,
+        {
+          title: pushTitle,
+          body: pushBody,
+          url: `/publication/${newPublication.id}`,
+        },
+        pubType === 'quote' ? 'quotes' : 'replies'
+      ).catch(() => {});
     }
 
     return newPublication;

@@ -79,11 +79,15 @@ export class ShareService {
       };
       await MongoNotificationRepository.create(notif);
       SocketGateway.sendNotification(target.author.id, notif);
-      WebPushService.sendPushToUser(target.author.id, {
-        title: `@${user.username} compartió tu publicación`,
-        body: '',
-        url: `/publication/${publicationId}`,
-      }).catch(() => {});
+      WebPushService.sendPushToUser(
+        target.author.id,
+        {
+          title: `@${user.username} compartió tu publicación`,
+          body: '',
+          url: `/publication/${publicationId}`,
+        },
+        'shares'
+      ).catch(() => {});
     }
 
     return { shared: true, shares_count: target.shares_count + 1 };

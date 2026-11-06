@@ -98,6 +98,13 @@ export class ApiClient {
     });
   }
 
+  public static patch<T>(url: string, body?: any): Promise<T> {
+    return this.request<T>(url, {
+      method: 'PATCH',
+      body: body instanceof FormData ? body : JSON.stringify(body),
+    });
+  }
+
   public static delete<T>(url: string): Promise<T> {
     return this.request<T>(url, { method: 'DELETE' });
   }

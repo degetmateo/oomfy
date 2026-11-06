@@ -1,17 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Smartphone, Bell } from 'lucide-react';
 import { usePwaStore } from '../../stores/pwaStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 import { PushNotificationService } from '../../services/PushNotificationService.js';
+import { PushPreferencesList } from './PushPreferencesList.js';
+import { PwaInstallGuide } from './PwaInstallGuide.js';
 
 export const AppPwaSettingsTab: React.FC = () => {
   const dialog = useDialogStore();
   const { isInstallable, promptInstall, isInstalled } = usePwaStore();
-  const [selectedOs, setSelectedOs] = useState<'android' | 'ios' | 'desktop'>('android');
   const [isSubscribing, setIsSubscribing] = useState(false);
-  const [notificationsGranted, setNotificationsGranted] = useState(
-    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission === 'granted' : false
-  );
+  const [notificationsGranted, setNotificationsGranted] = useState(PushNotificationService.isPermissionGranted());
+  const [endpoint, setEndpoint] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (notificationsGranted) {
+      PushNotificationService.getEndpoint().then(setEndpoint);
+    }
+  }, [notificationsGranted]);
 
   const handleRequestNotifications = async () => {
     setIsSubscribing(true);
@@ -19,6 +25,8 @@ export const AppPwaSettingsTab: React.FC = () => {
       const ok = await PushNotificationService.subscribe();
       if (ok) {
         setNotificationsGranted(true);
+        const ep = await PushNotificationService.getEndpoint();
+        setEndpoint(ep);
         dialog.alert('¡Notificaciones push activadas y sincronizadas con éxito!', 'Notificaciones');
       } else {
         dialog.alert('Permiso no concedido. Puedes habilitarlo en los ajustes de tu navegador.', 'Aviso');
@@ -64,9 +72,12 @@ export const AppPwaSettingsTab: React.FC = () => {
           <span>Notificaciones Push</span>
         </h4>
         {notificationsGranted ? (
-          <span className="text-xs text-brand-400 font-bold flex items-center gap-1">
-            ✓ Notificaciones push activadas en este dispositivo
-          </span>
+          <div>
+            <span className="text-xs text-brand-400 font-bold flex items-center gap-1">
+              ✓ Notificaciones push activadas en este dispositivo
+            </span>
+            <PushPreferencesList endpoint={endpoint} />
+          </div>
         ) : (
           <button
             type="button"
@@ -79,42 +90,7 @@ export const AppPwaSettingsTab: React.FC = () => {
         )}
       </div>
 
-      <div className="border border-dark-border bg-dark-card/30 p-4">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3">Guía de instalación</h4>
-        <div className="flex border-b border-dark-border mb-3 text-xs">
-          {(['android', 'ios', 'desktop'] as const).map((os) => (
-            <button
-              key={os}
-              type="button"
-              onClick={() => setSelectedOs(os)}
-              className={`pb-2 px-3 font-bold transition-colors border-b-2 uppercase text-[11px] ${
-                selectedOs === os ? 'border-brand-400 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
-              }`}
-            >
-              {os === 'ios' ? 'iOS (iPhone)' : os === 'desktop' ? 'Escritorio' : 'Android'}
-            </button>
-          ))}
-        </div>
-
-        {selectedOs === 'android' && (
-          <ol className="list-decimal list-inside text-xs text-dark-text/90 space-y-1.5 font-sans">
-            <li>Abre Chrome en tu teléfono Android y presiona el menú de tres puntos (⋮).</li>
-            <li>Selecciona "Instalar aplicación" o "Agregar a la pantalla principal".</li>
-          </ol>
-        )}
-        {selectedOs === 'ios' && (
-          <ol className="list-decimal list-inside text-xs text-dark-text/90 space-y-1.5 font-sans">
-            <li>Toca el botón Compartir en Safari (icono de cuadrado con flecha hacia arriba).</li>
-            <li>Desplázate y selecciona "Agregar a pantalla de inicio".</li>
-          </ol>
-        )}
-        {selectedOs === 'desktop' && (
-          <ol className="list-decimal list-inside text-xs text-dark-text/90 space-y-1.5 font-sans">
-            <li>En Chrome o Edge, haz clic en el icono de instalación en la barra de URL.</li>
-            <li>Haz clic en "Instalar" para abrir oomfy como ventana independiente.</li>
-          </ol>
-        )}
-      </div>
+      <PwaInstallGuide />
     </div>
   );
 };

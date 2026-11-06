@@ -3,15 +3,24 @@ import request from 'supertest';
 import { Server } from '../src/Server.js';
 import { MongoDatabase } from '../src/infrastructure/database/mongo/MongoDatabase.js';
 import { TokenService } from '../src/infrastructure/adapters/TokenService.js';
+import { PushSubscriptionRepository } from '../src/infrastructure/repositories/mongo/PushSubscriptionRepository.js';
 
 describe('WebPushService and Notification Endpoints', () => {
   const server = new Server(5016);
 
   beforeAll(async () => {
     await MongoDatabase.connect();
+    await MongoDatabase.getDb().collection('push_subscriptions').deleteMany({
+      $or: [
+        { endpoint: { $regex: /fake-/ } },
+      ],
+    });
   });
 
   afterAll(async () => {
+    await MongoDatabase.getDb().collection('push_subscriptions').deleteMany({
+      endpoint: { $regex: /fake-/ },
+    });
     await MongoDatabase.disconnect();
   });
 
@@ -24,15 +33,22 @@ describe('WebPushService and Notification Endpoints', () => {
     expect(res.body.publicKey.length).toBeGreaterThan(10);
   });
 
-  it('saves and deletes push subscription for authenticated user and by endpoint', async () => {
-    const userToken = TokenService.generateAccessToken({
-      id: 'push-test-user-1',
-      username: 'pushtester',
-      email: 'push@test.com',
+  it('saves, deactivates without deleting, reactivates, and transfers subscription across accounts', async () => {
+    const userAToken = TokenService.generateAccessToken({
+      id: '019e6d84-f119-7088-8e10-5d287b352b11',
+      username: 'user_a',
+      email: 'usera@test.com',
       role: 'member',
     });
 
-    const endpoint = 'https://fcm.googleapis.com/fcm/send/fake-endpoint-test-123';
+    const userBToken = TokenService.generateAccessToken({
+      id: '019e6d84-f119-7088-8e10-5d287b352b22',
+      username: 'user_b',
+      email: 'userb@test.com',
+      role: 'member',
+    });
+
+    const endpoint = `https://fcm.googleapis.com/fcm/send/fake-lifecycle-endpoint-${Date.now()}`;
     const subPayload = {
       endpoint,
       keys: {
@@ -41,26 +57,91 @@ describe('WebPushService and Notification Endpoints', () => {
       },
     };
 
+    // 1. User A activates push
     const subRes = await request(server.app)
       .post('/api/notifications/subscribe')
-      .set('Authorization', `Bearer ${userToken}`)
+      .set('Authorization', `Bearer ${userAToken}`)
       .send(subPayload);
-
     expect(subRes.status).toBe(200);
-    expect(subRes.body.success).toBe(true);
 
     const col = MongoDatabase.getDb().collection('push_subscriptions');
-    const doc = await col.findOne({ endpoint });
+    let doc = await col.findOne({ endpoint });
     expect(doc).toBeDefined();
-    expect(doc?._id).toBeDefined();
+    expect(doc?.is_active).toBe(true);
 
+    // 2. User A logs out -> deactivates without deleting document
     const unsubRes = await request(server.app)
       .post('/api/notifications/unsubscribe')
       .send({ endpoint });
-
     expect(unsubRes.status).toBe(200);
-    const deleted = await col.findOne({ endpoint });
-    expect(deleted).toBeNull();
+
+    doc = await col.findOne({ endpoint });
+    expect(doc).toBeDefined();
+    expect(doc?.is_active).toBe(false);
+
+    // 3. User B logs in on same device -> transfers ownership and reactivates
+    const subBRes = await request(server.app)
+      .post('/api/notifications/subscribe')
+      .set('Authorization', `Bearer ${userBToken}`)
+      .send(subPayload);
+    expect(subBRes.status).toBe(200);
+
+    doc = await col.findOne({ endpoint });
+    expect(doc).toBeDefined();
+    expect(doc?.is_active).toBe(true);
+
+    // Active for user B, inactive for user A
+    const activeForA = await PushSubscriptionRepository.findActiveSubscriptions('019e6d84-f119-7088-8e10-5d287b352b11');
+    const activeForB = await PushSubscriptionRepository.findActiveSubscriptions('019e6d84-f119-7088-8e10-5d287b352b22');
+    expect(activeForA.length).toBe(0);
+    expect(activeForB.length).toBe(1);
+  });
+
+  it('manages notification preferences and filters categories correctly', async () => {
+    const userToken = TokenService.generateAccessToken({
+      id: '019e6d84-f119-7088-8e10-5d287b352b33',
+      username: 'user_c',
+      email: 'userc@test.com',
+      role: 'member',
+    });
+
+    const endpoint = `https://fcm.googleapis.com/fcm/send/fake-pref-endpoint-${Date.now()}`;
+    await request(server.app)
+      .post('/api/notifications/subscribe')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        endpoint,
+        keys: { p256dh: 'fake-p256', auth: 'fake-auth' },
+      });
+
+    // Check defaults
+    const prefRes1 = await request(server.app)
+      .get(`/api/notifications/preferences?endpoint=${encodeURIComponent(endpoint)}`)
+      .set('Authorization', `Bearer ${userToken}`);
+    expect(prefRes1.status).toBe(200);
+    expect(prefRes1.body.preferences.messages).toBe(true);
+    expect(prefRes1.body.preferences.replies).toBe(true);
+
+    // Disable messages
+    const updateRes = await request(server.app)
+      .patch('/api/notifications/preferences')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ endpoint, preferences: { messages: false } });
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.preferences.messages).toBe(false);
+    expect(updateRes.body.preferences.replies).toBe(true);
+
+    // Verify repository filtering
+    const forMessages = await PushSubscriptionRepository.findActiveSubscriptions(
+      '019e6d84-f119-7088-8e10-5d287b352b33',
+      'messages'
+    );
+    const forReplies = await PushSubscriptionRepository.findActiveSubscriptions(
+      '019e6d84-f119-7088-8e10-5d287b352b33',
+      'replies'
+    );
+    expect(forMessages.length).toBe(0);
+    expect(forReplies.length).toBe(1);
   });
 
   it('allows admin to broadcast push notifications via POST /api/admin/notifications/push/broadcast', async () => {

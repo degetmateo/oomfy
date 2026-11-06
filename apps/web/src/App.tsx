@@ -19,6 +19,7 @@ import { VerifyView } from './views/VerifyView.js';
 import { ResetPasswordView } from './views/ResetPasswordView.js';
 import { useAuthStore } from './stores/authStore.js';
 import { ApiClient } from './services/api.js';
+import { PushNotificationService } from './services/PushNotificationService.js';
 import { ProtectedRoute } from './components/auth/ProtectedRoute.js';
 
 const queryClient = new QueryClient({
@@ -38,7 +39,12 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (token) {
       ApiClient.get<any>('/members/me')
-        .then((res) => setUser(res.data))
+        .then((res) => {
+          setUser(res.data);
+          if (PushNotificationService.isPermissionGranted()) {
+            PushNotificationService.syncSubscription().catch(() => {});
+          }
+        })
         .catch(() => logout());
     }
   }, [token, setUser, logout]);

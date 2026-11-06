@@ -38,6 +38,9 @@ export const SigninView: React.FC = () => {
           (navigator as any).standalone === true);
 
       if (!isStandalone) {
+        if (PushNotificationService.isPermissionGranted()) {
+          await PushNotificationService.syncSubscription().catch(() => {});
+        }
         navigate('/');
         const wantInstall = await useDialogStore.getState().confirm({
           title: 'Instalar oomfy',
@@ -50,8 +53,10 @@ export const SigninView: React.FC = () => {
           navigate('/settings?tab=app');
         }
       } else {
-        const hasPush = await PushNotificationService.isSubscribed();
-        if (!hasPush) {
+        if (PushNotificationService.isPermissionGranted()) {
+          await PushNotificationService.syncSubscription().catch(() => {});
+          navigate('/');
+        } else {
           navigate('/');
           const wantPush = await useDialogStore.getState().confirm({
             title: 'Notificaciones Push',
@@ -63,9 +68,6 @@ export const SigninView: React.FC = () => {
           if (wantPush) {
             navigate('/settings?tab=app');
           }
-        } else {
-          await PushNotificationService.syncSubscription().catch(() => {});
-          navigate('/');
         }
       }
     } catch (err) {

@@ -13,3 +13,21 @@ export interface Notification {
   created_at: string;
 }
 
+export interface PushPreferences {
+  messages: boolean;
+  replies: boolean;
+  quotes: boolean;
+  upvotes: boolean;
+  shares: boolean;
+  follows: boolean;
+}
+
+export const DEFAULT_PUSH_PREFERENCES: PushPreferences = {
+  messages: true,
+  replies: true,
+  quotes: true,
+  upvotes: true,
+  shares: true,
+  follows: true,
+};
+

@@ -58,11 +58,15 @@ export class UpvoteService {
         };
         await MongoNotificationRepository.create(notif);
         SocketGateway.sendNotification(pub.author.id, notif);
-        WebPushService.sendPushToUser(pub.author.id, {
-          title: `@${user.username} le dio me gusta a tu publicación`,
-          body: '',
-          url: `/publication/${pubId}`,
-        }).catch(() => {});
+        WebPushService.sendPushToUser(
+          pub.author.id,
+          {
+            title: `@${user.username} le dio me gusta a tu publicación`,
+            body: '',
+            url: `/publication/${pubId}`,
+          },
+          'upvotes'
+        ).catch(() => {});
       }
       return { upvoted: true, upvotes_count: pub.upvotes_count + 1 };
     }

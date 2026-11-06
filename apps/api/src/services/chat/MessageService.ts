@@ -79,7 +79,7 @@ export class MessageService {
           title: `@${sender.username} te envió un mensaje`,
           body: snippet,
           url: '/chats',
-        }).catch(() => {});
+        }, 'messages').catch(() => {});
       }
     }
 

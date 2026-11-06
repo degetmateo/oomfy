@@ -59,11 +59,15 @@ export class FollowService {
       };
       await MongoNotificationRepository.create(notif);
       SocketGateway.sendNotification(target.id, notif);
-      WebPushService.sendPushToUser(target.id, {
-        title: `@${follower.username} comenzó a seguirte`,
-        body: '',
-        url: `/${follower.username}`,
-      }).catch(() => {});
+      WebPushService.sendPushToUser(
+        target.id,
+        {
+          title: `@${follower.username} comenzó a seguirte`,
+          body: '',
+          url: `/${follower.username}`,
+        },
+        'follows'
+      ).catch(() => {});
     }
 
     return { message: `Ahora sigues a @${target.username}.` };
