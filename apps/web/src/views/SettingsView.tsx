@@ -33,7 +33,7 @@ export const SettingsView: React.FC = () => {
     { id: 'account' as const, label: 'Cuenta', icon: Shield },
     { id: 'security' as const, label: 'Seguridad', icon: Key },
     { id: 'sessions' as const, label: 'Sesiones', icon: Laptop },
-    { id: 'app' as const, label: 'App (PWA)', icon: Smartphone },
+    { id: 'app' as const, label: 'App', icon: Smartphone },
   ];
 
   return (
@@ -49,9 +49,8 @@ export const SettingsView: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => selectTab(tab.id)}
-              className={`flex-1 py-3 px-2 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 whitespace-nowrap ${
-                isActive ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
-              }`}
+              className={`flex-1 py-3 px-2 font-bold transition-colors border-b-2 flex items-center justify-center gap-1.5 whitespace-nowrap ${isActive ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'
+                }`}
             >
               <Icon className="w-3.5 h-3.5" />
               <span>{tab.label}</span>

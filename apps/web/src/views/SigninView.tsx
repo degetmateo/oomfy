@@ -43,13 +43,13 @@ export const SigninView: React.FC = () => {
 
       if (!isStandalone) {
         if (PushNotificationService.isPermissionGranted()) {
-          await PushNotificationService.syncSubscription().catch(() => {});
+          await PushNotificationService.syncSubscription().catch(() => { });
         }
         navigate('/');
         const wantInstall = await useDialogStore.getState().confirm({
           title: 'Instalar oomfy',
           message:
-            '¿Sabías que puedes instalar oomfy en tu dispositivo para acceder más rápido y recibir notificaciones? ¿Deseas ver las instrucciones de instalación?',
+            '¿Sabías que podés instalar oomfy en tu dispositivo para acceder más rápido y recibir notificaciones?',
           confirmText: 'Ver instrucciones',
           cancelText: 'Más tarde',
         });
@@ -58,7 +58,7 @@ export const SigninView: React.FC = () => {
         }
       } else {
         if (PushNotificationService.isPermissionGranted()) {
-          await PushNotificationService.syncSubscription().catch(() => {});
+          await PushNotificationService.syncSubscription().catch(() => { });
           navigate('/');
         } else {
           navigate('/');

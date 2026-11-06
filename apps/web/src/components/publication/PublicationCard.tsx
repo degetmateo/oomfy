@@ -75,7 +75,7 @@ export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
       <div
         onClick={(e) => {
           e.stopPropagation();
-          navigate(`/${post.author.username}`);
+          navigate(`/publication/${post.id}`);
         }}
         className="flex-shrink-0 cursor-pointer"
       >
@@ -83,6 +83,10 @@ export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
           src={post.author.icon_url}
           username={post.author.username}
           sizeClass="w-12 h-12"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/${post.author.username}`);
+          }}
         />
       </div>
 
