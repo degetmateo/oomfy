@@ -70,3 +70,4 @@ describe('PushReconnectBanner Component', () => {
     expect(screen.queryByText(/Tus notificaciones push se desconectaron/i)).not.toBeInTheDocument();
   });
 });
+

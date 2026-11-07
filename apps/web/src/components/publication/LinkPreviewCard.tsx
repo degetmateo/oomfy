@@ -5,6 +5,7 @@ import { SpotifyPlayer } from './SpotifyPlayer.js';
 import { MediaGrid } from './MediaGrid.js';
 import { PixelBadge } from '../icons/PixelBadge.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
+import { UrlHelper } from '../../utils/UrlHelper.js';
 
 interface Props {
   embeds?: any[];
@@ -16,7 +17,11 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
 
   const handleExternalClick = (e: React.MouseEvent, url: string) => {
     e.stopPropagation();
-    navigate(`/external?url=${encodeURIComponent(url)}`);
+    if (UrlHelper.isInternalUrl(url)) {
+      navigate(UrlHelper.getInternalPath(url));
+    } else {
+      navigate(`/external?url=${encodeURIComponent(url)}`);
+    }
   };
 
   return (
@@ -69,11 +74,7 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
           >
             {thumb && (
               <div className="w-full sm:w-36 h-28 flex-shrink-0 bg-dark-bg overflow-hidden relative">
-                <img
-                  src={thumb}
-                  alt={emb.title || 'Vista previa'}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                />
+                <img src={thumb} alt={emb.title || 'Vista previa'} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 {(emb.type === 'youtube' || emb.type === 'tiktok') && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
                     <Play className="w-6 h-6 fill-white" />
@@ -84,12 +85,10 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
             <div className="p-2.5 flex-1 min-w-0 flex flex-col justify-center">
               <span className="text-[11px] text-brand-400 truncate flex items-center gap-1 font-bold">
                 <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                {emb.site_name || (emb.url ? new URL(emb.url).hostname : 'Enlace externo')}
+                {emb.site_name || (emb.url ? new URL(emb.url).hostname : 'Enlace')}
               </span>
               <h4 className="text-xs font-bold text-white truncate mt-0.5">{emb.title || emb.url}</h4>
-              {emb.description && (
-                <p className="text-[11px] text-dark-muted line-clamp-2 mt-1 font-sans">{emb.description}</p>
-              )}
+              {emb.description && <p className="text-[11px] text-dark-muted line-clamp-2 mt-1 font-sans">{emb.description}</p>}
             </div>
           </div>
         );

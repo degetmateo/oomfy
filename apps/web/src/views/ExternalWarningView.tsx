@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ExternalLink, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
+import { UrlHelper } from '../utils/UrlHelper.js';
 
 export const ExternalWarningView: React.FC = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const targetUrl = params.get('url') || '';
+
+  useEffect(() => {
+    if (targetUrl && UrlHelper.isInternalUrl(targetUrl)) {
+      navigate(UrlHelper.getInternalPath(targetUrl), { replace: true });
+    }
+  }, [targetUrl, navigate]);
 
   let hostname = '';
   try {
@@ -67,4 +74,3 @@ export const ExternalWarningView: React.FC = () => {
     </div>
   );
 };
-

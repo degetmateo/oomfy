@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, Plus, ArrowLeft } from 'lucide-react';
 import { ApiClient } from '../services/api.js';
@@ -11,8 +12,16 @@ import { PixelAvatar } from '../components/common/PixelAvatar.js';
 export const ChatsView: React.FC = () => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const queryChatId = searchParams.get('id') || searchParams.get('chatId');
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(queryChatId || null);
   const [isStartOpen, setIsStartOpen] = useState(false);
+
+  useEffect(() => {
+    if (queryChatId && queryChatId !== selectedChatId) {
+      setSelectedChatId(queryChatId);
+    }
+  }, [queryChatId]);
 
   const { data: chatsData, isLoading } = useQuery<{ success: boolean; data: any[] }>({
     queryKey: ['chats'],

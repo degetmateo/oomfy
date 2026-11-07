@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { UrlHelper } from '../../utils/UrlHelper.js';
 
 interface Props {
   text: string | null | undefined;
@@ -15,25 +16,10 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
   const tokenRegex = /(https?:\/\/[^\s]+|@[a-zA-Z0-9_]+|#[a-zA-Z0-9_]+)/g;
   const parts = text.split(tokenRegex);
 
-  const isInternalUrl = (urlStr: string): boolean => {
-    try {
-      const u = new URL(urlStr);
-      const host = u.hostname.toLowerCase();
-      return host === 'oomfy.online' || host.includes('localhost') || host === '127.0.0.1';
-    } catch {
-      return false;
-    }
-  };
-
   const handleLinkClick = (e: React.MouseEvent, url: string) => {
     e.stopPropagation();
-    if (isInternalUrl(url)) {
-      try {
-        const u = new URL(url);
-        navigate(u.pathname + u.search + u.hash);
-      } catch {
-        navigate(url);
-      }
+    if (UrlHelper.isInternalUrl(url)) {
+      navigate(UrlHelper.getInternalPath(url));
     } else {
       navigate(`/external?url=${encodeURIComponent(url)}`);
     }
@@ -41,8 +27,7 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
 
   const handleMentionClick = (e: React.MouseEvent, mention: string) => {
     e.stopPropagation();
-    const username = mention.slice(1);
-    navigate(`/${username}`);
+    navigate(`/${mention.slice(1)}`);
   };
 
   const handleHashtagClick = (e: React.MouseEvent, tag: string) => {
@@ -99,4 +84,3 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
     </span>
   );
 };
-

@@ -1,15 +1,13 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Calendar, MapPin, Link as LinkIcon, Flag } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import React from 'react';
 import { PixelBadge } from '../icons/PixelBadge.js';
 import { FormattedText } from '../common/FormattedText.js';
 import { resolveMediaUrl } from '../../utils/mediaUrl.js';
 import { PublicUser } from '@oomfy/shared';
-import { useAuthStore } from '../../stores/authStore.js';
-import { useDialogStore } from '../../stores/dialogStore.js';
-import { ApiClient } from '../../services/api.js';
 import { ReportModal } from '../modals/ReportModal.js';
+import { ProfileMeta } from './ProfileMeta.js';
+import { ProfileHeaderActions } from './ProfileHeaderActions.js';
+import { ChatStartingOverlay } from '../chat/ChatStartingOverlay.js';
+import { useProfileActions } from '../../hooks/useProfileActions.js';
 
 interface Props {
   user: PublicUser;
@@ -19,34 +17,7 @@ interface Props {
 }
 
 export const ProfileInfo: React.FC<Props> = ({ user, isOwnProfile = false, onEditClick, onAvatarClick }) => {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuthStore();
-  const dialog = useDialogStore();
-  const [isHoveringFollow, setIsHoveringFollow] = useState(false);
-  const [isLoadingFollow, setIsLoadingFollow] = useState(false);
-  const [isReportOpen, setIsReportOpen] = useState(false);
-
-  const handleFollowToggle = async () => {
-    if (!isAuthenticated) {
-      navigate('/signin');
-      return;
-    }
-    setIsLoadingFollow(true);
-    try {
-      if (user.is_following) {
-        await ApiClient.delete(`/follows/${user.username}`);
-      } else {
-        await ApiClient.post(`/follows/${user.username}`);
-      }
-      queryClient.invalidateQueries({ queryKey: ['profile', user.username] });
-      queryClient.invalidateQueries({ queryKey: ['suggested-members'] });
-    } catch (err) {
-      dialog.alert((err as Error).message, 'Error');
-    } finally {
-      setIsLoadingFollow(false);
-    }
-  };
+  const actions = useProfileActions(user);
 
   return (
     <div className="px-4 pb-4 border-b border-dark-border relative bg-dark-bg font-mono">
@@ -56,7 +27,6 @@ export const ProfileInfo: React.FC<Props> = ({ user, isOwnProfile = false, onEdi
           className={`w-20 h-20 sm:w-28 sm:h-28 border-2 border-dark-border bg-dark-card overflow-hidden flex items-center justify-center font-bold text-2xl text-brand-400 ${
             user.icon_url ? 'cursor-pointer hover:opacity-90' : ''
           }`}
-          title={user.icon_url ? 'Ampliar foto de perfil' : undefined}
         >
           {user.icon_url ? (
             <img src={resolveMediaUrl(user.icon_url) || ''} alt={user.username} className="w-full h-full object-cover" />
@@ -64,111 +34,47 @@ export const ProfileInfo: React.FC<Props> = ({ user, isOwnProfile = false, onEdi
             user.username.slice(0, 2).toUpperCase()
           )}
         </div>
-
         <div className="mb-1 sm:mb-2 flex-shrink-0">
-          {isOwnProfile ? (
-            <button
-              onClick={onEditClick}
-              className="px-3.5 sm:px-4 py-1.5 text-xs font-bold text-dark-text hover:text-brand-400 bg-dark-card border border-dark-border hover:border-brand-500 transition-colors pixel-button"
-            >
-              Editar perfil
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              {isAuthenticated && (
-                <button
-                  type="button"
-                  onClick={() => setIsReportOpen(true)}
-                  className="p-2 border border-dark-border text-dark-muted hover:text-red-400 hover:border-red-500/50 bg-dark-card pixel-button transition-colors"
-                  title="Reportar perfil"
-                >
-                  <Flag className="w-3.5 h-3.5" />
-                </button>
-              )}
-              <button
-                onClick={handleFollowToggle}
-                onMouseEnter={() => setIsHoveringFollow(true)}
-                onMouseLeave={() => setIsHoveringFollow(false)}
-                disabled={isLoadingFollow}
-                className={`px-3.5 sm:px-4 py-1.5 text-xs font-bold transition-colors pixel-button ${
-                  user.is_following
-                    ? isHoveringFollow
-                      ? 'border border-red-500 text-red-400 bg-red-950/20'
-                      : 'border border-dark-border text-white bg-dark-card'
-                    : 'border border-brand-500 text-black bg-brand-500 hover:bg-brand-600'
-                }`}
-              >
-                {user.is_following
-                  ? isHoveringFollow
-                    ? 'Dejar de seguir'
-                    : 'Siguiendo'
-                  : 'Seguir'}
-              </button>
-            </div>
-          )}
+          <ProfileHeaderActions
+            isOwnProfile={isOwnProfile}
+            isAuthenticated={actions.isAuthenticated}
+            isFollowing={Boolean(user.is_following)}
+            isHovering={actions.isHovering}
+            isLoadingFollow={actions.isLoadingFollow}
+            isStartingChat={actions.isStartingChat}
+            onEditClick={onEditClick}
+            onReportClick={() => actions.setIsReportOpen(true)}
+            onStartChat={actions.handleStartChat}
+            onFollowToggle={actions.handleFollowToggle}
+            onMouseEnter={() => actions.setIsHovering(true)}
+            onMouseLeave={() => actions.setIsHovering(false)}
+          />
         </div>
       </div>
-
       <div className="mt-2">
         <div className="flex items-center gap-2 flex-wrap">
           <h2 className="text-lg font-bold text-white">{user.name}</h2>
           <PixelBadge role={user.role} />
           {user.follows_you && !isOwnProfile && (
-            <span className="text-[10px] bg-dark-card border border-dark-border text-brand-400 px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
+            <span className="text-[10px] bg-dark-card border border-dark-border text-brand-400 px-1.5 py-0.5 rounded font-mono uppercase">
               Te sigue
             </span>
           )}
         </div>
         <p className="text-xs text-dark-muted">@{user.username}</p>
       </div>
-
       {user.bio && (
-        <FormattedText
-          text={user.bio}
-          className="mt-2 text-xs text-dark-text leading-relaxed whitespace-pre-line font-sans block"
-        />
+        <FormattedText text={user.bio} className="mt-2 text-xs text-dark-text leading-relaxed whitespace-pre-line font-sans block" />
       )}
-
-      <div className="flex flex-wrap gap-3 mt-3 text-xs text-dark-muted">
-        {user.location && (
-          <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {user.location}</span>
-        )}
-        {user.link && (
-          <Link
-            to={`/external?url=${encodeURIComponent(user.link)}`}
-            className="flex items-center gap-1 text-brand-400 hover:underline max-w-xs truncate"
-          >
-            <LinkIcon className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">{user.link}</span>
-          </Link>
-        )}
-        <span className="flex items-center gap-1">
-          <Calendar className="w-3.5 h-3.5" /> Se unió el {new Date(user.created_at).toLocaleDateString()}
-        </span>
-      </div>
-
-      <div className="flex gap-4 mt-3 text-xs">
-        <button
-          onClick={() => navigate(`/${user.username}/following`)}
-          className="text-dark-muted hover:underline hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
-        >
-          <strong className="text-white">{user.followed_count || 0}</strong> Siguiendo
-        </button>
-        <button
-          onClick={() => navigate(`/${user.username}/followers`)}
-          className="text-dark-muted hover:underline hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
-        >
-          <strong className="text-white">{user.follower_count || 0}</strong> Seguidores
-        </button>
-      </div>
-
+      <ProfileMeta user={user} />
       <ReportModal
-        isOpen={isReportOpen}
-        onClose={() => setIsReportOpen(false)}
+        isOpen={actions.isReportOpen}
+        onClose={() => actions.setIsReportOpen(false)}
         targetType="user"
         targetId={user.id}
         targetUsername={user.username}
       />
+      <ChatStartingOverlay isOpen={actions.isStartingChat} username={user.username} />
     </div>
   );
 };

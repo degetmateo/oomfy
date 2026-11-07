@@ -92,14 +92,21 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
       }
     };
 
+    const handleDeleteMessageEvent = ({ messageId }: { messageId: string }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    };
+
     socket.on('new-message', handleMessage);
     socket.on('user-typing', handleTyping);
     socket.on('user-stop-typing', handleStopTyping);
+    socket.on('delete-message', handleDeleteMessageEvent);
 
     return () => {
       socket.off('new-message', handleMessage);
       socket.off('user-typing', handleTyping);
       socket.off('user-stop-typing', handleStopTyping);
+      socket.off('delete-message', handleDeleteMessageEvent);
       if (lastTypingSentRef.current > 0) {
         socket.emit('typing-stop', { chatId: chat.id });
       }
@@ -179,6 +186,23 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
     }
   };
 
+  const handleDeleteMessage = async (msg: any) => {
+    const confirmed = await useDialogStore.getState().confirm({
+      title: 'Eliminar mensaje',
+      message: '¿Estás seguro de que deseas eliminar este mensaje? Esta acción no se puede deshacer.',
+      isDanger: true,
+      confirmText: 'Eliminar',
+    });
+    if (!confirmed) return;
+    try {
+      await ApiClient.delete(`/chats/messages/${msg.id}`);
+      setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    } catch (err: any) {
+      useDialogStore.getState().alert(err.message || 'Error al eliminar el mensaje', 'Error');
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full bg-dark-bg min-w-0 overflow-hidden">
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-3 py-2 flex flex-col min-h-0">
@@ -212,6 +236,7 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
                   isFirstInGroup={isFirst}
                   onReply={(msg) => setReplyingTo(msg)}
                   onReport={(msg) => setReportingMessage(msg)}
+                  onDelete={handleDeleteMessage}
                   onImageClick={(url) => setActiveImage(url)}
                 />
               );

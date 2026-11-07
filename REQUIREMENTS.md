@@ -561,3 +561,26 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Si el permiso de notificaciones sigue concedido (`Notification.permission === 'granted'`) pero la suscripción local fue purgada o caducó en el backend, se despliega el componente `<PushReconnectBanner />` en la interfaz.
     - El banner alerta al usuario y provee un botón de acción `"Reconectar"` que, al ser accionado mediante clic directo (user gesture legítimo), reestablece la suscripción push sin necesidad de reinstalar la PWA.
     - Se extraen `VapidKeyHelper` y `PushPreferencesApi` bajo SRP manteniendo todos los módulos bajo el límite estricto de 100 líneas por archivo.
+- **Hito 38:** Eliminación de Mensajes Propios en Chats, Detección de Enlaces con Enrutamiento Interno, Gestión Completa de Cuentas en Admin y Creación Directa de Chats con Feedback Visual (Completado):
+  - *Eliminación de Mensajes Propios en Chats:*
+    - En `MessageService.deleteMessage` y `ChatController.deleteMessage`, se verifica autorización estricta (`msg.sender_id === requesterId || requesterRole === 'admin' || requesterRole === 'mod'`).
+    - Al eliminarse un mensaje en el backend, `SocketGateway.broadcastDeleteMessage(chatId, messageId)` emite el evento `delete-message` a la sala del chat.
+    - En el frontend (`ChatMessageActions` y `ChatMessageItem`), se expone el botón de papelera exclusivamente para mensajes propios (`isMe`). Al pulsarlo, `ChatThread` solicita confirmación mediante `useDialogStore().confirm` y despacha `DELETE /chats/messages/:id`, actualizando el hilo en tiempo real tanto localmente como para el destinatario mediante el listener de WebSockets.
+  - *Detección y Clickabilidad de Enlaces en Mensajes:*
+    - En `ChatMessageItem`, se reemplazó el texto plano por `<FormattedText />`, permitiendo reconocer automáticamente URLs, menciones (`@usuario`) y hashtags (`#etiqueta`) dentro de los mensajes de chat.
+  - *Discriminación Determinista entre Enlaces Internos y Externos (`UrlHelper`):*
+    - Se introduce `UrlHelper` bajo SRP para clasificar enlaces según su dominio: rutas relativas, `window.location.hostname`, `oomfy.online`, subdominios `*.oomfy.online`, `localhost` y `*.onrender.com` se identifican como internos.
+    - Los enlaces internos navegan de inmediato mediante el enrutador de React (`navigate`), erradicando la pantalla intermedia de advertencia ("Vas a salir de oomfy") para contenido de la propia plataforma.
+    - Únicamente enlaces de terceros son dirigidos a `ExternalWarningView`. Además, dicha vista implementa una redirección automática de fallback en caso de recibir por error una URL interna.
+  - *Gestión y Activación Completa de Cuentas en el Panel de Administrador:*
+    - En el backend, se implementa `AdminUserUpdateService` (`PUT /admin/users/:id`), permitiendo a los administradores modificar manualmente nombre, nombre de usuario, correo electrónico, rol, estado (`active`, `pending`, `suspended`) y contraseña (hasheada de forma segura con `PasswordHasher.hash`).
+    - El servicio valida unicidad en PostgreSQL, replica los cambios en MongoDB y despacha sincronizaciones en segundo plano (`UserSyncService.syncUsername`, `syncRole`, `syncProfile`).
+    - En el controlador, se segrega `AdminUserController` de `AdminController` para mantener estricto SRP y cumplimiento de líneas.
+    - En el frontend, se crea el modal pixel-art `AdminEditUserModal` y en `AdminUserRow` se agregan el badge `PENDIENTE`, botón de activación rápida ("Activar") y botón "Editar".
+  - *Botón Directo para Iniciar Chat en Perfiles de Usuario:*
+    - En la vista de perfil de otros usuarios (`ProfileInfo`, `ProfileHeaderActions`, `useProfileActions`), se añade el botón "Mensaje" con icono `<MessageSquare />`.
+    - Al hacer clic, se inicia automáticamente la conversación con dicho usuario vía `POST /chats/start` y se redirige a `/chats?id=<chatId>`, seleccionando de inmediato el hilo correspondiente mediante el soporte de query params en `ChatsView`.
+  - *Feedback Visual Inmediato al Crear Chats (`ChatStartingOverlay`):*
+    - Se introduce el componente `ChatStartingOverlay` que despliega un modal centrado con animación spinner pixel-art ("Iniciando conversación...", "Creando bandeja de chat, por favor espera..."), activo durante la creación de un nuevo chat tanto desde `StartChatModal` como desde el perfil de usuario, erradicando la incertidumbre del usuario durante la latencia de red.
+  - *Arquitectura y Cumplimiento de Restricciones:*
+    - Todas las clases y componentes nuevos y modificados se mantuvieron rigurosamente en `<= 100 líneas por archivo`, encapsulados bajo patrones GoF (Facade, Adapter, Template/Strategy) y PEAA, superando el 100% de la suite de pruebas unitarias e integración en todos los paquetes.

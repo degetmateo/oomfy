@@ -6,3 +6,4 @@ export class VapidKeyHelper {
     return out;
   }
 }
+

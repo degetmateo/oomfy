@@ -5,6 +5,7 @@ import { MongoChatRepository } from '../../infrastructure/repositories/mongo/Mon
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { WebPushService } from '../notifications/WebPushService.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
+import { NotFoundError, ForbiddenError } from '../../errors/AppError.js';
 
 export interface SendMessagePayload {
   content?: string;
@@ -84,7 +85,16 @@ export class MessageService {
     await MongoMessageRepository.markChatMessagesAsRead(chatId, userId);
   }
 
-  public static async deleteMessage(id: string): Promise<boolean> {
-    return MongoMessageRepository.deleteMessage(id);
+  public static async deleteMessage(id: string, requesterId?: string, requesterRole?: string): Promise<boolean> {
+    const msg = await MongoMessageRepository.findById(id);
+    if (!msg) throw new NotFoundError('Mensaje no encontrado.');
+    if (requesterId) {
+      const isOwner = msg.sender_id === requesterId || (msg.sender as any)?.id === requesterId;
+      const isStaff = requesterRole === 'admin' || requesterRole === 'mod';
+      if (!isOwner && !isStaff) throw new ForbiddenError('No tienes permisos para eliminar este mensaje.');
+    }
+    const deleted = await MongoMessageRepository.deleteMessage(id);
+    if (deleted && msg.chat_id) SocketGateway.broadcastDeleteMessage(msg.chat_id, id);
+    return deleted;
   }
 }

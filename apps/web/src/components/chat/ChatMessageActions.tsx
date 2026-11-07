@@ -1,21 +1,19 @@
 import React from 'react';
-import { Reply, Flag } from 'lucide-react';
+import { Reply, Flag, Trash2 } from 'lucide-react';
 
 interface Props {
   onReply?: () => void;
   onReport?: () => void;
+  onDelete?: () => void;
 }
 
-export const ChatMessageActions: React.FC<Props> = ({ onReply, onReport }) => {
+export const ChatMessageActions: React.FC<Props> = ({ onReply, onReport, onDelete }) => {
   return (
     <div className="hidden group-hover:flex items-center gap-0.5 bg-dark-bg/95 border border-dark-border px-1 py-0.5 shadow-pixel absolute top-1 right-2 z-10 font-mono">
       {onReply && (
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onReply();
-          }}
+          onClick={(e) => { e.stopPropagation(); onReply(); }}
           className="p-1 text-dark-muted hover:text-brand-400 hover:bg-dark-card transition-colors rounded"
           title="Responder mensaje"
           aria-label="Responder"
@@ -24,13 +22,22 @@ export const ChatMessageActions: React.FC<Props> = ({ onReply, onReport }) => {
         </button>
       )}
 
+      {onDelete && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className="p-1 text-dark-muted hover:text-red-400 hover:bg-dark-card transition-colors rounded"
+          title="Eliminar mensaje"
+          aria-label="Eliminar"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
+
       {onReport && (
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onReport();
-          }}
+          onClick={(e) => { e.stopPropagation(); onReport(); }}
           className="p-1 text-dark-muted hover:text-red-400 hover:bg-dark-card transition-colors rounded"
           title="Reportar mensaje"
           aria-label="Reportar"
@@ -41,4 +48,3 @@ export const ChatMessageActions: React.FC<Props> = ({ onReply, onReport }) => {
     </div>
   );
 };
-

@@ -17,7 +17,7 @@ export class AdminUserService {
 
   public static async setUserStatus(
     userId: string,
-    status: 'active' | 'suspended',
+    status: 'active' | 'suspended' | 'pending',
     adminId: string
   ): Promise<{ message: string }> {
     if (userId === adminId) {

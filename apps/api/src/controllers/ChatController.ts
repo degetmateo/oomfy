@@ -89,7 +89,7 @@ export class ChatController {
 
   public static async deleteMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await MessageService.deleteMessage(req.params.id);
+      await MessageService.deleteMessage(req.params.id, req.user?.id, req.user?.role);
       res.status(200).json({ success: true, message: 'Mensaje eliminado.' });
     } catch (err) {
       next(err);
