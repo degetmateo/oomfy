@@ -8,11 +8,7 @@ describe('ChatMessageItem Component', () => {
     id: 'msg-123',
     content: 'Hola, este es un mensaje con estilo Discord y fuente Inter',
     sender_id: 'user-1',
-    sender: {
-      id: 'user-1',
-      username: 'oomfy_user',
-      name: 'Oomfy User',
-    },
+    sender: { id: 'user-1', username: 'oomfy_user', name: 'Oomfy User' },
     created_at: new Date('2026-10-30T15:30:00Z').toISOString(),
   };
 
@@ -25,10 +21,13 @@ describe('ChatMessageItem Component', () => {
     expect(contentEl).toHaveClass('font-sans');
   });
 
-  it('renders sender header when isFirstInGroup is true', () => {
+  it('renders sender header with profile links', () => {
     renderWithRouter(<ChatMessageItem message={dummyMessage} isFirstInGroup={true} />);
     expect(screen.getByText('Oomfy User')).toBeInTheDocument();
     expect(screen.getByText('@oomfy_user')).toBeInTheDocument();
+    const links = screen.getAllByRole('link');
+    const profileLinks = links.filter((l) => l.getAttribute('href') === '/oomfy_user');
+    expect(profileLinks.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders compact line when isFirstInGroup is false', () => {
@@ -37,18 +36,15 @@ describe('ChatMessageItem Component', () => {
     expect(screen.getByText(dummyMessage.content)).toBeInTheDocument();
   });
 
-  it('renders reply reference when reply_to is present', () => {
+  it('renders reply reference with link when reply_to is present', () => {
     const msgWithReply = {
       ...dummyMessage,
-      reply_to: {
-        id: 'msg-000',
-        content: 'Mensaje original a responder',
-        sender_username: 'mateo_dev',
-      },
+      reply_to: { id: 'msg-000', content: 'Mensaje original', sender_username: 'mateo_dev' },
     };
     renderWithRouter(<ChatMessageItem message={msgWithReply} isFirstInGroup={true} />);
-    expect(screen.getByText('@mateo_dev')).toBeInTheDocument();
-    expect(screen.getByText('Mensaje original a responder')).toBeInTheDocument();
+    const replyLink = screen.getByRole('link', { name: '@mateo_dev' });
+    expect(replyLink).toHaveAttribute('href', '/mateo_dev');
+    expect(screen.getByText('Mensaje original')).toBeInTheDocument();
   });
 
   it('triggers onReply, onReport and onDelete callbacks', () => {

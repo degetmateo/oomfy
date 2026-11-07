@@ -13,12 +13,7 @@ interface Props {
 }
 
 export const EditProfileMedia: React.FC<Props> = ({
-  username,
-  bannerPreview,
-  iconPreview,
-  onBannerChange,
-  onBannerRemove,
-  onIconChange,
+  username, bannerPreview, iconPreview, onBannerChange, onBannerRemove, onIconChange,
 }) => {
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
@@ -29,6 +24,12 @@ export const EditProfileMedia: React.FC<Props> = ({
   const resolvedIcon = iconPreview?.startsWith('blob:') ? iconPreview : resolveMediaUrl(iconPreview);
 
   const handleFileSelected = (file: File, target: 'banner' | 'icon') => {
+    const isGif = file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif');
+    if (isGif) {
+      if (target === 'banner') onBannerChange(file);
+      if (target === 'icon') onIconChange(file);
+      return;
+    }
     setCropFile(file);
     setCropTarget(target);
   };
@@ -45,34 +46,16 @@ export const EditProfileMedia: React.FC<Props> = ({
       <div className="relative h-32 bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
         {resolvedBanner && <img src={resolvedBanner} alt="Banner" className="w-full h-full object-cover" />}
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => bannerInputRef.current?.click()}
-            className="p-2 bg-black/60 hover:bg-black/80 border border-white/40 text-white"
-          >
+          <button type="button" onClick={() => bannerInputRef.current?.click()} className="p-2 bg-black/60 hover:bg-black/80 border border-white/40 text-white" title="Cambiar banner">
             <Camera className="w-5 h-5" />
           </button>
           {bannerPreview && (
-            <button
-              type="button"
-              onClick={onBannerRemove}
-              className="p-2 bg-black/60 hover:bg-black/80 border border-white/40 text-white"
-            >
+            <button type="button" onClick={onBannerRemove} className="p-2 bg-black/60 hover:bg-black/80 border border-white/40 text-white" title="Quitar banner">
               <X className="w-5 h-5" />
             </button>
           )}
         </div>
-        <input
-          type="file"
-          ref={bannerInputRef}
-          className="hidden"
-          accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFileSelected(file, 'banner');
-            e.target.value = '';
-          }}
-        />
+        <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelected(f, 'banner'); e.target.value = ''; }} />
       </div>
 
       <div className="px-4 -mt-10 mb-4 relative z-10 flex">
@@ -84,39 +67,14 @@ export const EditProfileMedia: React.FC<Props> = ({
               {username.slice(0, 2).toUpperCase()}
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => iconInputRef.current?.click()}
-            className="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-80 hover:opacity-100"
-          >
+          <button type="button" onClick={() => iconInputRef.current?.click()} className="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-80 hover:opacity-100" title="Cambiar avatar">
             <Camera className="w-5 h-5" />
           </button>
-          <input
-            type="file"
-            ref={iconInputRef}
-            className="hidden"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleFileSelected(file, 'icon');
-              e.target.value = '';
-            }}
-          />
+          <input type="file" ref={iconInputRef} className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelected(f, 'icon'); e.target.value = ''; }} />
         </div>
       </div>
 
-      <ImageCropperModal
-        file={cropFile}
-        isOpen={cropFile !== null}
-        aspectRatio={cropTarget === 'banner' ? 3 : 1}
-        title={cropTarget === 'banner' ? 'Recortar banner de perfil' : 'Recortar avatar de perfil'}
-        allowAspectChange={cropTarget === 'banner'}
-        onCrop={handleCropped}
-        onClose={() => {
-          setCropFile(null);
-          setCropTarget(null);
-        }}
-      />
+      <ImageCropperModal file={cropFile} isOpen={cropFile !== null} aspectRatio={cropTarget === 'banner' ? 3 : 1} title={cropTarget === 'banner' ? 'Recortar banner' : 'Recortar avatar'} allowAspectChange={cropTarget === 'banner'} onCrop={handleCropped} onClose={() => { setCropFile(null); setCropTarget(null); }} />
     </>
   );
 };

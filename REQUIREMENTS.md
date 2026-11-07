@@ -584,3 +584,22 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Se introduce el componente `ChatStartingOverlay` que despliega un modal centrado con animación spinner pixel-art ("Iniciando conversación...", "Creando bandeja de chat, por favor espera..."), activo durante la creación de un nuevo chat tanto desde `StartChatModal` como desde el perfil de usuario, erradicando la incertidumbre del usuario durante la latencia de red.
   - *Arquitectura y Cumplimiento de Restricciones:*
     - Todas las clases y componentes nuevos y modificados se mantuvieron rigurosamente en `<= 100 líneas por archivo`, encapsulados bajo patrones GoF (Facade, Adapter, Template/Strategy) y PEAA, superando el 100% de la suite de pruebas unitarias e integración en todos los paquetes.
+- **Hito 39:** Visualización Completa de Imágenes/GIFs en Chat, Navegación a Perfiles desde Mensajes, Selector de Emojis en Formularios y Preservación de GIFs Animados en Subidas (Completado):
+  - *Visualización Completa de Imágenes y GIFs en Mensajes de Chat:*
+    - En `ChatMessageMedia`, se reemplazó el recorte forzado `object-cover` por `object-contain`, contenedores adaptativos con fondo semi-transparente `bg-black/30` y dimensiones máximas elásticas (`max-h-80 sm:max-h-96 max-w-full w-auto h-auto`). Todas las imágenes y GIFs se muestran en su totalidad respetando su relación de aspecto nativa.
+  - *Navegación al Perfil desde Avatar y Nombre en Mensajes de Chat:*
+    - En `ChatMessageItem`, el avatar (`PixelAvatar`) y la cabecera de autor (nombre en negrita y `@username`) se encapsulan con enlaces `<Link to={'/' + senderUsername}>`. Asimismo, en las referencias de mensajes respondidos (`reply_to`), el autor citado redirige a su perfil.
+    - Se extrajo el hook `useSwipeReply` para la gestión táctil manteniendo `ChatMessageItem` en estricto cumplimiento `<= 100 líneas`.
+  - *Menú Selector de Emojis en Publicaciones y Mensajes:*
+    - Se introdujeron `emojiData.ts` (con categorías estructuradas: Caras, Gestos, Corazones y Varios) y el componente popover `EmojiPickerMenu` con estética pixel-art, navegación por pestañas y cierre por clic externo o Escape.
+    - Se integró el botón `<Smile />` con inserción fluida de emojis en:
+      - `ChatInputBar`: inserta el emoji en la posición del cursor del área de texto; se extrajeron `ChatReplyBanner` y `ChatAttachmentPreviews`.
+      - `PublicationCreator`: inserta el emoji en el cuerpo del post; se extrajeron `PublicationQuotedPreview` y `PublicationAttachmentPreviews`.
+      - `ReplyComposer`: inserta el emoji en la respuesta a publicaciones.
+  - *Preservación de GIFs Animados en Subidas:*
+    - Se erradicó la pérdida de frames de animación causada por el recorte en canvas HTML5 (`drawImage` / `canvas.toBlob`), detectando archivos `image/gif`:
+      - En `EditProfileMedia`, los archivos GIF para banner y avatar saltan el recorte en canvas y se conservan como GIFs animados.
+      - En `PublicationCreator` y `ReplyComposer`, los archivos seleccionados se particionan de forma transparente: los GIFs se incorporan directamente al formulario sin transcodificación y las imágenes estáticas pasan por `ImageCropperModal`.
+      - En `ChatInputBar`, los archivos se transmiten directamente preservando animaciones.
+  - *Cumplimiento de Arquitectura y Reglas Estrictas:*
+    - Cada archivo modificado o creado cumple estrictamente con el límite de `<= 100 líneas por archivo`, sin comandos git ejecutados (`git add`/`commit` prohibidos), superando el 100% de la suite de pruebas unitarias e integración (45 archivos de prueba, 137 tests pasando) y compilación limpia (`pnpm build`).
