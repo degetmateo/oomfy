@@ -38,11 +38,15 @@ export function useProfileActions(user: PublicUser) {
       const res = await ApiClient.post<{ success: boolean; chatId: string }>('/chats/start', {
         target_username: user.username,
       });
-      if (res.chatId) navigate(`/chats?id=${res.chatId}`);
+      if (res.chatId) {
+        await queryClient.refetchQueries({ queryKey: ['chats'] });
+        navigate(`/chats?id=${res.chatId}`);
+      } else {
+        setIsStartingChat(false);
+      }
     } catch (err: any) {
-      dialog.alert(err.message || 'Error al iniciar chat', 'Error');
-    } finally {
       setIsStartingChat(false);
+      dialog.alert(err.message || 'Error al iniciar chat', 'Error');
     }
   };
 
@@ -58,4 +62,3 @@ export function useProfileActions(user: PublicUser) {
     handleStartChat,
   };
 }
-

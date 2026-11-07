@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MessageSquare, Plus, ArrowLeft } from 'lucide-react';
+import { MessageSquare, Plus, ArrowLeft, Loader2 } from 'lucide-react';
 import { ApiClient } from '../services/api.js';
 import { SocketClient } from '../services/socket.js';
 import { useAuthStore } from '../stores/authStore.js';
@@ -12,7 +12,7 @@ import { PixelAvatar } from '../components/common/PixelAvatar.js';
 export const ChatsView: React.FC = () => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryChatId = searchParams.get('id') || searchParams.get('chatId');
   const [selectedChatId, setSelectedChatId] = useState<string | null>(queryChatId || null);
   const [isStartOpen, setIsStartOpen] = useState(false);
@@ -31,7 +31,19 @@ export const ChatsView: React.FC = () => {
   });
 
   const chats = chatsData?.data || [];
-  const selectedChat = chats.find((c) => c.id === selectedChatId);
+  const selectedChat = chats.find(
+    (c) => c.id?.toLowerCase() === selectedChatId?.toLowerCase()
+  );
+
+  useEffect(() => {
+    if (
+      selectedChatId &&
+      !isLoading &&
+      !chats.some((c) => c.id?.toLowerCase() === selectedChatId.toLowerCase())
+    ) {
+      queryClient.refetchQueries({ queryKey: ['chats'] });
+    }
+  }, [selectedChatId, isLoading, chats, queryClient]);
 
   useEffect(() => {
     const socket = SocketClient.getSocket();
@@ -75,12 +87,13 @@ export const ChatsView: React.FC = () => {
 
   const handleSelectChat = (chatId: string) => {
     setSelectedChatId(chatId);
+    setSearchParams({ id: chatId }, { replace: true });
     queryClient.setQueryData(['chats'], (oldData: any) => {
       if (!oldData?.data) return oldData;
       return {
         ...oldData,
         data: oldData.data.map((c: any) =>
-          c.id === chatId ? { ...c, unread_count: 0 } : c
+          c.id?.toLowerCase() === chatId.toLowerCase() ? { ...c, unread_count: 0 } : c
         ),
       };
     });
@@ -190,7 +203,10 @@ export const ChatsView: React.FC = () => {
           <>
             <header className="sticky top-0 z-20 bg-dark-bg/95 border-b border-dark-border px-3 sm:px-4 py-2.5 flex items-center gap-3 select-none flex-shrink-0">
               <button
-                onClick={() => setSelectedChatId(null)}
+                onClick={() => {
+                  setSelectedChatId(null);
+                  setSearchParams({}, { replace: true });
+                }}
                 className="md:hidden p-2 -ml-1.5 text-dark-muted hover:text-brand-400 hover:bg-dark-border/40 transition-colors rounded select-none flex-shrink-0"
                 title="Volver"
                 aria-label="Volver atrás"
@@ -208,6 +224,12 @@ export const ChatsView: React.FC = () => {
               <ChatThread chat={selectedChat} currentUserId={user.id} />
             </div>
           </>
+        ) : selectedChatId ? (
+          <div className="m-auto text-center text-dark-muted p-8 flex flex-col items-center gap-3 font-mono">
+            <Loader2 className="w-8 h-8 text-brand-400 animate-spin" />
+            <p className="text-sm font-bold text-white">Abriendo conversación...</p>
+            <p className="text-xs text-dark-muted">Cargando bandeja de chat, por favor espera...</p>
+          </div>
         ) : (
           <div className="m-auto text-center text-dark-muted p-8">
             <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30 text-brand-400" />

@@ -88,7 +88,7 @@ export const ChatMessageItem: React.FC<Props> = ({
         )}
         {message.content && (
           <p className="text-sm md:text-base text-dark-text/95 font-sans leading-relaxed whitespace-pre-wrap break-words">
-            <FormattedText text={message.content} />
+            <FormattedText text={message.content} className="font-sans" />
           </p>
         )}
         <ChatMessageMedia mediaUrls={message.media_urls} gifUrl={message.gif_url} onImageClick={onImageClick} />

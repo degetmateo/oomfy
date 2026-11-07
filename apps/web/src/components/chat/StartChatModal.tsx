@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, X, MessageSquarePlus } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiClient } from '../../services/api.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
@@ -14,8 +14,10 @@ interface Props {
 }
 
 export const StartChatModal: React.FC<Props> = ({ isOpen, onClose, onChatSelected }) => {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isStarting, setIsStarting] = useState(false);
+  const [targetUsername, setTargetUsername] = useState<string | null>(null);
 
   const { data: usersData, isLoading } = useQuery<{ success: boolean; data: PublicUser[] }>({
     queryKey: ['chat-search-users', searchTerm],
@@ -28,12 +30,12 @@ export const StartChatModal: React.FC<Props> = ({ isOpen, onClose, onChatSelecte
   if (!isOpen) return null;
 
   const handleStart = async (username: string) => {
+    setTargetUsername(username);
     setIsStarting(true);
     try {
-      const res = await ApiClient.post<{ success: boolean; chatId: string }>('/chats/start', {
-        target_username: username,
-      });
+      const res = await ApiClient.post<{ success: boolean; chatId: string }>('/chats/start', { target_username: username });
       if (res.chatId) {
+        await queryClient.refetchQueries({ queryKey: ['chats'] });
         onChatSelected(res.chatId);
         onClose();
       }
@@ -41,6 +43,7 @@ export const StartChatModal: React.FC<Props> = ({ isOpen, onClose, onChatSelecte
       useDialogStore.getState().alert(err.message || 'Error al iniciar chat', 'Error');
     } finally {
       setIsStarting(false);
+      setTargetUsername(null);
     }
   };
 
@@ -49,15 +52,13 @@ export const StartChatModal: React.FC<Props> = ({ isOpen, onClose, onChatSelecte
   return (
     <div onClick={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 font-mono">
       <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-md bg-dark-bg border-2 border-dark-border shadow-pixel overflow-hidden">
-        <ChatStartingOverlay isOpen={isStarting} />
+        <ChatStartingOverlay isOpen={isStarting} username={targetUsername || undefined} />
         <div className="flex items-center justify-between p-3 border-b border-dark-border bg-dark-card/60">
           <div className="flex items-center gap-2">
             <MessageSquarePlus className="w-4 h-4 text-brand-400" />
             <span className="font-bold text-xs text-brand-400 uppercase tracking-wider">Nuevo mensaje directo</span>
           </div>
-          <button type="button" onClick={onClose} className="p-1 hover:bg-dark-border text-white">
-            <X className="w-5 h-5" />
-          </button>
+          <button type="button" onClick={onClose} className="p-1 hover:bg-dark-border text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-3 border-b border-dark-border">
           <div className="relative">
