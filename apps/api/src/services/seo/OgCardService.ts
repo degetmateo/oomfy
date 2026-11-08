@@ -29,11 +29,11 @@ export class OgCardService {
 
   public static async generateBotHtml(rawPath: string): Promise<string> {
     const cleanPath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
-    let title = 'Oomfy — Tu comunidad y red social para compartir y conectar';
-    let desc = 'Explora publicaciones, debates, arte digital, gaming y comunidades en tiempo real en Oomfy.';
+    let title = 'Oomfy — Para la oomfiada';
+    let desc = 'Explora con los oomfies.';
     let canonical = `${BASE_URL}${cleanPath.split('?')[0]}`;
     let ogImage = `${BASE_URL}/pwa-512x512.png`, ogType = 'website', robots = 'index, follow';
-    let jsonLd: Record<string, any> = { '@context': 'https://schema.org', '@type': 'WebSite', name: 'Oomfy', url: BASE_URL };
+    let jsonLd: Record<string, any> = { '@context': 'https://schema.org', '@type': 'WebSite', name: 'oomfy', url: BASE_URL };
 
     const pubMatch = cleanPath.match(/^\/publication\/([^/?#]+)/);
     const topicMatch = cleanPath.match(/^\/t\/([^/?#]+)/);
@@ -48,7 +48,7 @@ export class OgCardService {
         const mediaList = pub.images || (pub as any).media || [];
         const gifUrl = (pub as any).gif_url;
         if (plain.length < 15 && mediaList.length === 0 && !gifUrl) robots = 'noindex, follow';
-        title = `${pub.author.name}: "${snippet.slice(0, 60)}" en Oomfy`;
+        title = `${pub.author.name}: "${snippet.slice(0, 60)}" en oomfy`;
         desc = snippet.slice(0, 155);
         ogImage = mediaList[0]?.url || gifUrl || `${BASE_URL}/og/user/${pub.author.username}`;
         ogType = 'article';

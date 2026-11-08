@@ -39,10 +39,10 @@ export const HomeView: React.FC = () => {
     <PullToRefresh onRefresh={() => refetch()}>
       <div className="flex flex-col min-h-screen font-mono">
         <SeoHead
-          title="Oomfy — Tu comunidad y red social para compartir y conectar"
-          description="Explora publicaciones, debates, arte digital, gaming y comunidades en tiempo real en Oomfy."
+          title="oomfy — Para la oomfiada"
+          description="Explora publicaciones, debates, arte digital, gaming y comunidades en tiempo real en oomfy."
           canonicalPath="/"
-          jsonLd={{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'Oomfy', url: 'https://oomfy.online' }}
+          jsonLd={{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'oomfy', url: 'https://oomfy.online' }}
         />
         <Header title="Inicio" onRefresh={() => refetch()} />
 
@@ -53,10 +53,10 @@ export const HomeView: React.FC = () => {
         ) : (
           <section className="p-4 border-b border-dark-border bg-dark-card/30">
             <h1 className="text-base sm:text-lg font-bold text-white">
-              Oomfy — Comunidad y red social en tiempo real
+              Oomfy — Para la oomfiada
             </h1>
             <h2 className="text-xs text-dark-muted mt-1 font-sans leading-relaxed">
-              Explora hilos públicos, comparte tus ideas, arte y proyectos, y conecta con creadores de habla hispana.
+              Explora con los oomfies
             </h2>
             <div className="flex flex-wrap gap-1.5 mt-3">
               {HOME_TOPICS.map((t) => (
