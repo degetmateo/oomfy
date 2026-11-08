@@ -25,7 +25,7 @@ export class MessageService {
     const messageId = uuidv7();
     const senderMember = await MongoMemberRepository.findById(sender.id);
     const senderName = senderMember?.name || sender.name || sender.username;
-    const senderIcon = senderMember?.icon_url || `/members/${sender.username}/icon`;
+    const senderIcon = senderMember?.icon_url || null;
 
     let replyTo: any = null;
     if (data.reply_to_id) {

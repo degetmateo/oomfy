@@ -20,6 +20,10 @@ export const PixelAvatar: React.FC<Props> = ({
   const initials = (username || 'OM').slice(0, 2).toUpperCase();
   const resolvedSrc = resolveMediaUrl(src);
 
+  React.useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
   return (
     <div
       onClick={onClick}

@@ -6,16 +6,21 @@ import { TokenRefreshService } from '../services/auth/TokenRefreshService.js';
 import { ForgotPasswordService } from '../services/auth/ForgotPasswordService.js';
 import { ResetPasswordService } from '../services/auth/ResetPasswordService.js';
 import { ForgotUsernameService } from '../services/auth/ForgotUsernameService.js';
+import { PostgresSessionRepository } from '../infrastructure/repositories/postgres/PostgresSessionRepository.js';
 import { ClientInfoParser } from '../infrastructure/adapters/ClientInfoParser.js';
 
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
 export class AuthController {
+  private static setRefreshCookie(res: Response, token: string): void {
+    const isProd = process.env.NODE_ENV === 'production';
+    res.cookie('refresh_token', token, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: THIRTY_DAYS_MS, path: '/' });
+  }
+
   public static async signup(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await SignupService.execute(req.body);
-      res.status(201).json({ success: true, ...result });
-    } catch (err) {
-      next(err);
-    }
+      res.status(201).json({ success: true, ...(await SignupService.execute(req.body)) });
+    } catch (err) { next(err); }
   }
 
   public static async verify(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -23,17 +28,9 @@ export class AuthController {
       const token = (req.query.token as string) || req.body.token;
       const ip = ClientInfoParser.extractClientIp(req);
       const platform = ClientInfoParser.parseDevicePlatform(req.headers['user-agent']);
-
       const result = await VerifyService.execute(token, ip, platform);
-      res.cookie('refresh_token', result.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-      });
-
-      const { refreshToken: _discard, ...safePayload } = result;
-      res.status(200).json({ success: true, ...safePayload });
+      AuthController.setRefreshCookie(res, result.refreshToken);
+      res.status(200).json({ success: true, ...result });
     } catch (err) {
       next(err);
     }
@@ -44,16 +41,8 @@ export class AuthController {
       const ip = ClientInfoParser.extractClientIp(req);
       const platform = ClientInfoParser.parseDevicePlatform(req.headers['user-agent']);
       const result = await SigninService.execute(req.body, ip, platform);
-
-      res.cookie('refresh_token', result.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-      });
-
-      const { refreshToken: _discard, ...safePayload } = result;
-      res.status(200).json({ success: true, ...safePayload });
+      AuthController.setRefreshCookie(res, result.refreshToken);
+      res.status(200).json({ success: true, ...result });
     } catch (err) {
       next(err);
     }
@@ -61,23 +50,27 @@ export class AuthController {
 
   public static async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const refreshToken = req.cookies?.refresh_token || req.body.refreshToken;
+      const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
       const result = await TokenRefreshService.execute(refreshToken);
-      res.status(200).json({ success: true, accessToken: result.accessToken });
+      AuthController.setRefreshCookie(res, result.refreshToken);
+      res.status(200).json({ success: true, accessToken: result.accessToken, refreshToken: result.refreshToken });
     } catch (err) {
       next(err);
     }
   }
 
-  public static async logout(_req: Request, res: Response): Promise<void> {
-    res.clearCookie('refresh_token');
+  public static async logout(req: Request, res: Response): Promise<void> {
+    const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
+    if (refreshToken) {
+      await PostgresSessionRepository.deleteByToken(refreshToken).catch(() => {});
+    }
+    res.clearCookie('refresh_token', { path: '/' });
     res.status(200).json({ success: true, message: 'Sesión cerrada con éxito.' });
   }
 
   public static async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { username } = req.body;
-      const result = await ForgotPasswordService.execute(username);
+      const result = await ForgotPasswordService.execute(req.body.username);
       res.status(200).json({ success: true, ...result });
     } catch (err) {
       next(err);
@@ -86,8 +79,7 @@ export class AuthController {
 
   public static async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { token, new_password } = req.body;
-      const result = await ResetPasswordService.execute(token, new_password);
+      const result = await ResetPasswordService.execute(req.body.token, req.body.new_password);
       res.status(200).json({ success: true, ...result });
     } catch (err) {
       next(err);
@@ -96,8 +88,7 @@ export class AuthController {
 
   public static async forgotUsername(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email } = req.body;
-      const result = await ForgotUsernameService.execute(email);
+      const result = await ForgotUsernameService.execute(req.body.email);
       res.status(200).json({ success: true, ...result });
     } catch (err) {
       next(err);

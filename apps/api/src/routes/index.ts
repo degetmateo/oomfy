@@ -11,9 +11,11 @@ import auxRoutes from './auxiliary.routes.js';
 import settingsRoutes from './settings.routes.js';
 import reportRoutes from './report.routes.js';
 import { adminRouter } from './admin.routes.js';
+import seoRoutes from './seo.routes.js';
 
 const apiRouter = Router();
 
+apiRouter.use('/', seoRoutes);
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/members', profileRoutes);
 apiRouter.use('/publications', publicationRoutes);

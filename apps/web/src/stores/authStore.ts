@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { PublicUser } from '@oomfy/shared';
 import { PushNotificationService } from '../services/PushNotificationService.js';
+import { ApiClient } from '../services/api.js';
 
 interface AuthState {
   user: PublicUser | null;
@@ -9,17 +10,20 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   setAuth: (user: PublicUser, token: string, refreshToken?: string) => void;
-  setToken: (token: string) => void;
+  setToken: (token: string, refreshToken?: string) => void;
   setUser: (user: PublicUser) => void;
-  logout: () => void;
+  logout: (notifyServer?: any) => void;
   setLoading: (loading: boolean) => void;
 }
 
+const initialToken = typeof localStorage !== 'undefined' ? localStorage.getItem('oomfy_token') : null;
+const initialRefresh = typeof localStorage !== 'undefined' ? localStorage.getItem('oomfy_refresh_token') : null;
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: localStorage.getItem('oomfy_token'),
-  refreshToken: localStorage.getItem('oomfy_refresh_token'),
-  isAuthenticated: Boolean(localStorage.getItem('oomfy_token')),
+  token: initialToken,
+  refreshToken: initialRefresh,
+  isAuthenticated: Boolean(initialToken || initialRefresh),
   isLoading: false,
 
   setAuth: (user, token, refreshToken) => {
@@ -27,18 +31,35 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (refreshToken) {
       localStorage.setItem('oomfy_refresh_token', refreshToken);
     }
-    set({ user, token, refreshToken: refreshToken || localStorage.getItem('oomfy_refresh_token'), isAuthenticated: true, isLoading: false });
+    set({
+      user,
+      token,
+      refreshToken: refreshToken || localStorage.getItem('oomfy_refresh_token'),
+      isAuthenticated: true,
+      isLoading: false,
+    });
   },
 
-  setToken: (token) => {
+  setToken: (token, refreshToken) => {
     localStorage.setItem('oomfy_token', token);
-    set({ token, isAuthenticated: true });
+    if (refreshToken) {
+      localStorage.setItem('oomfy_refresh_token', refreshToken);
+    }
+    set((state) => ({
+      token,
+      refreshToken: refreshToken || state.refreshToken,
+      isAuthenticated: true,
+    }));
   },
 
-  setUser: (user) => set({ user }),
+  setUser: (user) => set({ user, isAuthenticated: true }),
 
-  logout: () => {
+  logout: (notifyServer = true) => {
+    const rt = localStorage.getItem('oomfy_refresh_token');
     PushNotificationService.unsubscribe().catch(() => {});
+    if (notifyServer !== false) {
+      ApiClient.post('/auth/logout', { refreshToken: rt }).catch(() => {});
+    }
     localStorage.removeItem('oomfy_token');
     localStorage.removeItem('oomfy_refresh_token');
     set({ user: null, token: null, refreshToken: null, isAuthenticated: false, isLoading: false });
@@ -47,3 +68,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   setLoading: (isLoading) => set({ isLoading }),
 }));
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('auth:unauthorized', () => {
+    useAuthStore.getState().logout(false);
+  });
+  window.addEventListener('auth:token-refreshed', (e: Event) => {
+    const detail = (e as CustomEvent).detail;
+    if (detail?.accessToken) {
+      useAuthStore.getState().setToken(detail.accessToken, detail.refreshToken);
+    }
+  });
+}

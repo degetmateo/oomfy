@@ -20,7 +20,7 @@ export const VerifyView: React.FC = () => {
 
     ApiClient.post<any>('/auth/verify', { token })
       .then((res) => {
-        setAuth(res.user, res.accessToken);
+        setAuth(res.user, res.accessToken, res.refreshToken);
         setStatus('success');
         setTimeout(() => navigate('/'), 2000);
       })
@@ -55,4 +55,3 @@ export const VerifyView: React.FC = () => {
     </div>
   );
 };
-

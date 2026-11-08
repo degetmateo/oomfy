@@ -6,7 +6,7 @@ import { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } fro
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 import { UserSyncService } from './UserSyncService.js';
-import { BackgroundTaskDispatcher } from '../../infrastructure/async/BackgroundTaskDispatcher.js';
+import { ProfileMediaService } from './ProfileMediaService.js';
 
 export class SettingsService {
   public static async updateUsername(userId: string, newUsername: string): Promise<{ username: string }> {
@@ -41,9 +41,8 @@ export class SettingsService {
       { $set: { username: cleanUsername } }
     );
 
-    BackgroundTaskDispatcher.dispatch(`sync-username-${userId}`, () =>
-      UserSyncService.syncUsername(userId, user.username, cleanUsername)
-    );
+    ProfileMediaService.invalidateCache(user.username);
+    UserSyncService.enqueueUsernameSync(userId, user.username, cleanUsername);
     return { username: cleanUsername };
   }
 

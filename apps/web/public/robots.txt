@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /settings
+Disallow: /messages
+Disallow: /chats
+Disallow: /notifications
+Disallow: /admin
+Disallow: /moderation
+Disallow: /*?sort=
+Disallow: /*?filter=
+
+Sitemap: https://oomfy.online/sitemap_index.xml
+

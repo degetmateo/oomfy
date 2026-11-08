@@ -5,7 +5,7 @@ export class SessionController {
   public static async listSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const sessions = await SessionService.listUserSessions(req.user!.id);
-      res.status(200).json({ success: true, data: sessions });
+      res.status(200).json({ success: true, data: sessions, current_session_id: req.user?.sessionId });
     } catch (err) {
       next(err);
     }
@@ -23,7 +23,8 @@ export class SessionController {
 
   public static async revokeOtherSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const currentSessionId = (req.query.current_id as string) || (req.body?.current_id as string) || '';
+      const currentSessionId =
+        req.user?.sessionId || (req.query.current_id as string) || (req.body?.current_id as string) || '';
       const currentToken = req.cookies?.refresh_token;
       const result = await SessionService.revokeOtherSessions(req.user!.id, currentSessionId, currentToken);
       res.status(200).json({ success: true, ...result });

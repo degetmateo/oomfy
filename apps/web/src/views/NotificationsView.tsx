@@ -1,20 +1,21 @@
-import React, { useEffect } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, Heart, UserPlus, Repeat, MessageSquare, Quote, CheckCheck } from 'lucide-react';
+import { CheckCheck } from 'lucide-react';
+import { Notification } from '@oomfy/shared';
 import { Header } from '../components/layout/Header.js';
 import { PullToRefresh } from '../components/common/PullToRefresh.js';
-import { PixelAvatar } from '../components/common/PixelAvatar.js';
+import { NotificationItem } from '../components/notifications/NotificationItem.js';
 import { ApiClient } from '../services/api.js';
 import { SocketClient } from '../services/socket.js';
 import { useAuthStore } from '../stores/authStore.js';
-import { Notification } from '@oomfy/shared';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
 
 export const NotificationsView: React.FC = () => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuthStore();
+  const [sessionUnreadIds, setSessionUnreadIds] = useState<Set<string>>(new Set());
+  const hasAutoMarkedRef = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -26,179 +27,69 @@ export const NotificationsView: React.FC = () => {
     socket.on('notification', handleNotif);
     return () => {
       socket.off('notification', handleNotif);
+      queryClient.invalidateQueries({ queryKey: ['notifications-infinite-list'] });
     };
   }, [queryClient, isAuthenticated]);
 
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-  } = useInfiniteQuery<{ success: boolean; data: { notifications: Notification[]; pendingCount: number } }>({
-    queryKey: ['notifications-infinite-list'],
-    queryFn: ({ pageParam }) => {
-      const p = pageParam ? `?older_id=${encodeURIComponent(String(pageParam))}&limit=20` : '?limit=20';
-      return ApiClient.get(`/notifications${p}`);
-    },
-    initialPageParam: '' as string,
-    getNextPageParam: (lastPage) => {
-      const notifs = lastPage?.data?.notifications;
-      if (!Array.isArray(notifs) || notifs.length < 20) return undefined;
-      return notifs[notifs.length - 1]?.id;
-    },
-    enabled: isAuthenticated,
-  });
+  const { data, isLoading, isError, refetch, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useInfiniteQuery<{ success: boolean; data: { notifications: Notification[]; pendingCount: number } }>({
+      queryKey: ['notifications-infinite-list'],
+      queryFn: ({ pageParam }) => ApiClient.get(`/notifications${pageParam ? `?older_id=${encodeURIComponent(String(pageParam))}&limit=20` : '?limit=20'}`),
+      initialPageParam: '' as string,
+      getNextPageParam: (lastPage) => {
+        const notifs = lastPage?.data?.notifications;
+        return Array.isArray(notifs) && notifs.length >= 20 ? notifs[notifs.length - 1]?.id : undefined;
+      },
+      enabled: isAuthenticated,
+    });
 
-  const loadMoreRef = useInfiniteScroll(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+  const allNotifications = data?.pages?.flatMap((page) => page?.data?.notifications || []) || [];
+
+  useEffect(() => {
+    if (!data?.pages?.length) return;
+    const newlyPending = allNotifications.filter((n) => n.status === 'pending').map((n) => n.id);
+    if (newlyPending.length > 0) setSessionUnreadIds((prev) => new Set([...prev, ...newlyPending]));
+    if (!hasAutoMarkedRef.current && (newlyPending.length > 0 || (data.pages[0]?.data?.pendingCount ?? 0) > 0)) {
+      hasAutoMarkedRef.current = true;
+      ApiClient.post('/notifications/read').then(() => queryClient.invalidateQueries({ queryKey: ['notifications-summary'] })).catch(() => {});
     }
-  }, Boolean(hasNextPage));
+  }, [data, queryClient]);
 
   const markAllMutation = useMutation({
     mutationFn: () => ApiClient.post('/notifications/read'),
     onSuccess: () => {
+      setSessionUnreadIds(new Set());
       queryClient.invalidateQueries({ queryKey: ['notifications-infinite-list'] });
       queryClient.invalidateQueries({ queryKey: ['notifications-summary'] });
     },
   });
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      markAllMutation.mutate();
-    }
-  }, [isAuthenticated]);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/signin" replace />;
-  }
-
-  const allNotifications = data?.pages?.flatMap((page) => page?.data?.notifications || []) || [];
-
-  const handleNotificationClick = (notif: Notification) => {
-    if (notif.target_publication_id) {
-      navigate(`/publication/${notif.target_publication_id}`);
-    } else {
-      navigate(`/${notif.sender.username}`);
-    }
-  };
-
-  const renderIcon = (type: string) => {
-    switch (type) {
-      case 'upvote':
-        return <Heart className="w-5 h-5 text-red-500 fill-current mt-0.5 flex-shrink-0" />;
-      case 'share':
-        return <Repeat className="w-5 h-5 text-brand-400 mt-0.5 flex-shrink-0" />;
-      case 'comment':
-        return <MessageSquare className="w-5 h-5 text-sky-400 mt-0.5 flex-shrink-0" />;
-      case 'quote':
-        return <Quote className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />;
-      case 'follow':
-        return <UserPlus className="w-5 h-5 text-brand-400 mt-0.5 flex-shrink-0" />;
-      default:
-        return <Bell className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />;
-    }
-  };
+  const loadMoreRef = useInfiniteScroll(() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }, Boolean(hasNextPage));
+  if (!isAuthenticated) return <Navigate to="/signin" replace />;
 
   return (
     <PullToRefresh onRefresh={() => refetch()}>
       <div className="flex flex-col min-h-screen font-mono">
         <Header title="Notificaciones" onRefresh={() => refetch()}>
-          <button
-            onClick={() => markAllMutation.mutate()}
-            className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-semibold"
-          >
-            <CheckCheck className="w-4 h-4" />
-            <span>Leídas</span>
+          <button onClick={() => markAllMutation.mutate()} className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-semibold">
+            <CheckCheck className="w-4 h-4" /><span>Leídas</span>
           </button>
         </Header>
-
         {isError ? (
           <div className="p-8 text-center text-xs text-red-400">
             <p>No se pudieron cargar las notificaciones.</p>
-            <button
-              onClick={() => refetch()}
-              className="mt-3 px-3 py-1 border border-brand-500 text-brand-400 hover:bg-brand-500 hover:text-black font-bold pixel-button"
-            >
-              Reintentar
-            </button>
+            <button onClick={() => refetch()} className="mt-3 px-3 py-1 border border-brand-500 text-brand-400 hover:bg-brand-500 hover:text-black font-bold pixel-button">Reintentar</button>
           </div>
-        ) : isLoading ? (
-          <div className="p-8 text-center text-xs text-dark-muted">Cargando notificaciones...</div>
-        ) : allNotifications.length > 0 ? (
+        ) : isLoading ? <div className="p-8 text-center text-xs text-dark-muted">Cargando notificaciones...</div> : allNotifications.length > 0 ? (
           <>
             <div className="divide-y divide-dark-border">
               {allNotifications.map((notif) => (
-                <div
-                  key={notif.id}
-                  onClick={() => handleNotificationClick(notif)}
-                  className={`p-4 hover:bg-dark-card/40 transition-colors flex gap-3.5 items-start cursor-pointer ${notif.status === 'pending' ? 'bg-brand-500/5' : ''
-                    }`}
-                >
-                  {renderIcon(notif.type)}
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/${notif.sender.username}`);
-                      }}
-                      className="cursor-pointer flex-shrink-0"
-                    >
-                      <PixelAvatar
-                        src={notif.sender.icon_url || `/members/${notif.sender.username}/icon`}
-                        username={notif.sender.username}
-                        sizeClass="w-9 h-9"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white">
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/${notif.sender.username}`);
-                          }}
-                          className="font-bold hover:underline cursor-pointer mr-1.5"
-                        >
-                          {notif.sender.name || notif.sender.username}
-                        </span>
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/${notif.sender.username}`);
-                          }}
-                          className="text-dark-muted font-mono hover:underline cursor-pointer"
-                        >
-                          @{notif.sender.username}
-                        </span>{' '}
-                        <span className="text-dark-text font-sans">
-                          {notif.type === 'upvote' && 'indicó que le gusta tu publicación.'}
-                          {notif.type === 'share' && 'compartió tu publicación.'}
-                          {notif.type === 'comment' && 'respondió a tu publicación.'}
-                          {notif.type === 'quote' && 'citó tu publicación.'}
-                          {notif.type === 'follow' && 'comenzó a seguirte.'}
-                        </span>
-                      </p>
-                      <span className="text-[10px] text-dark-muted mt-1 block font-mono">
-                        {new Date(notif.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <NotificationItem key={notif.id} notif={notif} isUnread={notif.status === 'pending' || sessionUnreadIds.has(notif.id)} />
               ))}
             </div>
-
-            <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">
-              {isFetchingNextPage && <span>Cargando más notificaciones...</span>}
-            </div>
+            <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">{isFetchingNextPage && <span>Cargando más notificaciones...</span>}</div>
           </>
-        ) : (
-          <div className="p-8 text-center text-xs text-dark-muted">
-            <p className="font-semibold text-white">No tienes notificaciones pendientes.</p>
-          </div>
-        )}
+        ) : <div className="p-8 text-center text-xs text-dark-muted"><p className="font-semibold text-white">No tienes notificaciones pendientes.</p></div>}
       </div>
     </PullToRefresh>
   );

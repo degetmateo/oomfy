@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppLayout } from './components/layout/AppLayout.js';
 import { HomeView } from './views/HomeView.js';
 import { ExploreView } from './views/ExploreView.js';
+import { TopicHubView } from './views/TopicHubView.js';
 import { NotificationsView } from './views/NotificationsView.js';
 import { ChatsView } from './views/ChatsView.js';
 import { SettingsView } from './views/SettingsView.js';
@@ -24,20 +25,15 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute.js';
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 5 * 60 * 1000,
-      gcTime: 30 * 60 * 1000,
-    },
+    queries: { refetchOnWindowFocus: false, retry: 1, staleTime: 5 * 60 * 1000, gcTime: 30 * 60 * 1000 },
   },
 });
 
 export const App: React.FC = () => {
-  const { token, setUser, logout } = useAuthStore();
+  const { token, refreshToken, setUser, logout } = useAuthStore();
 
   useEffect(() => {
-    if (token) {
+    if (token || refreshToken) {
       ApiClient.get<any>('/members/me')
         .then((res) => {
           setUser(res.data);
@@ -47,40 +43,21 @@ export const App: React.FC = () => {
         })
         .catch(() => logout());
     }
-  }, [token, setUser, logout]);
+  }, [token, refreshToken, setUser, logout]);
 
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          <Route
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
+          <Route element={<AppLayout />}>
             <Route path="/" element={<HomeView />} />
             <Route path="/explore" element={<ExploreView />} />
-            <Route path="/notifications" element={<NotificationsView />} />
-            <Route path="/chats" element={<ChatsView />} />
-            <Route path="/settings" element={<SettingsView />} />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminView />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/moderation"
-              element={
-                <ProtectedRoute requiredRole={['admin', 'mod']}>
-                  <ModerationView />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/t/:tag" element={<TopicHubView />} />
+            <Route path="/notifications" element={<ProtectedRoute><NotificationsView /></ProtectedRoute>} />
+            <Route path="/chats" element={<ProtectedRoute><ChatsView /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsView /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminView /></ProtectedRoute>} />
+            <Route path="/moderation" element={<ProtectedRoute requiredRole={['admin', 'mod']}><ModerationView /></ProtectedRoute>} />
             <Route path="/publication/:id" element={<PublicationDetailView />} />
             <Route path="/external" element={<ExternalWarningView />} />
             <Route path="/:username/followers" element={<FollowListView />} />

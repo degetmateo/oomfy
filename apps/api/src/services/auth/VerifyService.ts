@@ -27,19 +27,21 @@ export class VerifyService {
       });
     }
 
+    const sessionId = uuidv7();
     const tokenPayload = {
       id: user.id,
       username: user.username,
       name: user.name,
       email: user.email,
       role: user.role,
+      sessionId,
     };
 
     const accessToken = TokenService.generateAccessToken(tokenPayload);
     const refreshToken = TokenService.generateRefreshToken(tokenPayload);
 
     await PostgresSessionRepository.create({
-      id: uuidv7(),
+      id: sessionId,
       user_id: user.id,
       ip,
       platform,
@@ -55,4 +57,3 @@ export class VerifyService {
     };
   }
 }
-

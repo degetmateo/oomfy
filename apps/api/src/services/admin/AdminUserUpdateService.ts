@@ -5,7 +5,6 @@ import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHe
 import { PasswordHasher } from '../../infrastructure/adapters/PasswordHasher.js';
 import { BadRequestError, NotFoundError } from '../../errors/AppError.js';
 import { UserSyncService } from '../users/UserSyncService.js';
-import { BackgroundTaskDispatcher } from '../../infrastructure/async/BackgroundTaskDispatcher.js';
 
 export interface AdminUserUpdateInput {
   name?: string;
@@ -81,13 +80,13 @@ export class AdminUserUpdateService {
 
     const updatedUser = rows[0];
     if (updates.username && updates.username !== current.username) {
-      BackgroundTaskDispatcher.dispatch(`sync-username-${userId}`, () => UserSyncService.syncUsername(userId, current.username, updates.username));
+      UserSyncService.enqueueUsernameSync(userId, current.username, updates.username);
     }
-    if (updates.name && updates.name !== current.name) {
-      BackgroundTaskDispatcher.dispatch(`sync-profile-${userId}`, () => UserSyncService.syncProfile(userId, updatedUser.username, { name: updates.name }));
-    }
-    if (updates.role && updates.role !== current.role) {
-      BackgroundTaskDispatcher.dispatch(`sync-role-${userId}`, () => UserSyncService.syncRole(userId, updatedUser.username, updates.role));
+    if ((updates.name && updates.name !== current.name) || (updates.role && updates.role !== current.role)) {
+      UserSyncService.enqueueProfileSync(userId, updatedUser.username, {
+        name: updates.name,
+        role: updates.role,
+      });
     }
 
     return { message: 'Usuario actualizado correctamente.', user: updatedUser };

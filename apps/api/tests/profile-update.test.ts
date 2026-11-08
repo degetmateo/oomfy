@@ -36,7 +36,7 @@ describe('ProfileService updateProfile media preservation', () => {
 
     vi.spyOn(PostgresUserRepository, 'findById').mockResolvedValue(existingUser);
     const createOrUpdateSpy = vi.spyOn(MongoMemberRepository, 'createOrUpdate').mockResolvedValue();
-    vi.spyOn(UserSyncService, 'syncProfile').mockResolvedValue();
+    vi.spyOn(UserSyncService, 'enqueueProfileSync').mockImplementation(() => {});
     vi.spyOn(MongoMemberRepository, 'findById').mockResolvedValue({
       ...existingUser,
       name: 'New Name Only',

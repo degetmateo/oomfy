@@ -4,9 +4,10 @@ import { ImageViewerModal } from '../common/ImageViewerModal.js';
 
 interface MediaGridProps {
   images: MediaItem[];
+  priority?: boolean;
 }
 
-export const MediaGrid: React.FC<MediaGridProps> = ({ images }) => {
+export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
 
@@ -28,14 +29,15 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images }) => {
               e.stopPropagation();
               setSelectedImage(singleImg.url);
             }}
-            className="relative overflow-hidden bg-dark-card cursor-pointer group border border-dark-border max-w-full inline-block"
+            className="relative overflow-hidden bg-dark-card cursor-pointer group border border-dark-border max-w-full inline-block min-h-[120px]"
           >
             <img
               src={singleImg.url}
               alt="Adjunto de publicación"
               onError={() => setFailedUrls((prev) => ({ ...prev, [singleImg.url]: true }))}
               className="max-w-full w-auto max-h-[450px] object-contain group-hover:opacity-90 transition-opacity"
-              loading="lazy"
+              loading={priority ? 'eager' : 'lazy'}
+              {...({ fetchpriority: priority ? 'high' : 'auto' } as any)}
             />
           </div>
         </div>
@@ -44,11 +46,9 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images }) => {
     );
   }
 
-  const gridClass = count === 2 ? 'grid-cols-2' : count === 3 ? 'grid-cols-2' : 'grid-cols-2';
-
   return (
     <>
-      <div className={`grid gap-2 mt-3 border border-dark-border bg-dark-bg overflow-hidden max-h-96 ${gridClass}`}>
+      <div className="grid grid-cols-2 gap-2 mt-3 border border-dark-border bg-dark-bg overflow-hidden max-h-96 aspect-[16/10]">
         {validImages.map((img, i) => (
           <div
             key={img.url + i}
@@ -63,7 +63,8 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images }) => {
               alt="Adjunto de publicación"
               onError={() => setFailedUrls((prev) => ({ ...prev, [img.url]: true }))}
               className="w-full h-full object-cover max-h-80 group-hover:scale-105 transition-transform duration-200"
-              loading="lazy"
+              loading={priority && i === 0 ? 'eager' : 'lazy'}
+              {...({ fetchpriority: priority && i === 0 ? 'high' : 'auto' } as any)}
             />
           </div>
         ))}

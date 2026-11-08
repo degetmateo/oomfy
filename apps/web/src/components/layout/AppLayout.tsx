@@ -4,13 +4,16 @@ import { Navbar } from './Navbar.js';
 import { Aside } from './Aside.js';
 import { MobileBottomNav } from './MobileBottomNav.js';
 import { MobileFloatingButton } from './MobileFloatingButton.js';
+import { GuestBottomBanner } from './GuestBottomBanner.js';
 import { CreatePostModal } from '../publication/CreatePostModal.js';
 import { PixelDialogModal } from '../common/PixelDialogModal.js';
 import { PushReconnectBanner } from '../notifications/PushReconnectBanner.js';
 import { useUIStore } from '../../stores/uiStore.js';
+import { useAuthStore } from '../../stores/authStore.js';
 
 export const AppLayout: React.FC = () => {
   const { isPostModalOpen, closePostModal } = useUIStore();
+  const { isAuthenticated } = useAuthStore();
   const location = useLocation();
   const isChatsRoute = location.pathname.startsWith('/chats');
 
@@ -26,7 +29,7 @@ export const AppLayout: React.FC = () => {
 
       <main
         className={`flex-1 min-w-0 ${
-          isChatsRoute ? 'max-w-none h-full overflow-hidden' : 'max-w-2xl min-h-screen pb-16 md:pb-0'
+          isChatsRoute ? 'max-w-none h-full overflow-hidden' : 'max-w-2xl min-h-screen pb-24 md:pb-12'
         } border-x-0 md:border-r border-dark-border`}
       >
         <PushReconnectBanner />
@@ -36,7 +39,8 @@ export const AppLayout: React.FC = () => {
       {!isChatsRoute && <Aside />}
 
       <MobileBottomNav />
-      <MobileFloatingButton />
+      {isAuthenticated && <MobileFloatingButton />}
+      <GuestBottomBanner />
       <CreatePostModal isOpen={isPostModalOpen} onClose={closePostModal} />
       <PixelDialogModal />
     </div>

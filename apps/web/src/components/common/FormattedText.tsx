@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { UrlHelper } from '../../utils/UrlHelper.js';
 
 interface Props {
@@ -12,11 +12,11 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
 
   if (!text) return null;
 
-  // Regex splitting by URLs, @mentions, and #hashtags
-  const tokenRegex = /(https?:\/\/[^\s]+|@[a-zA-Z0-9_]+|#[a-zA-Z0-9_]+)/g;
+  const tokenRegex = /(https?:\/\/[^\s]+|@[a-zA-Z0-9_]+|#[a-zA-Z0-9_-]+)/g;
   const parts = text.split(tokenRegex);
 
   const handleLinkClick = (e: React.MouseEvent, url: string) => {
+    e.preventDefault();
     e.stopPropagation();
     if (UrlHelper.isInternalUrl(url)) {
       navigate(UrlHelper.getInternalPath(url));
@@ -25,57 +25,54 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
     }
   };
 
-  const handleMentionClick = (e: React.MouseEvent, mention: string) => {
-    e.stopPropagation();
-    navigate(`/${mention.slice(1)}`);
-  };
-
-  const handleHashtagClick = (e: React.MouseEvent, tag: string) => {
-    e.stopPropagation();
-    navigate(`/explore?q=${encodeURIComponent(tag)}`);
-  };
-
   return (
     <span className={className}>
       {parts.map((part, index) => {
         if (!part) return null;
 
         if (/^https?:\/\//i.test(part)) {
+          const isInternal = UrlHelper.isInternalUrl(part);
           return (
-            <span
+            <a
               key={index}
+              href={part}
+              target={isInternal ? undefined : '_blank'}
+              rel={isInternal ? undefined : 'ugc nofollow noopener noreferrer'}
               onClick={(e) => handleLinkClick(e, part)}
               title={`Ir a ${part}`}
               className="text-brand-400 font-bold hover:underline cursor-pointer break-all"
             >
               {part}
-            </span>
+            </a>
           );
         }
 
         if (/^@[a-zA-Z0-9_]+$/i.test(part)) {
           return (
-            <span
+            <Link
               key={index}
-              onClick={(e) => handleMentionClick(e, part)}
+              to={`/${part.slice(1)}`}
+              onClick={(e) => e.stopPropagation()}
               title={`Ver perfil de ${part}`}
               className="text-brand-400 font-bold hover:underline cursor-pointer"
             >
               {part}
-            </span>
+            </Link>
           );
         }
 
-        if (/^#[a-zA-Z0-9_]+$/i.test(part)) {
+        if (/^#[a-zA-Z0-9_-]+$/i.test(part)) {
+          const cleanTag = part.slice(1).toLowerCase();
           return (
-            <span
+            <Link
               key={index}
-              onClick={(e) => handleHashtagClick(e, part)}
+              to={`/t/${encodeURIComponent(cleanTag)}`}
+              onClick={(e) => e.stopPropagation()}
               title={`Explorar ${part}`}
               className="text-brand-400 hover:underline cursor-pointer"
             >
               {part}
-            </span>
+            </Link>
           );
         }
 

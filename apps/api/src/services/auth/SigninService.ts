@@ -37,19 +37,21 @@ export class SigninService {
       throw new ForbiddenError('El inicio de sesión de usuarios está temporalmente deshabilitado por mantenimiento.');
     }
 
+    const sessionId = uuidv7();
     const tokenPayload = {
       id: user.id,
       username: user.username,
       name: user.name,
       email: user.email,
       role: user.role,
+      sessionId,
     };
 
     const accessToken = TokenService.generateAccessToken(tokenPayload);
     const refreshToken = TokenService.generateRefreshToken(tokenPayload);
 
     await PostgresSessionRepository.create({
-      id: uuidv7(),
+      id: sessionId,
       user_id: user.id,
       ip,
       platform: platform || input.platform || 'Web',
@@ -74,4 +76,3 @@ export class SigninService {
     };
   }
 }
-
