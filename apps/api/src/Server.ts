@@ -4,6 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { Environment } from './config/Environment.js';
 import apiRouter from './routes/index.js';
+import { SecurityHeaders } from './middlewares/SecurityHeaders.js';
 import { ErrorHandler } from './middlewares/ErrorHandler.js';
 import { SocketGateway } from './socket/SocketGateway.js';
 
@@ -24,6 +25,8 @@ export class Server {
   }
 
   private configureMiddlewares(): void {
+    this.app.disable('x-powered-by');
+    this.app.use(SecurityHeaders.apply);
     this.app.set('trust proxy', true);
     this.app.use(
       cors({

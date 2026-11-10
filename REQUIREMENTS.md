@@ -624,3 +624,14 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Generación dinámica de `/robots.txt`, `/sitemap_index.xml`, `/sitemap-static.xml`, `/sitemap-topics.xml`, `/sitemap-users-1.xml` y `/sitemap-posts-1.xml` (`SitemapService`), excluyendo contenido *thin* (`< 15` caracteres sin multimedia o perfiles sin actividad).
     - Tarjetas Open Graph dinámicas `1200x630` en `/og/user/:username` (`OgCardService`), pre-renderizado HTML para bots en `/seo/render`, componente `SeoHead` con etiquetas `canonical`, `og:*`, `twitter:card`, control `noindex, follow` en contenido *thin*, y datos estructurados `JSON-LD` (`WebSite`, `ProfilePage`, `SocialMediaPosting`).
     - Hubs temáticos en `/t/:tag` (`TopicHubView`), enlaces externos con `rel="ugc nofollow noopener noreferrer"` (`FormattedText`, `ProfileMeta`), optimización LCP/CLS (`fetchPriority="high"` y `aspect-ratio` en `MediaGrid`) y enlaces de paginación rastreables (`?page=2`).
+- **Hito 41: Implementación de Cabeceras de Seguridad HTTP y Protección Web:**
+  - *Strict-Transport-Security (HSTS):* Configurada con `max-age=31536000; includeSubDomains` para forzar HTTPS continuo.
+  - *Content-Security-Policy-Report-Only (CSP):* Implementada en modo reporte para auditar directivas de orígenes de scripts, estilos, fuentes, imágenes, multimedia y sockets sin romper funcionalidades existentes ni bloquear recursos de terceros (`ImgBB`, `Klipy`, etc.).
+  - *X-Frame-Options:* Configurada en `DENY` para mitigar ataques de clickjacking.
+  - *X-Content-Type-Options:* Establecida en `nosniff` para evitar la interpretación MIME errónea de archivos.
+  - *Referrer-Policy:* Establecida en `strict-origin-when-cross-origin` tanto en las cabeceras HTTP como en la etiqueta `<meta name="referrer">` de `index.html`.
+  - *Permissions-Policy:* Configurada como `camera=(), microphone=(), geolocation=()` para restringir el acceso a APIs sensibles del dispositivo.
+  - *Set-Cookie Seguro:* Cookies de sesión (`refresh_token`) configuradas estrictamente con `Secure`, `HttpOnly` y `SameSite=Lax`.
+  - *Eliminación de Huellas del Servidor:* Se deshabilitó `X-Powered-By` mediante `app.disable('x-powered-by')` y se eliminan activamente los encabezados `Server` y `X-Powered-By` en cada respuesta.
+  - *Omisión de Cabeceras Obsoletas:* Se evitó y eliminó `X-XSS-Protection` conforme a los estándares actuales.
+  - *Verificación:* Pruebas unitarias en `apps/api/tests/security-headers.test.ts`, 100% de la suite de pruebas pasando (155 tests) y build limpio en todo el monorepo sin git commits automáticos.

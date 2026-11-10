@@ -14,7 +14,7 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 export class AuthController {
   private static setRefreshCookie(res: Response, token: string): void {
     const isProd = process.env.NODE_ENV === 'production';
-    res.cookie('refresh_token', token, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: THIRTY_DAYS_MS, path: '/' });
+    res.cookie('refresh_token', token, { httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: THIRTY_DAYS_MS, path: '/' });
   }
 
   public static async signup(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -61,10 +61,9 @@ export class AuthController {
 
   public static async logout(req: Request, res: Response): Promise<void> {
     const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
-    if (refreshToken) {
-      await PostgresSessionRepository.deleteByToken(refreshToken).catch(() => {});
-    }
-    res.clearCookie('refresh_token', { path: '/' });
+    if (refreshToken) await PostgresSessionRepository.deleteByToken(refreshToken).catch(() => {});
+    const isProd = process.env.NODE_ENV === 'production';
+    res.clearCookie('refresh_token', { httpOnly: true, secure: isProd, sameSite: 'lax', path: '/' });
     res.status(200).json({ success: true, message: 'Sesión cerrada con éxito.' });
   }
 
