@@ -18,6 +18,8 @@ import { SigninView } from './views/SigninView.js';
 import { SignupView } from './views/SignupView.js';
 import { VerifyView } from './views/VerifyView.js';
 import { ResetPasswordView } from './views/ResetPasswordView.js';
+import { PrivacyPolicyView } from './views/PrivacyPolicyView.js';
+import { TermsAndConditionsView } from './views/TermsAndConditionsView.js';
 import { useAuthStore } from './stores/authStore.js';
 import { ApiClient } from './services/api.js';
 import { PushNotificationService } from './services/PushNotificationService.js';
@@ -60,6 +62,8 @@ export const App: React.FC = () => {
             <Route path="/moderation" element={<ProtectedRoute requiredRole={['admin', 'mod']}><ModerationView /></ProtectedRoute>} />
             <Route path="/publication/:id" element={<PublicationDetailView />} />
             <Route path="/external" element={<ExternalWarningView />} />
+            <Route path="/privacy" element={<PrivacyPolicyView />} />
+            <Route path="/terms" element={<TermsAndConditionsView />} />
             <Route path="/:username/followers" element={<FollowListView />} />
             <Route path="/:username/following" element={<FollowListView />} />
             <Route path="/:username" element={<ProfileView />} />

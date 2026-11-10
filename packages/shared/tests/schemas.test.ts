@@ -2,15 +2,28 @@ import { describe, it, expect } from 'vitest';
 import { SignupSchema, CreatePublicationSchema } from '../src/index.js';
 
 describe('Shared Schemas Validation', () => {
-  it('should validate correct signup payload', () => {
+  it('should validate correct signup payload with accepted_terms', () => {
     const validData = {
       email: 'user@example.com',
       username: 'valid_user1',
       name: 'Valid User',
       password: 'password123',
+      accepted_terms: true,
     };
     const result = SignupSchema.safeParse(validData);
     expect(result.success).toBe(true);
+  });
+
+  it('should reject signup when accepted_terms is missing or false', () => {
+    const missingTerms = {
+      email: 'user@example.com',
+      username: 'valid_user1',
+      name: 'Valid User',
+      password: 'password123',
+      accepted_terms: false,
+    };
+    const result = SignupSchema.safeParse(missingTerms);
+    expect(result.success).toBe(false);
   });
 
   it('should reject invalid email in signup', () => {
@@ -19,6 +32,7 @@ describe('Shared Schemas Validation', () => {
       username: 'valid_user',
       name: 'Valid User',
       password: 'password123',
+      accepted_terms: true,
     };
     const result = SignupSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
@@ -30,4 +44,3 @@ describe('Shared Schemas Validation', () => {
     expect(result.success).toBe(false);
   });
 });
-

@@ -37,7 +37,7 @@ export class OgCardService {
 
     const pubMatch = cleanPath.match(/^\/publication\/([^/?#]+)/);
     const topicMatch = cleanPath.match(/^\/t\/([^/?#]+)/);
-    const userMatch = !pubMatch && !topicMatch && !['/', '/explore', '/signin', '/register'].includes(cleanPath)
+    const userMatch = !pubMatch && !topicMatch && !['/', '/explore', '/signin', '/register', '/signup', '/terms', '/privacy'].includes(cleanPath)
       ? cleanPath.match(/^\/([a-zA-Z0-9_]{3,30})$/) : null;
 
     if (pubMatch) {

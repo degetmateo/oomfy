@@ -37,6 +37,7 @@ export class MongoMigrationRunner {
     const members = db.collection('members');
     await this.safeCreateIndex(members, { username: 1 });
     await this.safeCreateIndex(members, { created_at: -1 });
+    await members.updateMany({ terms_accepted: { $exists: false } }, { $set: { terms_accepted: false } });
 
     // 3. Colección follows
     const follows = db.collection('follows');

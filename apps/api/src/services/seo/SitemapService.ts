@@ -32,11 +32,12 @@ export class SitemapService {
   }
 
   public static getStaticSitemap(): string {
-    const urls = [
+    return this.wrapUrlSet([
       { loc: `${BASE_URL}/`, priority: '1.0', changefreq: 'hourly' },
       { loc: `${BASE_URL}/explore`, priority: '0.9', changefreq: 'hourly' },
-    ];
-    return this.wrapUrlSet(urls);
+      { loc: `${BASE_URL}/terms`, priority: '0.4', changefreq: 'monthly' },
+      { loc: `${BASE_URL}/privacy`, priority: '0.4', changefreq: 'monthly' },
+    ]);
   }
 
   public static async getTopicsSitemap(): Promise<string> {

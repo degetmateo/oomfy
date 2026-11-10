@@ -2,6 +2,7 @@ import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { TokenService } from '../infrastructure/adapters/TokenService.js';
 import { MessageService } from '../services/chat/MessageService.js';
+import { APP_SECURITY_HEADERS } from '../middlewares/SecurityHeaders.js';
 
 export class SocketGateway {
   private static io: Server | null = null;
@@ -9,6 +10,9 @@ export class SocketGateway {
 
   public static initialize(server: HttpServer): void {
     this.io = new Server(server, { cors: { origin: (_o, cb) => cb(null, true), credentials: true } });
+    (this.io as any).engine?.on('headers', (headers: Record<string, any>) => {
+      Object.assign(headers, APP_SECURITY_HEADERS);
+    });
     this.io.use((socket, next) => {
       const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
       if (!token) return next(new Error('Autenticación de socket requerida.'));

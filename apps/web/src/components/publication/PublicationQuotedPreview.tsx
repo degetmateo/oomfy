@@ -1,6 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { Publication } from '@oomfy/shared';
+import { formatRelativeTime, formatExactDateTime } from '../../utils/formatTime.js';
 
 interface Props {
   quotedPublication: Publication;
@@ -22,7 +23,9 @@ export const PublicationQuotedPreview: React.FC<Props> = ({ quotedPublication, o
       )}
       <div className="flex items-center gap-2 mb-1">
         <span className="font-bold text-white">@{quotedPublication.author.username}</span>
-        <span className="text-dark-muted text-[10px]">· {new Date(quotedPublication.created_at).toLocaleDateString()}</span>
+        <span title={formatExactDateTime(quotedPublication.created_at)} className="text-dark-muted text-[10px]">
+          • {formatRelativeTime(quotedPublication.created_at)}
+        </span>
       </div>
       {quotedPublication.content && (
         <p className="text-dark-text whitespace-pre-line leading-relaxed font-sans">{quotedPublication.content}</p>

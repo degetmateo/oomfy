@@ -65,6 +65,7 @@ export class SigninService {
         username: user.username,
         name: user.name,
         role: user.role,
+        terms_accepted: false,
       });
       publicProfile = await MongoMemberRepository.findById(user.id);
     }

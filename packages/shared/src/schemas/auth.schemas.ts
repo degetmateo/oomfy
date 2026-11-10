@@ -19,6 +19,9 @@ export const SignupSchema = z.object({
     .string({ required_error: 'La contraseña es requerida.' })
     .min(LIMITS.PASSWORD_MIN, `Mínimo ${LIMITS.PASSWORD_MIN} caracteres.`)
     .max(LIMITS.PASSWORD_MAX, `Máximo ${LIMITS.PASSWORD_MAX} caracteres.`),
+  accepted_terms: z.literal(true, {
+    errorMap: () => ({ message: 'Debes aceptar la Política de Privacidad y los Términos y Condiciones para crear una cuenta.' }),
+  }),
   captcha_token: z.string().optional(),
 });
 

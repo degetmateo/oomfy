@@ -7,6 +7,7 @@ import { MobileFloatingButton } from './MobileFloatingButton.js';
 import { GuestBottomBanner } from './GuestBottomBanner.js';
 import { CreatePostModal } from '../publication/CreatePostModal.js';
 import { PixelDialogModal } from '../common/PixelDialogModal.js';
+import { TermsAcceptanceModal } from '../legal/TermsAcceptanceModal.js';
 import { PushReconnectBanner } from '../notifications/PushReconnectBanner.js';
 import { useUIStore } from '../../stores/uiStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
@@ -42,6 +43,7 @@ export const AppLayout: React.FC = () => {
       {isAuthenticated && <MobileFloatingButton />}
       <GuestBottomBanner />
       <CreatePostModal isOpen={isPostModalOpen} onClose={closePostModal} />
+      <TermsAcceptanceModal />
       <PixelDialogModal />
     </div>
   );

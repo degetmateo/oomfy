@@ -37,13 +37,15 @@ export class SignupService {
       status: 'pending',
     });
 
-    // Sincronizar inmediatamente en MongoDB members para evitar inconsistencias
+    // Sincronizar inmediatamente en MongoDB members con aceptación explícita de términos
     await MongoMemberRepository.createOrUpdate({
       id: user.id,
       username: user.username,
       name: user.name,
       role: user.role,
       created_at: user.created_at,
+      terms_accepted: true,
+      terms_accepted_at: new Date().toISOString(),
     });
 
     const verificationToken = TokenService.generateVerificationToken({

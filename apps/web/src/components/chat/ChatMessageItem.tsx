@@ -6,6 +6,7 @@ import { FormattedText } from '../common/FormattedText.js';
 import { ChatMessageMedia } from './ChatMessageMedia.js';
 import { ChatMessageActions } from './ChatMessageActions.js';
 import { useSwipeReply } from '../../hooks/useSwipeReply.js';
+import { formatMessageTimestamp, formatExactDateTime } from '../../utils/formatTime.js';
 
 interface Props {
   message: any; isMe?: boolean; isFirstInGroup?: boolean;
@@ -20,7 +21,8 @@ export const ChatMessageItem: React.FC<Props> = ({
   const senderName = sender.name || (isMe ? 'Tú' : 'Usuario');
   const senderUsername = sender.username || '';
   const iconUrl = sender.icon_url || (senderUsername ? `/members/${senderUsername}/icon` : null);
-  const timeStr = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h24' });
+  const timeStr = formatMessageTimestamp(message.created_at, Date.now(), isFirstInGroup);
+  const exactTimeStr = formatExactDateTime(message.created_at);
   const touchProps = useSwipeReply(() => onReply?.(message));
   const isSending = message.deliveryState === 'sending';
   const isError = message.deliveryState === 'error';
@@ -40,9 +42,7 @@ export const ChatMessageItem: React.FC<Props> = ({
   return (
     <div
       {...touchProps}
-      className={`relative group flex gap-3 px-3 hover:bg-dark-card/40 transition-colors ${
-        isFirstInGroup ? 'pt-2.5 pb-0.5 mt-2' : 'py-[3px]'
-      } ${isSending ? 'opacity-70' : ''} ${isError ? 'bg-red-500/10 border-l-2 border-red-500' : ''}`}
+      className={`relative group flex gap-3 px-3 hover:bg-dark-card/40 transition-colors ${isFirstInGroup ? 'pt-2.5 pb-0.5 mt-2' : 'py-[3px]'} ${isSending ? 'opacity-70' : ''} ${isError ? 'bg-red-500/10 border-l-2 border-red-500' : ''}`}
     >
       {!isSending && !isError && (
         <ChatMessageActions onReply={() => onReply?.(message)} onReport={() => onReport?.(message)} onDelete={isMe ? () => onDelete?.(message) : undefined} />
@@ -59,21 +59,21 @@ export const ChatMessageItem: React.FC<Props> = ({
         </div>
       ) : (
         <div className="w-10 md:w-11 flex-shrink-0 text-right opacity-0 group-hover:opacity-100 transition-opacity select-none leading-none pt-0.5">
-          <span className="text-[10px] md:text-xs text-dark-muted font-mono">{timeStr}</span>
+          <span title={exactTimeStr} className="text-[10px] md:text-xs text-dark-muted font-mono">{timeStr}</span>
         </div>
       )}
 
       <div className="flex-1 min-w-0">
         {replyNode}
         {isFirstInGroup && (
-          <div className="flex items-baseline gap-2 mb-1 leading-none">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-1 leading-none">
             {senderUsername ? (
               <Link to={`/${senderUsername}`} className="group/author inline-flex items-baseline gap-2 hover:underline">
                 <span className="font-bold text-sm md:text-base text-white">{senderName}</span>
                 <span className="text-xs md:text-sm text-dark-muted font-mono">@{senderUsername}</span>
               </Link>
             ) : <span className="font-bold text-sm md:text-base text-white">{senderName}</span>}
-            <span className="text-[10px] md:text-xs text-dark-muted font-mono">{timeStr}</span>
+            <span title={exactTimeStr} className="text-[10px] md:text-xs text-dark-muted font-mono">{timeStr}</span>
           </div>
         )}
         {message.content && (

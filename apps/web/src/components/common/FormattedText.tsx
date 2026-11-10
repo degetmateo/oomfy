@@ -18,11 +18,17 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
   const handleLinkClick = (e: React.MouseEvent, url: string) => {
     e.preventDefault();
     e.stopPropagation();
+    if (window.getSelection()?.toString()) return;
     if (UrlHelper.isInternalUrl(url)) {
       navigate(UrlHelper.getInternalPath(url));
     } else {
       navigate(`/external?url=${encodeURIComponent(url)}`);
     }
+  };
+
+  const handleTokenNav = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.getSelection()?.toString()) e.preventDefault();
   };
 
   return (
@@ -52,7 +58,7 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
             <Link
               key={index}
               to={`/${part.slice(1)}`}
-              onClick={(e) => e.stopPropagation()}
+              onClick={handleTokenNav}
               title={`Ver perfil de ${part}`}
               className="text-brand-400 font-bold hover:underline cursor-pointer"
             >
@@ -67,7 +73,7 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
             <Link
               key={index}
               to={`/t/${encodeURIComponent(cleanTag)}`}
-              onClick={(e) => e.stopPropagation()}
+              onClick={handleTokenNav}
               title={`Explorar ${part}`}
               className="text-brand-400 hover:underline cursor-pointer"
             >

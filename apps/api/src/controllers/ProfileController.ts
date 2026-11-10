@@ -61,5 +61,14 @@ export class ProfileController {
       next(err);
     }
   }
+
+  public static async acceptTerms(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const updated = await ProfileService.acceptTerms(req.user!.id);
+      res.status(200).json({ success: true, data: updated });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 

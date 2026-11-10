@@ -16,8 +16,13 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
     .slice(0, 4);
 
   if (validImages.length === 0) return null;
-
   const count = validImages.length;
+
+  const openZoom = (e: React.MouseEvent, url: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedImage(url);
+  };
 
   if (count === 1) {
     const singleImg = validImages[0];
@@ -25,10 +30,9 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
       <>
         <div className="mt-3 flex justify-start">
           <div
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedImage(singleImg.url);
-            }}
+            data-no-card-nav="true"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => openZoom(e, singleImg.url)}
             className="relative overflow-hidden bg-dark-card cursor-pointer group border border-dark-border max-w-full inline-block min-h-[120px]"
           >
             <img
@@ -48,14 +52,16 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-2 mt-3 border border-dark-border bg-dark-bg overflow-hidden max-h-96 aspect-[16/10]">
+      <div
+        data-no-card-nav="true"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className="grid grid-cols-2 gap-2 mt-3 border border-dark-border bg-dark-bg overflow-hidden max-h-96 aspect-[16/10]"
+      >
         {validImages.map((img, i) => (
           <div
             key={img.url + i}
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedImage(img.url);
-            }}
+            onClick={(e) => openZoom(e, img.url)}
             className={`relative overflow-hidden bg-dark-card cursor-pointer group ${count === 3 && i === 0 ? 'row-span-2' : ''}`}
           >
             <img
@@ -69,7 +75,6 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
           </div>
         ))}
       </div>
-
       <ImageViewerModal imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />
     </>
   );

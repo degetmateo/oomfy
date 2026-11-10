@@ -6,6 +6,8 @@ import { MediaGrid } from './MediaGrid.js';
 import { PixelBadge } from '../icons/PixelBadge.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { UrlHelper } from '../../utils/UrlHelper.js';
+import { formatRelativeTime, formatExactDateTime } from '../../utils/formatTime.js';
+import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
 
 interface Props {
   embeds?: any[];
@@ -14,58 +16,49 @@ interface Props {
 
 export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublication }) => {
   const navigate = useNavigate();
+  const quoteHandlers = useCardClickGuard(() => {
+    if (targetPublication?.id) navigate(`/publication/${targetPublication.id}`);
+  });
 
   const handleExternalClick = (e: React.MouseEvent, url: string) => {
     e.stopPropagation();
-    if (UrlHelper.isInternalUrl(url)) {
-      navigate(UrlHelper.getInternalPath(url));
-    } else {
-      navigate(`/external?url=${encodeURIComponent(url)}`);
-    }
+    if (window.getSelection()?.toString()) return;
+    if (UrlHelper.isInternalUrl(url)) navigate(UrlHelper.getInternalPath(url));
+    else navigate(`/external?url=${encodeURIComponent(url)}`);
   };
 
   return (
     <div className="mt-2.5 flex flex-col gap-2 font-mono">
       {targetPublication && (
         <div
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/publication/${targetPublication.id}`);
-          }}
+          data-no-card-nav="true"
+          onMouseDown={(e) => { e.stopPropagation(); quoteHandlers.onMouseDown(e); }}
+          onClick={(e) => { e.stopPropagation(); quoteHandlers.onClick(e); }}
           className="border border-dark-border mb-2 p-3 bg-dark-bg/60 hover:border-brand-500 transition-colors cursor-pointer"
         >
-          <div className="flex items-center gap-2 mb-2">
-            <PixelAvatar
-              src={targetPublication.author?.icon_url}
-              username={targetPublication.author?.username}
-              sizeClass="w-5 h-5"
-            />
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <PixelAvatar src={targetPublication.author?.icon_url} username={targetPublication.author?.username} sizeClass="w-5 h-5" />
             <span className="font-bold text-xs text-white truncate">{targetPublication.author?.name}</span>
             {targetPublication.author?.role && <PixelBadge role={targetPublication.author.role} />}
             <span className="text-[11px] text-dark-muted truncate">@{targetPublication.author?.username}</span>
+            {targetPublication.created_at && (
+              <span title={formatExactDateTime(targetPublication.created_at)} className="text-[11px] text-dark-muted">
+                • {formatRelativeTime(targetPublication.created_at)}
+              </span>
+            )}
           </div>
-
           {targetPublication.content && (
-            <p className="text-xs text-dark-text whitespace-pre-line leading-relaxed font-sans">
-              {targetPublication.content}
-            </p>
+            <p className="text-xs text-dark-text whitespace-pre-line leading-relaxed font-sans">{targetPublication.content}</p>
           )}
-
-          {targetPublication.images && targetPublication.images.length > 0 && (
-            <div className="mt-2">
-              <MediaGrid images={targetPublication.images} />
-            </div>
+          {targetPublication.images?.length > 0 && (
+            <div className="mt-2"><MediaGrid images={targetPublication.images} /></div>
           )}
         </div>
       )}
 
       {embeds.map((emb: any, idx: number) => {
-        if (emb.type === 'spotify') {
-          return <SpotifyPlayer key={idx} embeds={[emb]} />;
-        }
-
+        if (emb.type === 'spotify') return <SpotifyPlayer key={idx} embeds={[emb]} />;
         const thumb = emb.thumbnail_url || emb.image;
-
         return (
           <div
             key={idx}
@@ -76,9 +69,7 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
               <div className="w-full sm:w-36 h-28 flex-shrink-0 bg-dark-bg overflow-hidden relative">
                 <img src={thumb} alt={emb.title || 'Vista previa'} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 {(emb.type === 'youtube' || emb.type === 'tiktok') && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
-                    <Play className="w-6 h-6 fill-white" />
-                  </div>
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white"><Play className="w-6 h-6 fill-white" /></div>
                 )}
               </div>
             )}

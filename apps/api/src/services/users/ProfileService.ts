@@ -23,17 +23,11 @@ export class ProfileService {
   }
 
   private static async handleMediaUpdate(
-    table: 'icon' | 'banner',
-    userId: string,
-    action?: 'none' | 'update' | 'delete',
-    file?: Express.Multer.File
+    table: 'icon' | 'banner', userId: string, action?: 'none' | 'update' | 'delete', file?: Express.Multer.File
   ): Promise<string | null | undefined> {
     if (action === 'update' && file) {
       const upload = await ImgBBStorageAdapter.upload(file.buffer);
-      await PostgresPool.getInstance().query(
-        `UPDATE ${table} SET url = $1, imgbb_id = $2 WHERE id = $3`,
-        [upload.url, upload.imgbb_id, userId]
-      );
+      await PostgresPool.getInstance().query(`UPDATE ${table} SET url = $1, imgbb_id = $2 WHERE id = $3`, [upload.url, upload.imgbb_id, userId]);
       return upload.url;
     }
     if (action === 'delete') {
@@ -44,10 +38,7 @@ export class ProfileService {
   }
 
   public static async updateProfile(
-    userId: string,
-    input: UpdateProfileInput,
-    iconFile?: Express.Multer.File,
-    bannerFile?: Express.Multer.File
+    userId: string, input: UpdateProfileInput, iconFile?: Express.Multer.File, bannerFile?: Express.Multer.File
   ): Promise<PublicUser> {
     const user = await PostgresUserRepository.findById(userId);
     if (!user) throw new NotFoundError('Usuario no encontrado.');
@@ -90,6 +81,15 @@ export class ProfileService {
     }
     if (iconUrl !== undefined || bannerUrl !== undefined) ProfileMediaService.invalidateCache(user.username);
     return (await MongoMemberRepository.findById(userId))!;
+  }
+
+  public static async acceptTerms(userId: string): Promise<PublicUser> {
+    const updated = await MongoMemberRepository.acceptTerms(userId);
+    if (!updated) throw new NotFoundError('Usuario no encontrado.');
+    await PostgresPool.getInstance()
+      .query(`UPDATE members SET terms_accepted = TRUE, terms_accepted_at = NOW(), updated_at = NOW() WHERE id = $1`, [userId])
+      .catch(() => {});
+    return updated;
   }
 
   public static getUserIcon(username: string): Promise<string | null> { return ProfileMediaService.getUserIcon(username); }

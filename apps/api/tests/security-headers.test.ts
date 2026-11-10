@@ -10,7 +10,8 @@ describe('Security Headers Middleware', () => {
     expect(res.status).toBe(200);
 
     expect(res.headers['strict-transport-security']).toBe('max-age=31536000; includeSubDomains');
-    expect(res.headers['content-security-policy-report-only']).toContain("default-src 'self'");
+    expect(res.headers['content-security-policy']).toContain("default-src 'self'");
+    expect(res.headers['content-security-policy']).toContain('frame-ancestors');
     expect(res.headers['x-frame-options']).toBe('DENY');
     expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');

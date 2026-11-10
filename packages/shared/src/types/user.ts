@@ -24,6 +24,8 @@ export interface User {
   banner?: UserImageMetadata | null;
   icon_url?: string | null;
   banner_url?: string | null;
+  terms_accepted?: boolean;
+  terms_accepted_at?: string | null;
 }
 
 export interface PublicUser {
@@ -40,6 +42,8 @@ export interface PublicUser {
   follower_count: number;
   followed_count: number;
   publication_count: number;
+  terms_accepted?: boolean;
+  terms_accepted_at?: string | null;
   is_following?: boolean;
   follows_you?: boolean;
 }

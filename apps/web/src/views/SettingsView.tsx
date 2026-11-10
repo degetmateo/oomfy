@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Shield, Key, Laptop, Smartphone } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
 import { AccountSettingsTab } from '../components/settings/AccountSettingsTab.js';
@@ -67,6 +67,11 @@ export const SettingsView: React.FC = () => {
 
         {/* Global Logout Section for Mobile & Desktop */}
         <LogoutSection />
+
+        <div className="mt-6 pt-4 border-t border-dark-border flex flex-wrap gap-4 text-[11px] text-dark-muted">
+          <Link to="/terms" className="hover:text-brand-400 hover:underline">Términos y Condiciones</Link>
+          <Link to="/privacy" className="hover:text-brand-400 hover:underline">Política de Privacidad</Link>
+        </div>
       </div>
     </div>
   );

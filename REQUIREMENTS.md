@@ -635,3 +635,30 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
   - *Eliminación de Huellas del Servidor:* Se deshabilitó `X-Powered-By` mediante `app.disable('x-powered-by')` y se eliminan activamente los encabezados `Server` y `X-Powered-By` en cada respuesta.
   - *Omisión de Cabeceras Obsoletas:* Se evitó y eliminó `X-XSS-Protection` conforme a los estándares actuales.
   - *Verificación:* Pruebas unitarias en `apps/api/tests/security-headers.test.ts`, 100% de la suite de pruebas pasando (155 tests) y build limpio en todo el monorepo sin git commits automáticos.
+- **Hito 42: Tiempo Relativo en Previews, Selección de Texto/Zoom Sin Navegación Accidental y Cabeceras de Seguridad Activas en Toda la App:**
+  - *Tiempo Relativo en Previews y Fecha Exacta con Zona Horaria en Detalles:*
+    - Utilidades `formatRelativeTime` y `formatExactDateTime` en `apps/web/src/utils/formatTime.ts` usando unidades completas transcurridas (`1s`, `4m`, `1h`, `1d`, `2d`, `2mes`, `1a`) en `PublicationHeader`, `SharedPublicationCard`, `ThreadAncestorCard`, `PublicationQuotedPreview` y `LinkPreviewCard` (con tooltip exacto al pasar el cursor), y fecha + hora local exacta con zona horaria en `PublicationDetailArticle`.
+  - *Selección de Texto y Zoom en Imágenes/GIFs Sin Abrir el Detalle Accidentalmente:*
+    - Hook `useCardClickGuard` aplicado en `PublicationCard`, `SharedPublicationCard`, `ThreadAncestorCard` y `LinkPreviewCard`: solo navega ante un clic seco sin movimiento (`<= 4px`), sin texto seleccionado ni interacción con enlaces/botones/multimedia.
+    - Eliminación de `select-none` en `ThreadAncestorsList` y protección contra arrastre en `FormattedText`.
+    - Refactorización de `ImageViewerModal` usando `useImageViewerZoom` y `createPortal(..., document.body)` junto con `stopPropagation` y `data-no-card-nav="true"` en `MediaGrid` e `ImageViewerModal`, garantizando que abrir o cerrar el zoom en imágenes/GIFs jamás dispare la navegación a la publicación.
+  - *Cabeceras de Seguridad Activas en Backend, WebSockets y Frontend:*
+    - Paso de `Content-Security-Policy-Report-Only` a **`Content-Security-Policy` activa** (con permisos completos para embeds de Spotify/YouTube/TikTok, Worker PWA `sw.js`, fuentes, ImgBB, Klipy y WebSockets) junto con `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` y `Permissions-Policy`.
+    - Aplicadas uniformemente en `SecurityHeaders.ts` (API Express), `SocketGateway.ts` (handshake HTTP de Socket.IO), `apps/web/vite.config.ts` (plugin en dev y `vite preview`) y `apps/web/public/_headers` (despliegues estáticos).
+- **Hito 43: Formato 24h / Fecha+Hora (> 1 día) en Mensajes y Resaltado Verde Consistente en Chats:**
+  - *Marcas de Tiempo en Mensajes (`formatMessageTimestamp`):*
+    - Formato de 24 horas (`hourCycle: 'h23'`) en la zona horaria del navegador para `ChatMessageItem` y la vista de conversaciones (`ChatListSidebar`). Si ha pasado más de un día desde el envío, muestra fecha + hora de 24h únicamente en el primer mensaje del bloque (`isFirstInGroup`) y en la barra lateral de chats, manteniendo solo la hora compacta en el margen izquierdo de los mensajes agrupados consecutivos.
+  - *Resaltado Verde de Conversación Activa:*
+    - Se eliminó `divide-y divide-dark-border` en la lista de chats (cuya regla de especificidad `> * + *` sobrescribía en gris el color del borde verde de cualquier chat que no fuera el primero) sustituyéndola por `border-b border-b-dark-border`, y aplicando `bg-brand-500/15 border-l-4 border-l-brand-500` de forma uniforme en cualquier tarjeta seleccionada.
+    - Se modularizó `ChatsView` en `useChatsList`, `ChatListSidebar` y `ChatsView` cumpliendo `<= 100 líneas`.
+- **Hito 44: Vistas Legales (Política de Privacidad y Términos y Condiciones), Validación en Registro y Popup para Usuarios Existentes:**
+  - *Vistas Legales con Contenido Adaptado al Proyecto:*
+    - Nuevas rutas públicas `/privacy` (`PrivacyPolicyView`) y `/terms` (`TermsAndConditionsView`) basadas en `LegalDocumentLayout`, `privacyContent.ts` y `termsContent.ts`, detallando fielmente el almacenamiento en PostgreSQL/MongoDB, `bcrypt`, sesiones JWT de 15m / refresh tokens rotativos de 30d, notificaciones push VAPID, permisos del dispositivo (`Permissions-Policy`), integraciones de terceros (`ImgBB`, `Klipy`, `Resend`, `Spotify`/`YouTube`/`TikTok`), moderación, reportes y reglas de uso.
+    - Integración de ambas rutas en el sitemap estático (`SitemapService`) y metadatos (`SeoHead` / `OgCardService`), además de enlaces en `SignupView`, `SigninView` y `SettingsView`.
+  - *Obligatoriedad en el Registro (`SignupSchema` y `SignupView`):*
+    - `SignupSchema` en `@oomfy/shared` exige `accepted_terms: true`; `SignupView` incluye casilla de verificación obligatoria con enlaces directos a `/terms` y `/privacy` antes de permitir el envío.
+    - `SignupService` persiste `terms_accepted: true` y `terms_accepted_at` al crear el registro en MongoDB (`members`).
+  - *Campo de Aceptación y Popup para Usuarios Existentes:*
+    - Se añadieron `terms_accepted` y `terms_accepted_at` en los tipos compartidos, migración PostgreSQL (`004_terms_acceptance.sql`), `MongoMigrationRunner` (relleno automático `terms_accepted: false` en documentos previos de `members`) y `MongoMemberMapper`/`MongoMemberRepository`.
+    - Nuevo endpoint `POST /members/me/accept-terms` (`ProfileController.acceptTerms` / `ProfileService.acceptTerms`).
+    - Componente global `TermsAcceptanceModal` montado en `AppLayout`: al iniciar sesión o retomar sesión activa con `terms_accepted === false`, advierte que continuar usando Oomfy implica aceptar todos los términos y políticas (permitiendo leer `/terms` o `/privacy`, aceptar y continuar, o cerrar sesión).

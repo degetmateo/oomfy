@@ -9,6 +9,7 @@ import { PixelBadge } from '../icons/PixelBadge.js';
 import { PixelShare } from '../icons/PixelShare.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { FormattedText } from '../common/FormattedText.js';
+import { formatExactDateTime } from '../../utils/formatTime.js';
 
 interface Props {
   publication: Publication; repliesCount: number; canDelete: boolean; isAuthenticated: boolean;
@@ -75,7 +76,7 @@ export const PublicationDetailArticle: React.FC<Props> = ({
       <LinkPreviewCard embeds={publication.embeds} targetPublication={publication.type === 'quote' ? publication.target_publication : undefined} />
 
       <div className="py-2 border-y border-dark-border/60 text-xs text-dark-muted my-3">
-        {new Date(publication.created_at).toLocaleString()}
+        {formatExactDateTime(publication.created_at)}
       </div>
 
       <PublicationActions
