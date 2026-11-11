@@ -31,7 +31,6 @@ export const CropBoxView: React.FC<Props> = ({ crop, onHandleMouseDown, onHandle
       onMouseDown={(e) => onHandleMouseDown('inside', e)}
       onTouchStart={(e) => onHandleTouchStart('inside', e)}
     >
-      {/* Rule of thirds grid lines */}
       <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 opacity-30">
         <div className="border-r border-b border-brand-400" />
         <div className="border-r border-b border-brand-400" />
@@ -41,7 +40,6 @@ export const CropBoxView: React.FC<Props> = ({ crop, onHandleMouseDown, onHandle
         <div className="border-b border-brand-400" />
       </div>
 
-      {/* Resize Handles */}
       {handles.map(({ type, className }) => (
         <div
           key={type}

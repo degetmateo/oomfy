@@ -7,7 +7,6 @@ import { Header } from '../components/layout/Header.js';
 import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { NotificationItem } from '../components/notifications/NotificationItem.js';
 import { ApiClient } from '../services/api.js';
-import { SocketClient } from '../services/socket.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
 
@@ -17,29 +16,18 @@ export const NotificationsView: React.FC = () => {
   const [sessionUnreadIds, setSessionUnreadIds] = useState<Set<string>>(new Set());
   const hasAutoMarkedRef = useRef(false);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const socket = SocketClient.getSocket();
-    const handleNotif = () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-infinite-list'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications-summary'] });
-    };
-    socket.on('notification', handleNotif);
-    return () => {
-      socket.off('notification', handleNotif);
-      queryClient.invalidateQueries({ queryKey: ['notifications-infinite-list'] });
-    };
-  }, [queryClient, isAuthenticated]);
-
   const { data, isLoading, isError, refetch, isFetchingNextPage, hasNextPage, fetchNextPage } =
     useInfiniteQuery<{ success: boolean; data: { notifications: Notification[]; pendingCount: number } }>({
       queryKey: ['notifications-infinite-list'],
-      queryFn: ({ pageParam }) => ApiClient.get(`/notifications${pageParam ? `?older_id=${encodeURIComponent(String(pageParam))}&limit=20` : '?limit=20'}`),
+      queryFn: ({ pageParam }) =>
+        ApiClient.get(`/notifications${pageParam ? `?older_id=${encodeURIComponent(String(pageParam))}&limit=20` : '?limit=20'}`),
       initialPageParam: '' as string,
       getNextPageParam: (lastPage) => {
         const notifs = lastPage?.data?.notifications;
         return Array.isArray(notifs) && notifs.length >= 20 ? notifs[notifs.length - 1]?.id : undefined;
       },
+      staleTime: 10 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
       enabled: isAuthenticated,
     });
 
@@ -51,7 +39,9 @@ export const NotificationsView: React.FC = () => {
     if (newlyPending.length > 0) setSessionUnreadIds((prev) => new Set([...prev, ...newlyPending]));
     if (!hasAutoMarkedRef.current && (newlyPending.length > 0 || (data.pages[0]?.data?.pendingCount ?? 0) > 0)) {
       hasAutoMarkedRef.current = true;
-      ApiClient.post('/notifications/read').then(() => queryClient.invalidateQueries({ queryKey: ['notifications-summary'] })).catch(() => {});
+      ApiClient.post('/notifications/read')
+        .then(() => queryClient.setQueryData(['notifications-unread-count'], { success: true, count: 0 }))
+        .catch(() => {});
     }
   }, [data, queryClient]);
 
@@ -59,12 +49,15 @@ export const NotificationsView: React.FC = () => {
     mutationFn: () => ApiClient.post('/notifications/read'),
     onSuccess: () => {
       setSessionUnreadIds(new Set());
+      queryClient.setQueryData(['notifications-unread-count'], { success: true, count: 0 });
       queryClient.invalidateQueries({ queryKey: ['notifications-infinite-list'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications-summary'] });
     },
   });
 
-  const loadMoreRef = useInfiniteScroll(() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }, Boolean(hasNextPage));
+  const loadMoreRef = useInfiniteScroll(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+  }, Boolean(hasNextPage));
+
   if (!isAuthenticated) return <Navigate to="/signin" replace />;
 
   return (

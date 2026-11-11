@@ -1,65 +1,89 @@
 import { QueryClient } from '@tanstack/react-query';
 import { Publication } from '@oomfy/shared';
+import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
+
+export const PUBLICATION_LIST_KEYS = ['feed', 'user-posts', 'explore-posts', 'topic-hub'] as const;
+
+function mapPub(pub: Publication | null | undefined, id: string, updater: (p: Publication) => Publication): Publication | null | undefined {
+  if (!pub) return pub;
+  let next = pub.id === id ? updater(pub) : pub;
+  if (next.target_publication) {
+    const mappedTarget = mapPub(next.target_publication, id, updater);
+    if (mappedTarget !== next.target_publication) next = { ...next, target_publication: mappedTarget };
+  }
+  return next;
+}
 
 export class PublicationCacheService {
-  private static previewMap = new Map<string, Publication>();
-
   public static findInCache(queryClient: QueryClient, id?: string): Publication | undefined {
     if (!id) return undefined;
+    const fromRegistry = useEntityRegistryStore.getState().publications[id];
+    if (fromRegistry) return fromRegistry;
 
     const detail = queryClient.getQueryData<{ publication?: Publication }>(['publication', id]);
     if (detail?.publication) return detail.publication;
 
-    const preview = this.previewMap.get(id);
-    if (preview) return preview;
-
-    const feed = queryClient.getQueryData<{ pages?: { data: Publication[] }[]; data?: Publication[] }>(['feed']);
-    if (feed?.pages) {
-      for (const page of feed.pages) {
-        const found = page.data?.find((p) => p.id === id);
+    for (const prefix of PUBLICATION_LIST_KEYS) {
+      for (const q of queryClient.getQueryCache().findAll({ queryKey: [prefix] })) {
+        const data = q.state.data as { pages?: { data: Publication[] }[]; data?: Publication[] } | undefined;
+        const found = data?.pages
+          ? data.pages.flatMap((p) => p.data || []).find((p) => p.id === id)
+          : data?.data?.find((p) => p.id === id);
         if (found) return found;
       }
-    } else if (feed?.data) {
-      const found = feed.data.find((p) => p.id === id);
-      if (found) return found;
     }
-
-    const queries = queryClient.getQueryCache().findAll({ queryKey: ['user-posts'] });
-    for (const q of queries) {
-      const qData = q.state.data as { pages?: { data: Publication[] }[]; data?: Publication[] } | undefined;
-      if (qData?.pages) {
-        for (const page of qData.pages) {
-          const found = page.data?.find((p) => p.id === id);
-          if (found) return found;
-        }
-      }
-    }
-
     return undefined;
   }
 
-  public static getPlaceholderDetailData(
-    queryClient: QueryClient,
-    id?: string
-  ): { publication: Publication; ancestors: Publication[]; replies: Publication[]; has_more_ancestors: boolean; total_ancestors: number } | undefined {
+  public static getPlaceholderDetailData(queryClient: QueryClient, id?: string) {
     const post = this.findInCache(queryClient, id);
     if (!post) return undefined;
+    const registry = useEntityRegistryStore.getState().publications;
+    const resolved = registry[post.id] || post;
+    const target = resolved.target_publication?.id ? (registry[resolved.target_publication.id] || resolved.target_publication) : null;
     return {
-      publication: post,
-      ancestors: post.target_publication ? [post.target_publication] : [],
-      total_ancestors: post.target_publication ? 1 : 0,
+      publication: target ? { ...resolved, target_publication: target } : resolved,
+      ancestors: target ? [target] : [],
+      total_ancestors: target ? 1 : 0,
       has_more_ancestors: false,
       replies: [],
     };
   }
 
-  public static primePublication(_queryClient: QueryClient, post: Publication): void {
-    if (!post?.id) return;
-    this.previewMap.set(post.id, post);
+  public static applyPatch(queryClient: QueryClient, id: string, updater: (p: Publication) => Publication, fallback?: Publication): void {
+    const store = useEntityRegistryStore.getState();
+    if (!store.publications[id] && fallback) store.seedPublications([fallback]);
+    store.patchPublication(id, updater);
+
+    for (const prefix of PUBLICATION_LIST_KEYS) {
+      queryClient.setQueriesData({ queryKey: [prefix] }, (old: any) => {
+        if (!old) return old;
+        if (Array.isArray(old.pages)) {
+          return { ...old, pages: old.pages.map((page: any) => ({ ...page, data: Array.isArray(page.data) ? page.data.map((p: Publication) => mapPub(p, id, updater)) : page.data })) };
+        }
+        if (Array.isArray(old.data)) return { ...old, data: old.data.map((p: Publication) => mapPub(p, id, updater)) };
+        return old;
+      });
+    }
+
+    queryClient.setQueriesData({ queryKey: ['publication'] }, (old: any) => {
+      if (!old) return old;
+      return {
+        ...old,
+        publication: mapPub(old.publication, id, updater),
+        ancestors: Array.isArray(old.ancestors) ? old.ancestors.map((p: Publication) => mapPub(p, id, updater)) : old.ancestors,
+        replies: Array.isArray(old.replies) ? old.replies.map((p: Publication) => mapPub(p, id, updater)) : old.replies,
+        thread: Array.isArray(old.thread) ? old.thread.map((p: Publication) => mapPub(p, id, updater)) : old.thread,
+      };
+    });
   }
 
-  public static clearPreview(id?: string): void {
-    if (id) this.previewMap.delete(id);
-    else this.previewMap.clear();
+  public static invalidatePublicationLists(queryClient: QueryClient): void {
+    PUBLICATION_LIST_KEYS.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
+  }
+
+  public static primePublication(post: Publication): void {
+    if (!post?.id) return;
+    useEntityRegistryStore.getState().ingestPublications([post]);
   }
 }

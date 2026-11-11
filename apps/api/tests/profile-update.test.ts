@@ -48,19 +48,16 @@ describe('ProfileService updateProfile media preservation', () => {
       banner_action: 'none',
     });
 
-    // Check that createOrUpdate was called WITHOUT clearing or including icon_url or banner_url
     const calledArg = createOrUpdateSpy.mock.calls[0][0];
     expect(calledArg.id).toBe('user-uuid-123');
     expect(calledArg.name).toBe('New Name Only');
     expect('icon_url' in calledArg).toBe(false);
     expect('banner_url' in calledArg).toBe(false);
 
-    // SQL query should NOT touch icon or banner tables
     const calls = queryMock.mock.calls;
     const touchedMediaTable = calls.some((c) => c[0].includes('UPDATE icon') || c[0].includes('UPDATE banner'));
     expect(touchedMediaTable).toBe(false);
 
-    // Profile returns intact media
     expect(result.icon_url).toBe('https://img.com/avatar123.jpg');
     expect(result.banner_url).toBe('https://img.com/banner123.jpg');
   });

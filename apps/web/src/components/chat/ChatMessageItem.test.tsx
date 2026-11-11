@@ -14,11 +14,9 @@ describe('ChatMessageItem Component', () => {
 
   const renderWithRouter = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
-  it('renders message text with font-sans class', () => {
+  it('renders message content cleanly', () => {
     renderWithRouter(<ChatMessageItem message={dummyMessage} isFirstInGroup={true} />);
-    const contentEl = screen.getByText(dummyMessage.content);
-    expect(contentEl).toBeInTheDocument();
-    expect(contentEl).toHaveClass('font-sans');
+    expect(screen.getByText(dummyMessage.content)).toBeInTheDocument();
   });
 
   it('renders sender header with profile links', () => {

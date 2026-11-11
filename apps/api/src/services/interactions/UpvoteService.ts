@@ -1,13 +1,11 @@
 import { v7 as uuidv7 } from 'uuid';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
-import { MongoNotificationRepository } from '../../infrastructure/repositories/mongo/MongoNotificationRepository.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
-import { WebPushService } from '../notifications/WebPushService.js';
+import { NotificationDispatcher } from '../notifications/NotificationDispatcher.js';
 import { PublicationSnippetHelper } from '../publications/PublicationSnippetHelper.js';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { NotFoundError } from '../../errors/AppError.js';
-import { SocketGateway } from '../../socket/SocketGateway.js';
 
 export class UpvoteService {
   public static async upvote(
@@ -41,34 +39,18 @@ export class UpvoteService {
 
       if (pub.author.id !== user.id) {
         const sender = await MongoMemberRepository.findById(user.id);
-        const notif = {
-          id: uuidv7(),
-          recipient_id: pub.author.id,
-          sender: {
-            id: user.id,
-            username: user.username,
-            name: sender?.name || user.name || user.username,
-            role: user.role,
-            icon_url: sender?.icon_url || `/members/${user.username}/icon`,
-            banner_url: null,
-          },
-          type: 'upvote' as const,
-          target_publication_id: pubId,
-          status: 'pending' as const,
-          created_at: new Date().toISOString(),
-        };
-        await MongoNotificationRepository.create(notif);
-        SocketGateway.sendNotification(pub.author.id, notif);
-        const snippet = PublicationSnippetHelper.extractSnippet(pub);
-        WebPushService.sendPushToUser(
-          pub.author.id,
-          {
+        await NotificationDispatcher.dispatch({
+          recipientId: pub.author.id,
+          sender: { ...user, name: sender?.name || user.name || user.username, icon_url: sender?.icon_url },
+          type: 'upvote',
+          targetPublicationId: pubId,
+          push: {
             title: `${user.name} indicó que le gusta`,
-            body: snippet,
+            body: PublicationSnippetHelper.extractSnippet(pub),
             url: `/publication/${pubId}`,
+            category: 'upvotes',
           },
-          'upvotes'
-        ).catch(() => {});
+        });
       }
       return { upvoted: true, upvotes_count: pub.upvotes_count + 1 };
     }

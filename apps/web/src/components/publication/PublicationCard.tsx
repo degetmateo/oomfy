@@ -16,13 +16,15 @@ import { useDialogStore } from '../../stores/dialogStore.js';
 import { ApiClient } from '../../services/api.js';
 import { PublicationCacheService } from '../../services/PublicationCacheService.js';
 import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
+import { usePublicationSnapshot } from '../../hooks/usePublicationSnapshot.js';
 
 interface Props {
   post: Publication;
   onDelete?: (id: string) => void;
 }
 
-export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
+export const PublicationCard: React.FC<Props> = ({ post: rawPost, onDelete }) => {
+  const post = usePublicationSnapshot(rawPost);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuthStore();
@@ -39,12 +41,12 @@ export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
     try {
       await ApiClient.delete(`/publications/${post.id}`);
       onDelete?.(post.id);
-      ['feed', 'user-posts', 'explore-posts'].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+      PublicationCacheService.invalidatePublicationLists(queryClient);
     } catch (err: any) { dialog.alert(err.message, 'Error al eliminar'); }
   };
 
   const handleQuoteClick = () => (isAuthenticated ? openPostModal(post) : navigate('/signin'));
-  const cardHandlers = useCardClickGuard(() => { PublicationCacheService.primePublication(queryClient, post); navigate(`/publication/${post.id}`); });
+  const cardHandlers = useCardClickGuard(() => { PublicationCacheService.primePublication(post); navigate(`/publication/${post.id}`); });
 
   if (post.type === 'shared') return <SharedPublicationCard post={post} canDelete={canDelete} onDelete={handleDelete} />;
 

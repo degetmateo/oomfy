@@ -14,6 +14,15 @@ export class NotificationController {
     }
   }
 
+  public static async getUnreadCount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const count = await NotificationService.getPendingCount(req.user!.id);
+      res.status(200).json({ success: true, count });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   public static async markAllAsRead(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await NotificationService.markAllAsRead(req.user!.id);

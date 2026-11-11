@@ -37,13 +37,10 @@ describe('Publications Endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(Array.isArray(res.body.data)).toBe(true);
-
-    if (res.body.data.length > 0) {
-      const first = res.body.data[0];
-      expect(first.id).toBeDefined();
-      expect(typeof first.id).toBe('string');
-      expect(first.author?.username).toBeDefined();
-    }
+    expect(res.body.data.length).toBeGreaterThan(0);
+    const first = res.body.data[0];
+    expect(typeof first.id).toBe('string');
+    expect(first.author?.username).toBeDefined();
   });
 
   it('GET /publications/:id should return 404 for non-existent ID', async () => {

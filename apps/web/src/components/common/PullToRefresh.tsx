@@ -16,7 +16,6 @@ export const PullToRefresh: React.FC<Props> = ({ onRefresh, children, disabled =
 
   return (
     <div className="relative min-h-screen">
-      {/* Mobile pull indicator */}
       {(pullDistance > 0 || isRefreshing) && (
         <div
           style={{ height: `${pullDistance}px` }}
@@ -43,7 +42,6 @@ export const PullToRefresh: React.FC<Props> = ({ onRefresh, children, disabled =
         </div>
       )}
 
-      {/* View Content */}
       <div
         style={{
           transform: pullDistance > 0 && !isRefreshing ? `translateY(${Math.round(pullDistance * 0.2)}px)` : undefined,

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { PublicUser, Publication, SITE_URL } from '@oomfy/shared';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { PublicUser, SITE_URL } from '@oomfy/shared';
 import { Header } from '../components/layout/Header.js';
 import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { SeoHead } from '../components/common/SeoHead.js';
@@ -12,43 +12,48 @@ import { ImageViewerModal } from '../components/common/ImageViewerModal.js';
 import { resolveMediaUrl } from '../utils/mediaUrl.js';
 import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
-import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
+import { useCursorFeed } from '../hooks/useCursorFeed.js';
+import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
+import { PublicationCacheService } from '../services/PublicationCacheService.js';
+
+type ProfileTab = 'posts' | 'replies' | 'likes';
 
 export const ProfileView: React.FC = () => {
   const { username } = useParams<{ username: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user: currentUser } = useAuthStore();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'likes'>('posts');
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
+  const tabParam = searchParams.get('tab');
+  const activeTab: ProfileTab = tabParam === 'replies' || tabParam === 'likes' ? tabParam : 'posts';
+
   const { data: profile, refetch: refetchProfile } = useQuery<{ success: boolean; data: PublicUser }>({
-    queryKey: ['profile', username], queryFn: () => ApiClient.get(`/members/${username}`), enabled: Boolean(username),
+    queryKey: ['profile', username],
+    queryFn: async () => {
+      const res = await ApiClient.get<{ success: boolean; data: PublicUser }>(`/members/${username}`);
+      if (res?.data) useEntityRegistryStore.getState().ingestUsers([res.data]);
+      return res;
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: Boolean(username),
   });
 
-  const { data: postsData, isLoading: loadingPosts, isFetchingNextPage, hasNextPage, fetchNextPage, refetch: refetchPosts } =
-    useInfiniteQuery<{ success: boolean; data: Publication[] }>({
-      queryKey: ['user-posts', username, activeTab],
-      queryFn: ({ pageParam }) => {
-        const p = new URLSearchParams({ limit: '20' });
-        if (pageParam) p.append('older_id', String(pageParam));
-        if (activeTab === 'posts') { if (username) p.append('author_username', username); p.append('type', 'posts'); }
-        else if (activeTab === 'replies') { if (username) p.append('author_username', username); p.append('type', 'reply'); }
-        else if (activeTab === 'likes' && username) p.append('liked_by', username);
-        return ApiClient.get(`/publications?${p.toString()}`);
-      },
-      initialPageParam: null as string | null,
-      getNextPageParam: (lastPage) => {
-        const list = lastPage?.data || [];
-        return list.length >= 20 ? list[list.length - 1]?.id : undefined;
-      },
-      enabled: Boolean(username),
-    });
+  const { posts, isLoading: loadingPosts, isFetchingNextPage, refetch: refetchPosts, loadMoreRef } = useCursorFeed({
+    queryKey: ['user-posts', username, activeTab],
+    buildUrl: (olderId) => {
+      const p = new URLSearchParams({ limit: '20' });
+      if (olderId) p.append('older_id', olderId);
+      if (activeTab === 'likes' && username) p.append('liked_by', username);
+      else if (username) { p.append('author_username', username); p.append('type', activeTab === 'replies' ? 'reply' : 'posts'); }
+      return `/publications?${p.toString()}`;
+    },
+    enabled: Boolean(username),
+  });
 
-  const loadMoreRef = useInfiniteScroll(() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }, Boolean(hasNextPage));
   const user = profile?.data;
   const isOwnProfile = Boolean(currentUser && user && (currentUser.id === user.id || currentUser.username.toLowerCase() === user.username.toLowerCase()));
-  const posts = postsData?.pages.flatMap((page) => page.data || []) || [];
   const handleRefresh = async () => { await Promise.all([refetchProfile(), refetchPosts()]); };
   const isThinProfile = Boolean(user && !user.publication_count && !user.follower_count && !user.bio);
 
@@ -70,7 +75,7 @@ export const ProfileView: React.FC = () => {
         {user && <ProfileInfo user={user} isOwnProfile={isOwnProfile} onEditClick={() => setIsEditOpen(true)} onAvatarClick={setZoomedImage} />}
         <div className="flex border-b border-dark-border text-center select-none bg-dark-bg/60">
           {(['posts', 'replies', 'likes'] as const).map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 text-xs sm:text-sm font-bold tracking-wider transition-colors ${activeTab === tab ? 'text-brand-400 border-b-2 border-brand-400' : 'text-dark-muted hover:text-white border-b-2 border-transparent'}`}>
+            <button key={tab} onClick={() => setSearchParams(tab === 'posts' ? {} : { tab }, { replace: true })} className={`flex-1 py-3 text-xs sm:text-sm font-bold tracking-wider transition-colors ${activeTab === tab ? 'text-brand-400 border-b-2 border-brand-400' : 'text-dark-muted hover:text-white border-b-2 border-transparent'}`}>
               {tab === 'posts' ? 'Publicaciones' : tab === 'replies' ? 'Respuestas' : 'Me gusta'}
             </button>
           ))}
@@ -79,15 +84,12 @@ export const ProfileView: React.FC = () => {
           {loadingPosts ? <div className="p-8 text-center text-xs text-dark-muted">Cargando publicaciones...</div> : posts.length > 0 ? (
             <>
               {posts.map((post) => <PublicationCard key={post.id} post={post} />)}
-              <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">
-                {isFetchingNextPage && <span>Cargando más publicaciones...</span>}
-                {hasNextPage && <a href={`/${username}?page=2`} className="sr-only">Siguiente página</a>}
-              </div>
+              <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">{isFetchingNextPage && <span>Cargando más publicaciones...</span>}</div>
             </>
           ) : <div className="p-8 text-center text-xs text-dark-muted">{activeTab === 'posts' ? 'No hay publicaciones todavía.' : activeTab === 'replies' ? 'No hay respuestas todavía.' : 'No hay publicaciones que le gusten todavía.'}</div>}
         </div>
         {isOwnProfile && isEditOpen && user && (
-          <EditProfileModal key={user.id} user={user} isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} onUpdated={() => { queryClient.invalidateQueries({ queryKey: ['profile'] }); queryClient.invalidateQueries({ queryKey: ['user-posts'] }); queryClient.invalidateQueries({ queryKey: ['publications'] }); }} />
+          <EditProfileModal key={user.id} user={user} isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} onUpdated={() => { queryClient.invalidateQueries({ queryKey: ['profile'] }); PublicationCacheService.invalidatePublicationLists(queryClient); }} />
         )}
         <ImageViewerModal imageUrl={zoomedImage} onClose={() => setZoomedImage(null)} />
       </div>

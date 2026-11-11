@@ -11,12 +11,14 @@ import { TermsAcceptanceModal } from '../legal/TermsAcceptanceModal.js';
 import { PushReconnectBanner } from '../notifications/PushReconnectBanner.js';
 import { useUIStore } from '../../stores/uiStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
+import { useRouteScroll } from '../../hooks/useRouteScroll.js';
 
 export const AppLayout: React.FC = () => {
   const { isPostModalOpen, closePostModal } = useUIStore();
   const { isAuthenticated } = useAuthStore();
   const location = useLocation();
   const isChatsRoute = location.pathname.startsWith('/chats');
+  useRouteScroll();
 
   return (
     <div

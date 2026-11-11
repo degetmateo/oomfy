@@ -1,9 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import { PublicationCacheService } from './PublicationCacheService.js';
+import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
 import { Publication } from '@oomfy/shared';
 
 describe('PublicationCacheService', () => {
+  beforeEach(() => useEntityRegistryStore.getState().clearRegistry());
   const samplePost: Publication = {
     id: 'post-test-123',
     author: {
@@ -62,7 +64,7 @@ describe('PublicationCacheService', () => {
 
   it('primes publication preview on navigation click without polluting query cache', () => {
     const queryClient = new QueryClient();
-    PublicationCacheService.primePublication(queryClient, samplePost);
+    PublicationCacheService.primePublication(samplePost);
 
     const placeholder = PublicationCacheService.getPlaceholderDetailData(queryClient, 'post-test-123');
     expect(placeholder).toBeDefined();

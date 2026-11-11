@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { PublicUser } from '@oomfy/shared';
 import { PushNotificationService } from '../services/PushNotificationService.js';
 import { ApiClient } from '../services/api.js';
+import { RouteScrollStore } from './routeScrollStore.js';
+import { useEntityRegistryStore } from './entityRegistryStore.js';
 
 interface AuthState {
   user: PublicUser | null;
@@ -62,6 +64,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     localStorage.removeItem('oomfy_token');
     localStorage.removeItem('oomfy_refresh_token');
+    RouteScrollStore.clear();
+    useEntityRegistryStore.getState().clearRegistry();
     set({ user: null, token: null, refreshToken: null, isAuthenticated: false, isLoading: false });
   },
 

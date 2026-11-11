@@ -1,16 +1,14 @@
 import { v7 as uuidv7 } from 'uuid';
-import { CreatePublicationInput, Publication, MediaItem } from '@oomfy/shared';
+import { CreatePublicationInput, Publication } from '@oomfy/shared';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
-import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
-import { MongoNotificationRepository } from '../../infrastructure/repositories/mongo/MongoNotificationRepository.js';
-import { ImgBBStorageAdapter } from '../../infrastructure/adapters/ImgBBStorageAdapter.js';
 import { UrlPreviewAdapter } from '../../infrastructure/adapters/UrlPreviewAdapter.js';
 import { AuthorProfileResolver } from './AuthorProfileResolver.js';
-import { BadRequestError, ForbiddenError } from '../../errors/AppError.js';
-import { SocketGateway } from '../../socket/SocketGateway.js';
-import { WebPushService } from '../notifications/WebPushService.js';
+import { PublicationMediaHelper } from './PublicationMediaHelper.js';
 import { PublicationSnippetHelper } from './PublicationSnippetHelper.js';
+import { NotificationDispatcher } from '../notifications/NotificationDispatcher.js';
+import { BadRequestError, ForbiddenError } from '../../errors/AppError.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
+import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 
 export class CreatePublicationService {
   public static async execute(
@@ -24,72 +22,40 @@ export class CreatePublicationService {
     }
 
     const content = input.content?.trim() || '';
-    let tenorList: Array<{ src?: string; index?: number }> = [];
-    if (typeof input.tenor === 'string') {
-      try { tenorList = JSON.parse(input.tenor); } catch { tenorList = []; }
-    } else if (Array.isArray(input.tenor)) {
-      tenorList = input.tenor;
-    }
-
+    const tenorList = PublicationMediaHelper.parseTenorList(input.tenor);
     if (!content && imageFiles.length === 0 && tenorList.length === 0 && input.type !== 'shared') {
       throw new BadRequestError('La publicación no puede estar vacía.');
     }
 
-    const mediaItems: MediaItem[] = [];
-    for (let i = 0; i < imageFiles.length; i++) {
-      const upload = await ImgBBStorageAdapter.upload(imageFiles[i].buffer);
-      mediaItems.push({
-        url: upload.url,
-        source: 'imgbb',
-        index: i,
-        delete_url: upload.delete_url,
-        imgbb_id: upload.imgbb_id,
-      });
-    }
-
-    for (const t of tenorList) {
-      if (t && typeof t.src === 'string' && t.src.trim().length > 0) {
-        mediaItems.push({ url: t.src.trim(), source: 'tenor', index: t.index ?? 0 });
-      }
-    }
-
-    const limitedMedia = mediaItems.slice(0, 4);
-
+    const limitedMedia = await PublicationMediaHelper.buildMediaItems(imageFiles, tenorList);
     const { iconUrl, bannerUrl } = await AuthorProfileResolver.resolve(user);
     const embeds: any[] = [];
     let targetPublication: Publication | null = null;
     let rootPublicationId: string | null = null;
     const threadIds: string[] = [];
-
     let pubType = input.type || 'default';
+
     if (content) {
       const extractedUrl = UrlPreviewAdapter.extractFirstUrl(content);
-      if (extractedUrl) {
-        const preview = await UrlPreviewAdapter.getPreview(extractedUrl);
-        if (preview) {
-          if (preview.type === 'quote' && !targetPublication) {
-            targetPublication = preview.target_publication;
-            pubType = 'quote';
-          } else {
-            embeds.push(preview);
-          }
-        }
+      const preview = extractedUrl ? await UrlPreviewAdapter.getPreview(extractedUrl) : null;
+      if (preview) {
+        if (preview.type === 'quote' && !targetPublication) {
+          targetPublication = preview.target_publication;
+          pubType = 'quote';
+        } else embeds.push(preview);
       }
     }
 
     if (input.target_id) {
       targetPublication = await MongoPublicationRepository.findById(input.target_id);
       if (!targetPublication) throw new BadRequestError('Publicación destino no encontrada.');
-
       if (pubType === 'quote') {
         rootPublicationId = null;
         await MongoPublicationRepository.incrementCounters(targetPublication.id, { quotes_count: 1 });
       } else {
         pubType = 'reply';
         rootPublicationId = targetPublication.root_publication_id || targetPublication.id;
-        if (targetPublication.thread_ids && targetPublication.thread_ids.length > 0) {
-          threadIds.push(...targetPublication.thread_ids);
-        }
+        if (targetPublication.thread_ids?.length) threadIds.push(...targetPublication.thread_ids);
         threadIds.push(targetPublication.id);
         await MongoPublicationRepository.incrementCounters(targetPublication.id, { comments_count: 1 });
       }
@@ -97,14 +63,7 @@ export class CreatePublicationService {
 
     const newPublication: Publication = {
       id: uuidv7(),
-      author: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        role: user.role,
-        icon_url: iconUrl,
-        banner_url: bannerUrl,
-      },
+      author: { id: user.id, username: user.username, name: user.name, role: user.role, icon_url: iconUrl, banner_url: bannerUrl },
       type: pubType as any,
       content: content || null,
       created_at: new Date().toISOString(),
@@ -113,42 +72,26 @@ export class CreatePublicationService {
       thread_ids: threadIds,
       images: limitedMedia,
       embeds,
-      upvotes_count: 0,
-      shares_count: 0,
-      quotes_count: 0,
-      comments_count: 0,
+      upvotes_count: 0, shares_count: 0, quotes_count: 0, comments_count: 0,
       target_publication: targetPublication,
     };
 
     await MongoPublicationRepository.create(newPublication);
     await MongoMemberRepository.incrementCounters(user.id, { publication_count: 1 });
 
-    if (targetPublication && targetPublication.author.id !== user.id) {
-      const notifType = pubType === 'quote' ? 'quote' : 'comment';
-      const notif = {
-        id: uuidv7(),
-        recipient_id: targetPublication.author.id,
+    if (targetPublication) {
+      await NotificationDispatcher.dispatch({
+        recipientId: targetPublication.author.id,
         sender: newPublication.author,
-        type: notifType as any,
-        target_publication_id: newPublication.id,
-        status: 'pending' as const,
-        created_at: new Date().toISOString(),
-      };
-      await MongoNotificationRepository.create(notif);
-      SocketGateway.sendNotification(targetPublication.author.id, notif);
-      const pushTitle = pubType === 'quote'
-        ? `${user.name} te citó`
-        : `${user.name} te respondió`;
-      const pushBody = PublicationSnippetHelper.extractSnippet(newPublication);
-      WebPushService.sendPushToUser(
-        targetPublication.author.id,
-        {
-          title: pushTitle,
-          body: pushBody,
+        type: pubType === 'quote' ? 'quote' : 'comment',
+        targetPublicationId: newPublication.id,
+        push: {
+          title: pubType === 'quote' ? `${user.name} te citó` : `${user.name} te respondió`,
+          body: PublicationSnippetHelper.extractSnippet(newPublication),
           url: `/publication/${newPublication.id}`,
+          category: pubType === 'quote' ? 'quotes' : 'replies',
         },
-        pubType === 'quote' ? 'quotes' : 'replies'
-      ).catch(() => { });
+      });
     }
 
     return newPublication;

@@ -40,7 +40,6 @@ export const SettingsView: React.FC = () => {
     <div className="flex flex-col min-h-screen font-mono">
       <Header title="Configuración" />
 
-      {/* Navigation Tabs */}
       <div className="flex border-b border-dark-border bg-dark-bg text-xs overflow-x-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -65,7 +64,6 @@ export const SettingsView: React.FC = () => {
         {activeTab === 'sessions' && <SessionsSettingsTab />}
         {activeTab === 'app' && <AppPwaSettingsTab />}
 
-        {/* Global Logout Section for Mobile & Desktop */}
         <LogoutSection />
 
         <div className="mt-6 pt-4 border-t border-dark-border flex flex-wrap gap-4 text-[11px] text-dark-muted">

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { LogoutSection } from './LogoutSection.js';
 import { useAuthStore } from '../../stores/authStore.js';
@@ -27,12 +27,7 @@ describe('LogoutSection Component', () => {
     expect(logoutButton).toBeInTheDocument();
 
     fireEvent.click(logoutButton);
-    expect(confirmMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: 'Cerrar sesión',
-        isDanger: true,
-      })
-    );
+    expect(confirmMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Cerrar sesión', isDanger: true }));
+    await waitFor(() => expect(logoutMock).toHaveBeenCalledTimes(1));
   });
 });
-

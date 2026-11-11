@@ -10,6 +10,7 @@ import { PixelShare } from '../icons/PixelShare.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { FormattedText } from '../common/FormattedText.js';
 import { formatExactDateTime } from '../../utils/formatTime.js';
+import { usePublicationSnapshot } from '../../hooks/usePublicationSnapshot.js';
 
 interface Props {
   publication: Publication; repliesCount: number; canDelete: boolean; isAuthenticated: boolean;
@@ -17,8 +18,9 @@ interface Props {
 }
 
 export const PublicationDetailArticle: React.FC<Props> = ({
-  publication, repliesCount, canDelete, articleRef, onDelete, onQuote,
+  publication: rawPublication, repliesCount, canDelete, articleRef, onDelete, onQuote,
 }) => {
+  const publication = usePublicationSnapshot(rawPublication);
   const navigate = useNavigate();
 
   return (

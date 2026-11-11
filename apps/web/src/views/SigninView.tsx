@@ -28,7 +28,7 @@ export const SigninView: React.FC = () => {
       const res = await ApiClient.post<any>('/auth/signin', { username, password });
       setAuth(res.user, res.accessToken, res.refreshToken);
       const isStandalone = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true);
-      if (PushNotificationService.isPermissionGranted()) await PushNotificationService.syncSubscription().catch(() => {});
+      if (PushNotificationService.isPermissionGranted()) await PushNotificationService.syncSubscription().catch(() => { });
       navigate('/');
 
       if (res.user?.terms_accepted === false) return;
@@ -88,10 +88,10 @@ export const SigninView: React.FC = () => {
         <p className="text-xs text-center text-dark-muted mt-6">
           ¿Aún no tienes cuenta? <Link to="/signup" className="text-brand-400 font-bold hover:underline">Regístrate aquí</Link>
         </p>
-        <div className="flex justify-center gap-4 mt-3 text-[11px] text-dark-muted">
-          <Link to="/terms" className="hover:text-brand-400 hover:underline">Términos y Condiciones</Link>
+        <div className="flex align-center justify-center gap-4 mt-3 text-[11px] text-dark-muted">
+          <Link to="/terms" className="hover:text-brand-400 hover:underline text-center">Términos y Condiciones</Link>
           <span>•</span>
-          <Link to="/privacy" className="hover:text-brand-400 hover:underline">Política de Privacidad</Link>
+          <Link to="/privacy" className="hover:text-brand-400 hover:underline text-center">Política de Privacidad</Link>
         </div>
         <PasswordRecoveryModal mode={recoveryMode} onClose={() => setRecoveryMode('none')} />
       </div>

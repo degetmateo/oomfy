@@ -24,12 +24,18 @@ import { useAuthStore } from './stores/authStore.js';
 import { ApiClient } from './services/api.js';
 import { PushNotificationService } from './services/PushNotificationService.js';
 import { ProtectedRoute } from './components/auth/ProtectedRoute.js';
+import { useRealtimeSync } from './hooks/useRealtimeSync.js';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { refetchOnWindowFocus: false, retry: 1, staleTime: 5 * 60 * 1000, gcTime: 30 * 60 * 1000 },
   },
 });
+
+const RealtimeBridge: React.FC = () => {
+  useRealtimeSync();
+  return null;
+};
 
 export const App: React.FC = () => {
   const { token, refreshToken, setUser, logout } = useAuthStore();
@@ -49,12 +55,13 @@ export const App: React.FC = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <RealtimeBridge />
       <BrowserRouter>
         <Routes>
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomeView />} />
-            <Route path="/explore" element={<ExploreView />} />
-            <Route path="/t/:tag" element={<TopicHubView />} />
+            <Route path="/explore" element={<ProtectedRoute><ExploreView /></ProtectedRoute>} />
+            <Route path="/t/:tag" element={<ProtectedRoute><TopicHubView /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><NotificationsView /></ProtectedRoute>} />
             <Route path="/chats" element={<ProtectedRoute><ChatsView /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsView /></ProtectedRoute>} />
@@ -64,8 +71,8 @@ export const App: React.FC = () => {
             <Route path="/external" element={<ExternalWarningView />} />
             <Route path="/privacy" element={<PrivacyPolicyView />} />
             <Route path="/terms" element={<TermsAndConditionsView />} />
-            <Route path="/:username/followers" element={<FollowListView />} />
-            <Route path="/:username/following" element={<FollowListView />} />
+            <Route path="/:username/followers" element={<ProtectedRoute><FollowListView /></ProtectedRoute>} />
+            <Route path="/:username/following" element={<ProtectedRoute><FollowListView /></ProtectedRoute>} />
             <Route path="/:username" element={<ProfileView />} />
           </Route>
           <Route path="/signin" element={<SigninView />} />

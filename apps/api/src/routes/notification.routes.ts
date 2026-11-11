@@ -5,6 +5,7 @@ import { AuthGuard } from '../middlewares/AuthGuard.js';
 const router = Router();
 
 router.get('/', AuthGuard.requireAuth, NotificationController.getNotifications);
+router.get('/unread-count', AuthGuard.requireAuth, NotificationController.getUnreadCount);
 router.post('/read', AuthGuard.requireAuth, NotificationController.markAllAsRead);
 router.get('/vapid-public-key', NotificationController.getVapidPublicKey);
 router.get('/preferences', AuthGuard.requireAuth, NotificationController.getPreferences);

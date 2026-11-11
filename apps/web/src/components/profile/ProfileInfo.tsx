@@ -38,7 +38,7 @@ export const ProfileInfo: React.FC<Props> = ({ user, isOwnProfile = false, onEdi
           <ProfileHeaderActions
             isOwnProfile={isOwnProfile}
             isAuthenticated={actions.isAuthenticated}
-            isFollowing={Boolean(user.is_following)}
+            isFollowing={actions.isFollowing}
             isHovering={actions.isHovering}
             isLoadingFollow={actions.isLoadingFollow}
             isStartingChat={actions.isStartingChat}

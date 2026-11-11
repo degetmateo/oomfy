@@ -22,13 +22,11 @@ export const PixelQuote: React.FC<Props> = ({ active = false, className = '', si
       {active && (
         <rect x="28" y="28" width="281" height="279" fill="#00dc65" fillOpacity="0.2" />
       )}
-      {/* Outer border */}
       <rect x="0" y="28" width="28" height="279" fill={color} />
       <rect x="309" y="28" width="28" height="279" fill={color} />
       <rect x="28" y="0" width="281" height="28" fill={color} />
       <rect x="28" y="307" width="281" height="28" fill={color} />
 
-      {/* Quote marks */}
       <rect x="73.37" y="95.69" width="77.78" height="77.78" fill={color} />
       <rect x="117.81" y="173.47" width="33.33" height="33.33" fill={color} />
       <rect x="84.48" y="206.81" width="33.33" height="33.33" fill={color} />

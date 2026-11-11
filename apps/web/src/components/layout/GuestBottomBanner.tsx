@@ -7,7 +7,7 @@ export const GuestBottomBanner: React.FC = () => {
   if (isAuthenticated) return null;
 
   return (
-    <div className="fixed bottom-12 md:bottom-0 left-0 right-0 z-30 bg-[#12161f]/95 backdrop-blur border-t-2 border-brand-500 px-4 py-2.5 font-mono shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#12161f]/95 backdrop-blur border-t-2 border-brand-500 px-4 py-2.5 font-mono shadow-lg">
       <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
         <div className="text-center sm:text-left">
           <span className="font-bold text-brand-400 mr-2">¡No te pierdas lo que pasa en Oomfy!</span>

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { PixelThumb } from '../icons/PixelThumb.js';
 import { PixelShare } from '../icons/PixelShare.js';
 import { PixelQuote } from '../icons/PixelQuote.js';
 import { PixelComment } from '../icons/PixelComment.js';
-import { ApiClient } from '../../services/api.js';
+import { usePublicationActions } from '../../hooks/usePublicationActions.js';
 
 interface Props {
   postId: string;
@@ -30,44 +30,15 @@ export const PublicationActions: React.FC<Props> = ({
   onCommentClick,
   onQuoteClick,
 }) => {
-  const [upvotes, setUpvotes] = useState(initialUpvotes);
-  const [isUpvoted, setIsUpvoted] = useState(initialIsUpvoted);
-  const [shares, setShares] = useState(initialShares);
-  const [isShared, setIsShared] = useState(initialIsShared);
-
-  const toggleUpvote = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      if (isUpvoted) {
-        setUpvotes((p) => Math.max(0, p - 1));
-        setIsUpvoted(false);
-        await ApiClient.delete(`/interactions/${postId}/upvote`);
-      } else {
-        setUpvotes((p) => p + 1);
-        setIsUpvoted(true);
-        await ApiClient.post(`/interactions/${postId}/upvote`);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const toggleShare = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      if (isShared) {
-        setShares((p) => Math.max(0, p - 1));
-        setIsShared(false);
-        await ApiClient.delete(`/interactions/${postId}/share`);
-      } else {
-        setShares((p) => p + 1);
-        setIsShared(true);
-        await ApiClient.post(`/interactions/${postId}/share`);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const { state, toggleUpvote, toggleShare } = usePublicationActions(postId, {
+    upvotes_count: initialUpvotes,
+    is_upvoted: initialIsUpvoted,
+    shares_count: initialShares,
+    is_shared: initialIsShared,
+    is_quoted: initialIsQuoted,
+    quotes_count: quotesCount,
+    comments_count: commentsCount,
+  });
 
   const handleQuote = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -82,37 +53,43 @@ export const PublicationActions: React.FC<Props> = ({
         className="flex items-center gap-2 rounded hover:bg-dark-border/40 hover:text-brand-400 transition-colors"
       >
         <PixelComment size={20} />
-        <span>{commentsCount}</span>
+        <span>{state.comments_count}</span>
       </button>
 
       <button
         onClick={toggleShare}
         title="Compartir"
-        className={`flex items-center gap-2 rounded hover:bg-dark-border/40 transition-colors ${isShared ? 'text-brand-400' : 'hover:text-brand-400'
-          }`}
+        aria-pressed={state.is_shared}
+        className={`flex items-center gap-2 rounded hover:bg-dark-border/40 transition-colors ${
+          state.is_shared ? 'text-brand-400' : 'hover:text-brand-400'
+        }`}
       >
-        <PixelShare active={isShared} size={20} />
-        <span>{shares}</span>
+        <PixelShare active={state.is_shared} size={20} />
+        <span>{state.shares_count}</span>
       </button>
 
       <button
         onClick={handleQuote}
         title="Citar"
-        className={`flex items-center gap-2 rounded hover:bg-dark-border/40 transition-colors ${initialIsQuoted ? 'text-brand-400' : 'hover:text-brand-400'
-          }`}
+        aria-pressed={state.is_quoted}
+        className={`flex items-center gap-2 rounded hover:bg-dark-border/40 transition-colors ${
+          state.is_quoted ? 'text-brand-400' : 'hover:text-brand-400'
+        }`}
       >
-        <PixelQuote active={initialIsQuoted} size={20} />
-        <span>{quotesCount}</span>
+        <PixelQuote active={state.is_quoted} size={20} />
+        <span>{state.quotes_count}</span>
       </button>
 
       <button
         onClick={toggleUpvote}
         title="Me gusta"
-        className={`flex items-center gap-2 rounded hover:bg-dark-border/40 transition-colors ${isUpvoted ? 'text-brand-400' : 'hover:text-brand-400'
-          }`}
+        aria-pressed={state.is_upvoted}
+        className={`flex items-center gap-2 rounded hover:bg-dark-border/40 transition-colors ${
+          state.is_upvoted ? 'text-brand-400' : 'hover:text-brand-400'
+        }`}
       >
-        <PixelThumb active={isUpvoted} size={20} />
-        <span>{upvotes}</span>
+        <PixelThumb active={state.is_upvoted} size={20} />
+        <span>{state.upvotes_count}</span>
       </button>
     </div>
   );

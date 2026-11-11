@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Image, Film, Smile } from 'lucide-react';
+import { Publication } from '@oomfy/shared';
 import { ApiClient } from '../../services/api.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
@@ -10,7 +11,7 @@ import { ImageCropperModal } from '../common/ImageCropperModal.js';
 import { useImageCropQueue } from '../../hooks/useImageCropQueue.js';
 import { PublicationQuotedPreview } from './PublicationQuotedPreview.js';
 import { PublicationAttachmentPreviews } from './PublicationAttachmentPreviews.js';
-import { Publication } from '@oomfy/shared';
+import { PublicationCacheService } from '../../services/PublicationCacheService.js';
 
 interface Props {
   onCreated?: () => void;
@@ -19,9 +20,7 @@ interface Props {
   onRemoveQuoted?: () => void;
 }
 
-export const PublicationCreator: React.FC<Props> = ({
-  onCreated, autoFocus = false, quotedPublication, onRemoveQuoted,
-}) => {
+export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = false, quotedPublication, onRemoveQuoted }) => {
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuthStore();
   const dialog = useDialogStore();
@@ -31,7 +30,7 @@ export const PublicationCreator: React.FC<Props> = ({
   const [showGifModal, setShowGifModal] = useState(false);
   const [showEmojiMenu, setShowEmojiMenu] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const cropQueue = useImageCropQueue((newCropped) => setImages((prev) => [...prev, ...newCropped].slice(0, 4)));
+  const cropQueue = useImageCropQueue((cropped) => setImages((prev) => [...prev, ...cropped].slice(0, 4)));
   if (!isAuthenticated) return null;
 
   const handleFiles = (files: File[]) => {
@@ -55,8 +54,11 @@ export const PublicationCreator: React.FC<Props> = ({
       if (selectedGifs.length > 0) formData.append('tenor', JSON.stringify(selectedGifs.map((src, index) => ({ src, index }))));
       if (quotedPublication) { formData.append('target_id', quotedPublication.id); formData.append('type', 'quote'); }
       await ApiClient.post('/publications', formData);
+      if (quotedPublication) {
+        PublicationCacheService.applyPatch(queryClient, quotedPublication.id, (p) => ({ ...p, is_quoted: true, quotes_count: (p.quotes_count || 0) + 1 }), quotedPublication);
+      }
       setContent(''); setImages([]); setSelectedGifs([]); onRemoveQuoted?.();
-      ['feed', 'user-posts', 'explore-posts'].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
+      PublicationCacheService.invalidatePublicationLists(queryClient);
       onCreated?.();
     } catch (err) { dialog.alert((err as Error).message, 'Error al publicar'); }
     finally { setIsSubmitting(false); }
@@ -74,13 +76,9 @@ export const PublicationCreator: React.FC<Props> = ({
               <Image className="w-4 h-4" />
               <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleFiles(Array.from(e.target.files || [])); e.target.value = ''; }} />
             </label>
-            <button type="button" onClick={() => setShowGifModal(true)} className="p-1.5 hover:text-brand-400 transition-colors border border-transparent hover:border-dark-border" title="Buscar GIF">
-              <Film className="w-4 h-4" />
-            </button>
+            <button type="button" onClick={() => setShowGifModal(true)} className="p-1.5 hover:text-brand-400 transition-colors border border-transparent hover:border-dark-border" title="Buscar GIF"><Film className="w-4 h-4" /></button>
             <div className="relative">
-              <button type="button" onClick={() => setShowEmojiMenu((v) => !v)} className={`p-1.5 transition-colors border border-transparent hover:border-dark-border ${showEmojiMenu ? 'text-brand-400' : 'hover:text-brand-400'}`} title="Emojis">
-                <Smile className="w-4 h-4" />
-              </button>
+              <button type="button" onClick={() => setShowEmojiMenu((v) => !v)} className={`p-1.5 transition-colors border border-transparent hover:border-dark-border ${showEmojiMenu ? 'text-brand-400' : 'hover:text-brand-400'}`} title="Emojis"><Smile className="w-4 h-4" /></button>
               <EmojiPickerMenu isOpen={showEmojiMenu} onClose={() => setShowEmojiMenu(false)} onSelectEmoji={(emoji) => setContent((c) => c + emoji)} position="bottom" />
             </div>
           </div>

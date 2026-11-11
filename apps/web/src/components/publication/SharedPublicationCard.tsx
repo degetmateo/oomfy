@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { Publication } from '@oomfy/shared';
 import { MediaGrid } from './MediaGrid.js';
 import { LinkPreviewCard } from './LinkPreviewCard.js';
@@ -11,6 +10,7 @@ import { FormattedText } from '../common/FormattedText.js';
 import { PublicationMenu } from './PublicationMenu.js';
 import { PublicationCacheService } from '../../services/PublicationCacheService.js';
 import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
+import { usePublicationSnapshot } from '../../hooks/usePublicationSnapshot.js';
 
 interface Props {
   post: Publication;
@@ -18,9 +18,9 @@ interface Props {
   onDelete: () => void;
 }
 
-export const SharedPublicationCard: React.FC<Props> = ({ post, canDelete, onDelete }) => {
+export const SharedPublicationCard: React.FC<Props> = ({ post: rawPost, canDelete, onDelete }) => {
+  const post = usePublicationSnapshot(rawPost);
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const original = post.target_publication;
   const targetUrl = original
     ? `/publication/${original.id}`
@@ -29,7 +29,7 @@ export const SharedPublicationCard: React.FC<Props> = ({ post, canDelete, onDele
     : '#';
 
   const cardHandlers = useCardClickGuard(() => {
-    if (original) PublicationCacheService.primePublication(queryClient, original);
+    if (original) PublicationCacheService.primePublication(original);
     if (targetUrl !== '#') navigate(targetUrl);
   });
 

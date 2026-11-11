@@ -1,39 +1,24 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { Hash } from 'lucide-react';
-import { DEFAULT_TOPICS as POPULAR_TOPICS, Publication } from '@oomfy/shared';
+import { DEFAULT_TOPICS as POPULAR_TOPICS } from '@oomfy/shared';
 import { Header } from '../components/layout/Header.js';
 import { PublicationCard } from '../components/publication/PublicationCard.js';
 import { SeoHead } from '../components/common/SeoHead.js';
-import { ApiClient } from '../services/api.js';
-import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
-
+import { useCursorFeed } from '../hooks/useCursorFeed.js';
 
 export const TopicHubView: React.FC = () => {
   const { tag = 'comunidad' } = useParams<{ tag: string }>();
   const cleanTag = decodeURIComponent(tag).replace(/^#/, '').toLowerCase();
 
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
-    useInfiniteQuery<{ success: boolean; data: Publication[] }>({
-      queryKey: ['topic-hub', cleanTag],
-      queryFn: ({ pageParam }) => {
-        const p = new URLSearchParams({ query: cleanTag, limit: '20' });
-        if (pageParam) p.set('older_id', String(pageParam));
-        return ApiClient.get(`/publications?${p.toString()}`);
-      },
-      initialPageParam: null as string | null,
-      getNextPageParam: (lastPage) => {
-        const posts = lastPage?.data || [];
-        return posts.length >= 20 ? posts[posts.length - 1]?.id : undefined;
-      },
-    });
-
-  const loadMoreRef = useInfiniteScroll(() => {
-    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-  }, Boolean(hasNextPage));
-
-  const posts = data?.pages.flatMap((page) => page.data || []) || [];
+  const { posts, isLoading, isFetchingNextPage, hasNextPage, refetch, loadMoreRef } = useCursorFeed({
+    queryKey: ['topic-hub', cleanTag],
+    buildUrl: (olderId) => {
+      const p = new URLSearchParams({ query: cleanTag, limit: '20' });
+      if (olderId) p.set('older_id', olderId);
+      return `/publications?${p.toString()}`;
+    },
+  });
 
   return (
     <div className="flex flex-col min-h-screen font-mono">
@@ -54,13 +39,7 @@ export const TopicHubView: React.FC = () => {
         </h2>
         <div className="flex flex-wrap gap-1.5 mt-3">
           {POPULAR_TOPICS.map((t) => (
-            <Link
-              key={t}
-              to={`/t/${t}`}
-              className={`px-2 py-0.5 text-[11px] border transition-colors ${
-                t === cleanTag ? 'border-brand-400 bg-brand-500/20 text-brand-400 font-bold' : 'border-dark-border text-dark-muted hover:text-white'
-              }`}
-            >
+            <Link key={t} to={`/t/${t}`} className={`px-2 py-0.5 text-[11px] border transition-colors ${t === cleanTag ? 'border-brand-400 bg-brand-500/20 text-brand-400 font-bold' : 'border-dark-border text-dark-muted hover:text-white'}`}>
               #{t}
             </Link>
           ))}
@@ -71,20 +50,15 @@ export const TopicHubView: React.FC = () => {
         <div className="p-8 text-center text-xs text-dark-muted">Cargando publicaciones de #{cleanTag}...</div>
       ) : posts.length > 0 ? (
         <div className="divide-y divide-dark-border">
-          {posts.map((post) => (
-            <PublicationCard key={post.id} post={post} />
-          ))}
+          {posts.map((post) => <PublicationCard key={post.id} post={post} />)}
           <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">
             {isFetchingNextPage && <span>Cargando más publicaciones...</span>}
             {hasNextPage && <a href={`/t/${encodeURIComponent(cleanTag)}?page=2`} className="sr-only">Siguiente página</a>}
           </div>
         </div>
       ) : (
-        <div className="p-8 text-center text-xs text-dark-muted">
-          No hay publicaciones recientes con #{cleanTag}. ¡Sé el primero en publicar sobre este tema!
-        </div>
+        <div className="p-8 text-center text-xs text-dark-muted">No hay publicaciones recientes con #{cleanTag}. ¡Sé el primero en publicar sobre este tema!</div>
       )}
     </div>
   );
 };
-

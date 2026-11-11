@@ -15,6 +15,10 @@ export class NotificationService {
     return { notifications, pendingCount };
   }
 
+  public static async getPendingCount(userId: string): Promise<number> {
+    return MongoNotificationRepository.countPending(userId);
+  }
+
   public static async markAllAsRead(userId: string): Promise<{ message: string }> {
     await MongoNotificationRepository.markAllAsSeen(userId);
     return { message: 'Notificaciones marcadas como leídas.' };

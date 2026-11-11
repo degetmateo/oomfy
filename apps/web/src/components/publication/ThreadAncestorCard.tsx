@@ -7,12 +7,14 @@ import { MediaGrid } from './MediaGrid.js';
 import { LinkPreviewCard } from './LinkPreviewCard.js';
 import { PublicationHeader } from './PublicationHeader.js';
 import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
+import { usePublicationSnapshot } from '../../hooks/usePublicationSnapshot.js';
 
 interface Props {
   post: Publication;
 }
 
-export const ThreadAncestorCard: React.FC<Props> = ({ post }) => {
+export const ThreadAncestorCard: React.FC<Props> = ({ post: rawPost }) => {
+  const post = usePublicationSnapshot(rawPost);
   const navigate = useNavigate();
   const cardHandlers = useCardClickGuard(() => navigate(`/publication/${post.id}`));
 
