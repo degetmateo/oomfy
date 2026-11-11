@@ -26,7 +26,7 @@ export const SigninView: React.FC = () => {
     setLoading(true);
     try {
       const res = await ApiClient.post<any>('/auth/signin', { username, password });
-      setAuth(res.user, res.accessToken);
+      setAuth(res.user, res.accessToken, res.refreshToken);
       const isStandalone = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true);
       if (PushNotificationService.isPermissionGranted()) await PushNotificationService.syncSubscription().catch(() => { });
       navigate('/');

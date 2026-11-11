@@ -27,7 +27,7 @@ export class AuthController {
       const platform = ClientInfoParser.parseDevicePlatform(req.headers['user-agent']);
       const result = await VerifyService.execute(req.body.token, ip, platform);
       AuthCookieHelper.setRefreshCookie(res, result.refreshToken, req);
-      res.status(200).json({ success: true, accessToken: result.accessToken, user: result.user });
+      res.status(200).json({ success: true, accessToken: result.accessToken, refreshToken: result.refreshToken, user: result.user });
     } catch (err) { next(err); }
   }
 
@@ -37,16 +37,17 @@ export class AuthController {
       const platform = ClientInfoParser.parseDevicePlatform(req.headers['user-agent']);
       const result = await SigninService.execute(req.body, ip, platform);
       AuthCookieHelper.setRefreshCookie(res, result.refreshToken, req);
-      res.status(200).json({ success: true, accessToken: result.accessToken, user: result.user });
+      res.status(200).json({ success: true, accessToken: result.accessToken, refreshToken: result.refreshToken, user: result.user });
     } catch (err) { next(err); }
   }
 
   public static async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       AuthCookieHelper.assertAllowedCookieOrigin(req);
-      const result = await TokenRefreshService.execute(req.cookies?.refresh_token);
+      const bodyToken = typeof req.body?.refreshToken === 'string' ? req.body.refreshToken : undefined;
+      const result = await TokenRefreshService.execute(req.cookies?.refresh_token || bodyToken);
       AuthCookieHelper.setRefreshCookie(res, result.refreshToken, req);
-      res.status(200).json({ success: true, accessToken: result.accessToken });
+      res.status(200).json({ success: true, accessToken: result.accessToken, refreshToken: result.refreshToken });
     } catch (err) { next(err); }
   }
 
@@ -54,7 +55,8 @@ export class AuthController {
     try {
       AuthCookieHelper.assertAllowedCookieOrigin(req);
     } catch (err) { return next(err); }
-    const refreshToken = req.cookies?.refresh_token;
+    const bodyToken = typeof req.body?.refreshToken === 'string' ? req.body.refreshToken : undefined;
+    const refreshToken = req.cookies?.refresh_token || bodyToken;
     const accessToken = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : undefined;
     try {
       if (accessToken) {

@@ -6,6 +6,7 @@ import { isOriginAllowed } from '../src/config/CorsPolicy.js';
 import { isPrivateOrReservedIp } from '../src/utils/UrlSecurityHelper.js';
 import { VerifyService } from '../src/services/auth/VerifyService.js';
 import { SigninService } from '../src/services/auth/SigninService.js';
+import { TokenRefreshService } from '../src/services/auth/TokenRefreshService.js';
 import { AccountLifecycleService } from '../src/services/users/AccountLifecycleService.js';
 import { PostgresPool } from '../src/infrastructure/database/postgres/PostgresPool.js';
 import { MongoDatabase } from '../src/infrastructure/database/mongo/MongoDatabase.js';
@@ -45,22 +46,25 @@ describe('Hito 49 Hardening: EXIF Strip, CORS, SSRF, Cookies, Verify & Account L
     expect(isPrivateOrReservedIp('8.8.8.8')).toBe(false);
   });
 
-  it('sets first-party Domain=.oomfy.online httpOnly cookie on signin and omits refreshToken from JSON', async () => {
+  it('sets Domain=.oomfy.online httpOnly cookie and supports body refreshToken fallback across origins', async () => {
     const origEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
     try {
       vi.spyOn(SigninService, 'execute').mockResolvedValue({ accessToken: 'acc-1', refreshToken: 'ref-1', user: { id: 'u1', username: 'alice', role: 'member' } });
       const res = await request(server.app).post('/auth/signin').set('Host', 'api.oomfy.online').send({ username: 'alice', password: 'Password123!' });
       expect(res.status).toBe(200);
-      expect(res.body.refreshToken).toBeUndefined();
+      expect(res.body.refreshToken).toBe('ref-1');
       const cookies = Array.isArray(res.headers['set-cookie']) ? res.headers['set-cookie'].join(';') : '';
       expect(cookies).toContain('Domain=.oomfy.online');
       expect(cookies).toContain('SameSite=None');
       expect(cookies).toContain('HttpOnly');
       expect(cookies).toContain('Secure');
-    } finally {
-      process.env.NODE_ENV = origEnv;
-    }
+
+      vi.spyOn(TokenRefreshService, 'execute').mockResolvedValue({ accessToken: 'acc-2', refreshToken: 'ref-2' });
+      const refRes = await request(server.app).post('/auth/refresh').set('Host', 'api.oomfy.online').set('Origin', 'https://oomfy.online').send({ refreshToken: 'ref-1' });
+      expect(refRes.status).toBe(200);
+      expect(refRes.body).toMatchObject({ accessToken: 'acc-2', refreshToken: 'ref-2' });
+    } finally { process.env.NODE_ENV = origEnv; }
   });
 
   it('enforces single-use opaque verification tokens and exports/deletes user accounts safely', async () => {
@@ -69,7 +73,6 @@ describe('Hito 49 Hardening: EXIF Strip, CORS, SSRF, Cookies, Verify & Account L
         sql.includes('FROM session') ? { rows: [{ id: 'sess-del-1', status: 'active', role: 'member' }] } : { rows: [] }
       ),
     } as any);
-
     await expect(VerifyService.execute('replayed-token', '127.0.0.1', 'Web')).rejects.toThrow('inválido');
 
     vi.spyOn(AccountLifecycleService, 'deleteMyAccount').mockRejectedValueOnce(new UnauthorizedError('Contraseña incorrecta.'));

@@ -14,15 +14,21 @@ export class ApiClient {
 
     this.refreshPromise = (async () => {
       try {
+        const storedRefresh = typeof localStorage !== 'undefined' ? localStorage.getItem('oomfy_refresh_token') : null;
         const res = await fetch(`${this.BASE_URL}/auth/refresh`, {
           method: 'POST',
           credentials: 'include',
+          ...(storedRefresh ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: storedRefresh }) } : {}),
         });
-        if (!res.ok) return null;
+        if (!res.ok) {
+          if ((res.status === 401 || res.status === 403) && typeof localStorage !== 'undefined') localStorage.removeItem('oomfy_refresh_token');
+          return null;
+        }
         const data = await res.json();
         if (data?.success && data.accessToken) {
           setAccessToken(data.accessToken);
-          window.dispatchEvent(new CustomEvent('auth:token-refreshed', { detail: { accessToken: data.accessToken } }));
+          if (data.refreshToken && typeof localStorage !== 'undefined') localStorage.setItem('oomfy_refresh_token', data.refreshToken);
+          window.dispatchEvent(new CustomEvent('auth:token-refreshed', { detail: { accessToken: data.accessToken, refreshToken: data.refreshToken } }));
           return data.accessToken as string;
         }
         return null;
@@ -48,8 +54,8 @@ export class ApiClient {
     const res = await fetch(`${this.BASE_URL}${endpoint}`, { ...options, credentials: 'include', headers });
 
     if (res.status === 401 && !endpoint.includes('/auth/')) {
-      const hadToken = Boolean(token);
-      const newToken = hadToken ? await this.refreshAccessToken() : null;
+      const hasSession = Boolean(token || (typeof localStorage !== 'undefined' && localStorage.getItem('oomfy_refresh_token')));
+      const newToken = hasSession ? await this.refreshAccessToken() : null;
       if (newToken) {
         headers.Authorization = `Bearer ${newToken}`;
         const retryRes = await fetch(`${this.BASE_URL}${endpoint}`, { ...options, credentials: 'include', headers });
@@ -57,7 +63,7 @@ export class ApiClient {
         if (!retryRes.ok) throw this.createHttpError(retryData.message || 'Error en la petición.', retryRes.status);
         return retryData as T;
       }
-      if (hadToken) {
+      if (hasSession) {
         setAccessToken(null);
         window.dispatchEvent(new CustomEvent('auth:unauthorized'));
       }

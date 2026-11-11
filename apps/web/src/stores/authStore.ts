@@ -12,8 +12,8 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  setAuth: (user: PublicUser, token: string) => void;
-  setToken: (token: string) => void;
+  setAuth: (user: PublicUser, token: string, refreshToken?: string) => void;
+  setToken: (token: string, refreshToken?: string) => void;
   setUser: (user: PublicUser) => void;
   logout: (notifyServer?: any) => void;
   setLoading: (loading: boolean) => void;
@@ -21,7 +21,6 @@ interface AuthState {
 
 if (typeof localStorage !== 'undefined') {
   localStorage.removeItem('oomfy_token');
-  localStorage.removeItem('oomfy_refresh_token');
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -30,22 +29,29 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isLoading: true,
 
-  setAuth: (user, token) => {
+  setAuth: (user, token, refreshToken) => {
     setAccessToken(token);
+    if (refreshToken && typeof localStorage !== 'undefined') localStorage.setItem('oomfy_refresh_token', refreshToken);
     set({ user, token, isAuthenticated: true, isLoading: false });
   },
 
-  setToken: (token) => {
+  setToken: (token, refreshToken) => {
     setAccessToken(token);
+    if (refreshToken && typeof localStorage !== 'undefined') localStorage.setItem('oomfy_refresh_token', refreshToken);
     set({ token, isAuthenticated: true });
   },
 
   setUser: (user) => set({ user, isAuthenticated: true, isLoading: false }),
 
   logout: (notifyServer = true) => {
+    const rt = typeof localStorage !== 'undefined' ? localStorage.getItem('oomfy_refresh_token') : null;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('oomfy_token');
+      localStorage.removeItem('oomfy_refresh_token');
+    }
     PushNotificationService.unsubscribe().catch(() => {});
     if (notifyServer !== false) {
-      ApiClient.post('/auth/logout', {}).catch(() => {});
+      ApiClient.post('/auth/logout', rt ? { refreshToken: rt } : {}).catch(() => {});
     }
     SocketClient.disconnect();
     setAccessToken(null);
@@ -64,7 +70,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('auth:token-refreshed', (e: Event) => {
     const detail = (e as CustomEvent).detail;
     if (detail?.accessToken) {
-      useAuthStore.getState().setToken(detail.accessToken);
+      useAuthStore.getState().setToken(detail.accessToken, detail.refreshToken);
     }
   });
 }
