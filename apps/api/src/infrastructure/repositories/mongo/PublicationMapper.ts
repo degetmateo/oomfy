@@ -1,4 +1,5 @@
-import { Publication } from '@oomfy/shared';
+import { Publication, MediaItem } from '@oomfy/shared';
+import { MongoIdHelper } from './MongoIdHelper.js';
 
 export class PublicationMapper {
   public static toDomain(doc: any): Publication {
@@ -33,7 +34,7 @@ export class PublicationMapper {
       parent_publication_id: parentId,
       root_publication_id: rootId,
       thread_ids: (doc.thread_ids || []).map((t: any) => t.toString()),
-      images: (doc.images || []).filter((img: any) => img && typeof img.url === 'string' && img.url.trim().length > 0),
+      images: PublicationMapper.sanitizeImages(doc.images),
       embeds: doc.embeds || [],
       upvotes_count: doc.upvote_count ?? doc.upvotes_count ?? 0,
       shares_count: doc.share_count ?? doc.shares_count ?? 0,
@@ -42,6 +43,38 @@ export class PublicationMapper {
       is_upvoted: Boolean(doc.is_upvoted),
       is_shared: Boolean(doc.is_shared),
       target_publication: doc.target_publication ? PublicationMapper.toDomain(doc.target_publication) : null,
+    };
+  }
+
+  public static sanitizeImages(images?: any[]): MediaItem[] {
+    return (images || [])
+      .filter((img: any) => img && typeof img.url === 'string' && img.url.trim().length > 0)
+      .map((img: any, idx: number) => ({
+        url: img.url,
+        source: img.source || 'other',
+        index: typeof img.index === 'number' ? img.index : idx,
+      }));
+  }
+
+  public static toPersistence(publication: Publication): Record<string, any> {
+    const pubMongoId = MongoIdHelper.toMongoId(publication.id);
+    const parentMongoId = publication.parent_publication_id ? MongoIdHelper.toMongoId(publication.parent_publication_id) : null;
+    const rootMongoId = publication.root_publication_id ? MongoIdHelper.toMongoId(publication.root_publication_id) : null;
+    const authorMongoId = publication.author?.id ? MongoIdHelper.toMongoId(publication.author.id) : null;
+    return {
+      ...publication,
+      _id: pubMongoId,
+      id: pubMongoId,
+      parent_publication_id: parentMongoId,
+      target_publication_id: parentMongoId,
+      root_publication_id: rootMongoId,
+      thread_ids: publication.thread_ids?.map((t) => MongoIdHelper.toMongoId(t)) || [],
+      author: { ...publication.author, _id: authorMongoId, id: authorMongoId },
+      created_at: publication.created_at ? new Date(publication.created_at) : new Date(),
+      upvote_count: publication.upvotes_count || 0,
+      share_count: publication.shares_count || 0,
+      comment_count: publication.comments_count || 0,
+      quote_count: publication.quotes_count || 0,
     };
   }
 }

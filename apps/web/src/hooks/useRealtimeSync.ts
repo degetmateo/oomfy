@@ -20,15 +20,27 @@ export function useRealtimeSync(): void {
     wasAuthRef.current = true;
 
     const socket = SocketClient.getSocket();
+    const syncBadgesAndLists = () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-infinite-list'] });
+      queryClient.invalidateQueries({ queryKey: ['unread-messages-count'] });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    };
+
     const onNotification = (notif: any) => {
       queryClient.setQueryData(['notifications-unread-count'], (old: any) =>
         old ? { ...old, count: (old.count || 0) + 1 } : { success: true, count: 1 }
       );
+      let updatedList = false;
       queryClient.setQueryData(['notifications-infinite-list'], (old: any) => {
         if (!old?.pages?.length || !notif?.id) return old;
         const firstPage = old.pages[0];
         const existing = firstPage?.data?.notifications || [];
-        if (existing.some((n: any) => n.id === notif.id)) return old;
+        if (existing.some((n: any) => n.id === notif.id)) {
+          updatedList = true;
+          return old;
+        }
+        updatedList = true;
         return {
           ...old,
           pages: [
@@ -37,18 +49,32 @@ export function useRealtimeSync(): void {
           ],
         };
       });
+      if (!updatedList) {
+        queryClient.invalidateQueries({ queryKey: ['notifications-infinite-list'] });
+      }
     };
 
     const onChatMessage = (msg: any) => {
       if (msg?.sender_id === userId) return;
       queryClient.invalidateQueries({ queryKey: ['unread-messages-count'] });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') syncBadgesAndLists();
     };
 
     socket.on('notification', onNotification);
     socket.on('new_chat_message', onChatMessage);
+    socket.on('connect', syncBadgesAndLists);
+    window.addEventListener('focus', syncBadgesAndLists);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
       socket.off('notification', onNotification);
       socket.off('new_chat_message', onChatMessage);
+      socket.off('connect', syncBadgesAndLists);
+      window.removeEventListener('focus', syncBadgesAndLists);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [isAuthenticated, userId, queryClient]);
 }

@@ -17,61 +17,65 @@ export function useChatMessages(chatId: string, currentUserId: string, scrollToB
 
   useEffect(() => {
     let active = true;
-    setIsLoading(true);
-    ApiClient.get<{ success: boolean; data: any[] }>(`/chats/${chatId}/messages?limit=30`).then((res) => {
-      if (!active) return;
-      const list = res.data || [];
-      setMessages(list); setHasMore(list.length >= 30);
-      setTimeout(() => scrollToBottom('instant'), 30);
-      ApiClient.post(`/chats/${chatId}/read`).catch(() => {});
+    const markRead = () => ApiClient.post(`/chats/${chatId}/read`).then(() => {
       queryClient.invalidateQueries({ queryKey: ['unread-messages-count'] });
-    }).finally(() => { if (active) setIsLoading(false); });
-    return () => { active = false; };
-  }, [chatId]);
-
-  useEffect(() => {
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    }).catch(() => {});
+    const fetchAndMark = (initial = false) => {
+      if (initial) setIsLoading(true);
+      return ApiClient.get<{ success: boolean; data: any[] }>(`/chats/${chatId}/messages?limit=30`).then((res) => {
+        if (!active) return;
+        const list = res.data || [];
+        setMessages(list); setHasMore(list.length >= 30);
+        if (initial) setTimeout(() => scrollToBottom('instant'), 30);
+        void markRead();
+      }).finally(() => { if (initial && active) setIsLoading(false); });
+    };
+    void fetchAndMark(true);
     const socket = SocketClient.getSocket();
+    const joinAndSync = () => { socket.emit('join-chat', chatId); void fetchAndMark(false); };
     socket.emit('join-chat', chatId);
     const handleMessage = (msg: any) => {
-      if (msg.chat_id !== chatId) return;
+      if (msg.chat_id?.toLowerCase() !== chatId.toLowerCase()) return;
       setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
       setTypingUser(null);
       if (typingAutoClearTimerRef.current) clearTimeout(typingAutoClearTimerRef.current);
       setTimeout(() => scrollToBottom('smooth'), 30);
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
-      queryClient.invalidateQueries({ queryKey: ['unread-messages-count'] });
+      if (msg.sender_id !== currentUserId) void markRead();
+      else queryClient.invalidateQueries({ queryKey: ['chats'] });
     };
     const handleTyping = (d: { chatId: string; userId: string; username: string }) => {
-      if (d.chatId !== chatId || d.userId === currentUserId) return;
+      if (d.chatId?.toLowerCase() !== chatId.toLowerCase() || d.userId === currentUserId) return;
       setTypingUser(d.username); scrollToBottom('smooth');
       if (typingAutoClearTimerRef.current) clearTimeout(typingAutoClearTimerRef.current);
       typingAutoClearTimerRef.current = setTimeout(() => setTypingUser(null), 4000);
     };
-    const handleStopTyping = (d: { chatId: string; userId: string }) => { if (d.chatId === chatId && d.userId !== currentUserId) setTypingUser(null); };
-    const handleDelete = ({ messageId }: { messageId: string }) => {
-      setMessages((prev) => prev.filter((m) => m.id !== messageId)); queryClient.invalidateQueries({ queryKey: ['chats'] });
-    };
-    socket.on('new-message', handleMessage); socket.on('user-typing', handleTyping);
+    const handleStopTyping = (d: { chatId: string; userId: string }) => { if (d.chatId?.toLowerCase() === chatId.toLowerCase() && d.userId !== currentUserId) setTypingUser(null); };
+    const handleDelete = ({ messageId }: { messageId: string }) => { setMessages((p) => p.filter((m) => m.id !== messageId)); queryClient.invalidateQueries({ queryKey: ['chats'] }); };
+    const syncIfVisible = () => { if (document.visibilityState === 'visible') void fetchAndMark(false); };
+    const onFocus = () => { void fetchAndMark(false); };
+    socket.on('connect', joinAndSync); socket.on('new-message', handleMessage); socket.on('user-typing', handleTyping);
     socket.on('user-stop-typing', handleStopTyping); socket.on('delete-message', handleDelete);
+    document.addEventListener('visibilitychange', syncIfVisible); window.addEventListener('focus', onFocus);
     return () => {
-      socket.off('new-message', handleMessage); socket.off('user-typing', handleTyping);
+      active = false;
+      socket.off('connect', joinAndSync); socket.off('new-message', handleMessage); socket.off('user-typing', handleTyping);
       socket.off('user-stop-typing', handleStopTyping); socket.off('delete-message', handleDelete);
+      document.removeEventListener('visibilitychange', syncIfVisible); window.removeEventListener('focus', onFocus);
       if (lastTypingSentRef.current > 0) socket.emit('typing-stop', { chatId });
     };
   }, [chatId, currentUserId, queryClient]);
 
   const sendOptimisticMessage = async (payload: OutgoingChatPayload, existingTempId?: string) => {
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-    lastTypingSentRef.current = 0;
-    SocketClient.getSocket().emit('typing-stop', { chatId });
+    lastTypingSentRef.current = 0; SocketClient.getSocket().emit('typing-stop', { chatId });
     const tempId = existingTempId || `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const previewUrls = payload.files.map((f) => (typeof URL.createObjectURL === 'function' ? URL.createObjectURL(f) : ''));
     const optimisticMsg = {
-      id: tempId, chat_id: chatId, sender_id: currentUserId,
+      id: tempId, chat_id: chatId, sender_id: currentUserId, content: payload.content, reply_to_id: payload.replyToId,
       sender: { id: currentUserId, username: currentUser?.username || '', name: currentUser?.name || 'Tú', icon_url: currentUser?.icon_url || null },
-      content: payload.content, reply_to_id: payload.replyToId, media_urls: previewUrls, gif_url: payload.gifUrl,
+      media_urls: previewUrls, gif_url: payload.gifUrl, created_at: new Date().toISOString(), deliveryState: 'sending', retryPayload: payload,
       reply_to: payload.replyTo ? { id: payload.replyTo.id, content: payload.replyTo.content, sender_username: payload.replyTo.sender?.username, sender_name: payload.replyTo.sender?.name } : null,
-      created_at: new Date().toISOString(), deliveryState: 'sending', retryPayload: payload,
     };
     setMessages((prev) => existingTempId ? prev.map((m) => (m.id === tempId ? { ...m, deliveryState: 'sending' } : m)) : [...prev, optimisticMsg]);
     setTimeout(() => scrollToBottom('smooth'), 20);
@@ -84,16 +88,10 @@ export function useChatMessages(chatId: string, currentUserId: string, scrollToB
         if (payload.gifUrl) fd.append('gif_url', payload.gifUrl);
         payload.files.forEach((f) => fd.append('images', f));
       }
-      const res = payload.files.length > 0
-        ? await ApiClient.post<any>('/chats/messages', fd)
-        : await ApiClient.post<any>('/chats/messages', { chat_id: chatId, content: payload.content, reply_to_id: payload.replyToId, gif_url: payload.gifUrl });
-      if (res?.data) {
-        setMessages((prev) => prev.some((m) => m.id === res.data.id) ? prev.filter((m) => m.id !== tempId) : prev.map((m) => (m.id === tempId ? res.data : m)));
-      }
+      const res = payload.files.length > 0 ? await ApiClient.post<any>('/chats/messages', fd) : await ApiClient.post<any>('/chats/messages', { chat_id: chatId, content: payload.content, reply_to_id: payload.replyToId, gif_url: payload.gifUrl });
+      if (res?.data) setMessages((prev) => prev.some((m) => m.id === res.data.id) ? prev.filter((m) => m.id !== tempId) : prev.map((m) => (m.id === tempId ? res.data : m)));
       queryClient.invalidateQueries({ queryKey: ['chats'] });
-    } catch {
-      setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, deliveryState: 'error' } : m)));
-    }
+    } catch { setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, deliveryState: 'error' } : m))); }
   };
 
   return { messages, setMessages, isLoading, hasMore, setHasMore, loadingMore, setLoadingMore, typingUser, lastTypingSentRef, typingTimerRef, sendOptimisticMessage };

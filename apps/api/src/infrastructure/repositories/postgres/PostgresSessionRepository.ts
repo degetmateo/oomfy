@@ -77,11 +77,14 @@ export class PostgresSessionRepository {
     }
   }
 
-  public static async revokeAllSessions(preserveToken?: string): Promise<number> {
+  public static async revokeAllSessions(preserveToken?: string, preserveSessionId?: string): Promise<number> {
     const pool = PostgresPool.getInstance();
-    const { rowCount } = preserveToken
-      ? await pool.query(`DELETE FROM session WHERE token <> $1`, [preserveToken])
-      : await pool.query(`DELETE FROM session`);
+    const { rowCount } = await pool.query(
+      `DELETE FROM session
+       WHERE ($1::text IS NULL OR token <> $1)
+         AND ($2::uuid IS NULL OR id <> $2)`,
+      [preserveToken ?? null, preserveSessionId ?? null]
+    );
     return rowCount ?? 0;
   }
 

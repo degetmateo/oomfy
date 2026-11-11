@@ -70,10 +70,10 @@ export const Header: React.FC<HeaderProps> = ({
           disabled={isRefreshing}
           title="Actualizar contenido"
           aria-label="Actualizar contenido"
-          className="hidden sm:flex p-1.5 border border-dark-border hover:border-brand-500 text-dark-muted hover:text-brand-400 pixel-button transition-colors items-center gap-1.5 text-xs"
+          className="flex p-1.5 border border-dark-border hover:border-brand-500 text-dark-muted hover:text-brand-400 pixel-button transition-colors items-center gap-1.5 text-xs"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-brand-400' : ''}`} />
-          <span className="text-[11px] font-mono">Actualizar</span>
+          <span className="hidden sm:inline text-[11px] font-mono">Actualizar</span>
         </button>
       )}
 

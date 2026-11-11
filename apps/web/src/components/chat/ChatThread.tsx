@@ -64,7 +64,7 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
         {isLoading ? (
           <div className="m-auto text-center text-xs text-dark-muted font-mono">Cargando mensajes...</div>
         ) : messages.length > 0 ? (
-          <div className="mt-auto flex flex-col">
+          <div className="mt-auto flex flex-col pb-6">
             {hasMore && (
               <div className="text-center py-1">
                 <button type="button" onClick={loadOlderMessages} disabled={loadingMore} className="text-[11px] text-brand-400 hover:text-brand-300 font-mono underline">

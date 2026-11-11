@@ -1,6 +1,8 @@
 import express, { Express } from 'express';
 import http, { Server as HttpServer } from 'http';
 import cors from 'cors';
+import { corsOriginHandler } from './config/CorsPolicy.js';
+import { createRateLimiter } from './middlewares/RateLimiter.js';
 import cookieParser from 'cookie-parser';
 import { Environment } from './config/Environment.js';
 import apiRouter from './routes/index.js';
@@ -27,21 +29,16 @@ export class Server {
   private configureMiddlewares(): void {
     this.app.disable('x-powered-by');
     this.app.use(SecurityHeaders.apply);
-    this.app.set('trust proxy', true);
+    this.app.set('trust proxy', 1);
     this.app.use(
       cors({
-        origin: (origin, callback) => {
-          if (!origin || Environment.ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.onrender.com') || origin.endsWith('.oomfy.online')) {
-            callback(null, true);
-          } else {
-            callback(null, true);
-          }
-        },
+        origin: corsOriginHandler,
         credentials: true,
       })
     );
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(cookieParser());
+    this.app.use('/api', createRateLimiter({ windowMs: 60_000, max: 180, prefix: 'api-global' }));
   }
 
   private configureRoutes(): void {

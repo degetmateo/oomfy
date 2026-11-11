@@ -23,7 +23,7 @@ export const ChatListSidebar: React.FC<Props> = ({
       </button>
     </div>
 
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto pb-32 md:pb-12">
       {isLoading ? (
         <div className="p-8 text-center text-xs text-dark-muted">Cargando conversaciones...</div>
       ) : chats.length > 0 ? (

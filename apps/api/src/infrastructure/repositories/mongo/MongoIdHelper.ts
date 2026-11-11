@@ -32,6 +32,10 @@ export class MongoIdHelper {
     return id;
   }
 
+  public static escapeRegex(value: string): string {
+    return String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   public static idVariants(id: any): any[] {
     if (!id) return [];
     const str = String(id);

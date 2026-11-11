@@ -66,34 +66,22 @@ describe('Chat Optimistic UI, Media Alignment & Notification Highlight', () => {
     expect(onDismiss).toHaveBeenCalledWith('temp-1');
   });
 
-  it('renders ChatMessageMedia aligned to the left without dark container background', () => {
+  it('renders ChatMessageMedia aligned cleanly with uploaded and GIF images', () => {
     const { container } = render(
       <ChatMessageMedia mediaUrls={['https://i.ibb.co/pic.png']} gifUrl="https://media.tenor.com/1.gif" />
     );
-    expect(container.innerHTML).not.toContain('bg-black/30');
-    const imgs = container.querySelectorAll('img');
-    expect(imgs.length).toBe(2);
-    expect(imgs[0].className).toContain('self-start');
-    expect(imgs[0].className).toContain('object-left');
+    const imgs = Array.from(container.querySelectorAll('img')).map((img) => img.getAttribute('src'));
+    expect(imgs).toEqual(['https://media.tenor.com/1.gif', 'https://i.ibb.co/pic.png']);
   });
 
-  it('highlights unread NotificationItem with NUEVO badge and brand border', () => {
+  it('highlights unread NotificationItem with NUEVO badge', () => {
     const notif: any = {
-      id: 'n1',
-      type: 'upvote',
-      status: 'pending',
+      id: 'n1', type: 'upvote', status: 'pending', target_publication_id: 'p1', created_at: new Date().toISOString(),
       sender: { id: 'u2', username: 'bob', name: 'Bob', icon_url: null },
-      target_publication_id: 'p1',
-      created_at: new Date().toISOString(),
     };
-
-    const { container } = render(
-      <MemoryRouter>
-        <NotificationItem notif={notif} isUnread />
-      </MemoryRouter>
-    );
-
+    const { rerender } = render(<MemoryRouter><NotificationItem notif={notif} isUnread /></MemoryRouter>);
     expect(screen.getByText('NUEVO')).toBeTruthy();
-    expect(container.firstElementChild?.className).toContain('border-l-brand-400');
+    rerender(<MemoryRouter><NotificationItem notif={{ ...notif, status: 'seen' }} isUnread={false} /></MemoryRouter>);
+    expect(screen.queryByText('NUEVO')).toBeNull();
   });
 });

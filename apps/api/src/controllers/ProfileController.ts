@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ProfileService } from '../services/users/ProfileService.js';
+import { isHttpUrl } from '../utils/UrlSecurityHelper.js';
 
 export class ProfileController {
   public static async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -42,6 +43,10 @@ export class ProfileController {
         return;
       }
       res.setHeader('Cache-Control', 'public, max-age=300');
+      if (!iconUrl || !isHttpUrl(iconUrl)) {
+        res.status(404).json({ success: false, message: 'Imagen no disponible.' });
+        return;
+      }
       res.redirect(302, iconUrl);
     } catch (err) {
       next(err);
@@ -56,6 +61,10 @@ export class ProfileController {
         return;
       }
       res.setHeader('Cache-Control', 'public, max-age=300');
+      if (!bannerUrl || !isHttpUrl(bannerUrl)) {
+        res.status(404).json({ success: false, message: 'Imagen no disponible.' });
+        return;
+      }
       res.redirect(302, bannerUrl);
     } catch (err) {
       next(err);

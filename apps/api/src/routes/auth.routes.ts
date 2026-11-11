@@ -1,19 +1,29 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/AuthController.js';
 import { ValidateRequest } from '../middlewares/ValidateRequest.js';
-import { SignupSchema, SigninSchema } from '@oomfy/shared';
+import { createRateLimiter } from '../middlewares/RateLimiter.js';
+import {
+  SignupSchema,
+  SigninSchema,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
+  ForgotUsernameSchema,
+} from '@oomfy/shared';
 
 const router = Router();
+const strictLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 20, prefix: 'auth-strict' });
+const recoveryLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10, prefix: 'auth-recovery' });
+const refreshLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 60, prefix: 'auth-refresh' });
 
-router.post('/signup', ValidateRequest.body(SignupSchema), AuthController.signup);
+router.post('/signup', strictLimiter, ValidateRequest.body(SignupSchema), AuthController.signup);
 router.post('/verify', AuthController.verify);
 router.get('/verify', AuthController.verify);
-router.post('/signin', ValidateRequest.body(SigninSchema), AuthController.signin);
-router.post('/refresh', AuthController.refreshToken);
-router.post('/refresh-token', AuthController.refreshToken);
-router.post('/forgot-password', AuthController.forgotPassword);
-router.post('/reset-password', AuthController.resetPassword);
-router.post('/forgot-username', AuthController.forgotUsername);
+router.post('/signin', strictLimiter, ValidateRequest.body(SigninSchema), AuthController.signin);
+router.post('/refresh', refreshLimiter, AuthController.refreshToken);
+router.post('/refresh-token', refreshLimiter, AuthController.refreshToken);
+router.post('/forgot-password', recoveryLimiter, ValidateRequest.body(ForgotPasswordSchema), AuthController.forgotPassword);
+router.post('/reset-password', strictLimiter, ValidateRequest.body(ResetPasswordSchema), AuthController.resetPassword);
+router.post('/forgot-username', recoveryLimiter, ValidateRequest.body(ForgotUsernameSchema), AuthController.forgotUsername);
 router.post('/logout', AuthController.logout);
 
 export default router;

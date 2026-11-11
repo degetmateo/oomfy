@@ -37,6 +37,14 @@ export const RecoverPasswordSchema = z.object({
   captcha_token: z.string().optional(),
 });
 
+export const ForgotPasswordSchema = z.object({
+  username: z.string().trim().min(1, 'El usuario es requerido.').max(120),
+});
+
+export const ForgotUsernameSchema = z.object({
+  email: z.string().trim().email('Correo electrónico no válido.').max(LIMITS.EMAIL_MAX),
+});
+
 export const ResetPasswordSchema = z.object({
   token: z.string().min(1, 'Token inválido o expirado.'),
   new_password: z

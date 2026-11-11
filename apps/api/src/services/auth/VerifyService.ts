@@ -11,7 +11,7 @@ export class VerifyService {
     refreshToken: string;
     user: any;
   }> {
-    const payload = TokenService.verifyAccessToken(token);
+    const payload = TokenService.verifyVerificationToken(token);
     const user = await PostgresUserRepository.findById(payload.id);
 
     if (!user) {

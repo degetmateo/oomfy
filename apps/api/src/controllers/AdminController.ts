@@ -48,7 +48,7 @@ export class AdminController {
   public static async revokeAllSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const preserveToken = req.cookies?.refresh_token || req.cookies?.access_token;
-      const result = await AdminSessionService.revokeAllSessions(preserveToken);
+      const result = await AdminSessionService.revokeAllSessions(preserveToken, req.user?.sessionId);
       res.status(200).json({ success: true, ...result });
     } catch (err) {
       next(err);

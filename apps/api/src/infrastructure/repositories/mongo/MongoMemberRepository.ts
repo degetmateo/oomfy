@@ -27,7 +27,7 @@ export class MongoMemberRepository {
   }
 
   public static async findByUsername(username: string): Promise<PublicUser | null> {
-    const doc = await this.getCollection().findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
+    const doc = await this.getCollection().findOne({ username: { $regex: new RegExp(`^${MongoIdHelper.escapeRegex(username)}$`, 'i') } });
     return doc ? MongoMemberMapper.toDomain(doc) : null;
   }
 
@@ -45,14 +45,14 @@ export class MongoMemberRepository {
 
   public static async getRawMediaUrls(username: string): Promise<{ icon_url: string | null; banner_url: string | null }> {
     const doc = await this.getCollection().findOne(
-      { username: { $regex: new RegExp(`^${username}$`, 'i') } },
+      { username: { $regex: new RegExp(`^${MongoIdHelper.escapeRegex(username)}$`, 'i') } },
       { projection: { icon_url: 1, 'icon.url': 1, banner_url: 1, 'banner.url': 1 } }
     );
     return { icon_url: doc?.icon_url || doc?.icon?.url || null, banner_url: doc?.banner_url || doc?.banner?.url || null };
   }
 
   public static async search(term: string, limit: number = 20): Promise<PublicUser[]> {
-    const regex = new RegExp(term, 'i');
+    const regex = new RegExp(MongoIdHelper.escapeRegex(term), 'i');
     const docs = await this.getCollection().find({ $or: [{ username: regex }, { name: regex }, { bio: regex }] }).limit(limit).toArray();
     return docs.map(MongoMemberMapper.toDomain);
   }

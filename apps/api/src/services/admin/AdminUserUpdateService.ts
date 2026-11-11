@@ -5,6 +5,7 @@ import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHe
 import { PasswordHasher } from '../../infrastructure/adapters/PasswordHasher.js';
 import { BadRequestError, NotFoundError } from '../../errors/AppError.js';
 import { UserSyncService } from '../users/UserSyncService.js';
+import { UserStatusEnforcementHelper } from './UserStatusEnforcementHelper.js';
 
 export interface AdminUserUpdateInput {
   name?: string;
@@ -18,7 +19,10 @@ export interface AdminUserUpdateInput {
 export class AdminUserUpdateService {
   public static async updateUser(userId: string, adminId: string, input: AdminUserUpdateInput) {
     const pool = PostgresPool.getInstance();
-    const currentRes = await pool.query('SELECT * FROM members WHERE id = $1', [userId]);
+    const currentRes = await pool.query(
+      'SELECT id, username, name, email, role, status FROM members WHERE id = $1',
+      [userId]
+    );
     if (currentRes.rowCount === 0) throw new NotFoundError('Usuario no encontrado.');
     const current = currentRes.rows[0];
 
@@ -79,6 +83,7 @@ export class AdminUserUpdateService {
     );
 
     const updatedUser = rows[0];
+    await UserStatusEnforcementHelper.onStatusUpdated(userId, updates.status);
     if (updates.username && updates.username !== current.username) {
       UserSyncService.enqueueUsernameSync(userId, current.username, updates.username);
     }

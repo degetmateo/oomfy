@@ -25,11 +25,17 @@ export class MongoChatRepository {
     return MongoDatabase.getDb().collection<MongoChatDoc>('chats');
   }
 
+  public static async isParticipant(chatId: string, userId: string): Promise<boolean> {
+    const doc = await this.getCollection().findOne(
+      { $and: [MongoIdHelper.idFilter(chatId) as any, { participant_ids: { $in: MongoIdHelper.idVariants(userId) } }] },
+      { projection: { _id: 1 } }
+    );
+    return Boolean(doc);
+  }
+
   public static async findPrivateChat(userA: string, userB: string): Promise<string | null> {
-    const userAVariants = MongoIdHelper.idVariants(userA);
-    const userBVariants = MongoIdHelper.idVariants(userB);
-    const userAUuid = MongoIdHelper.toMongoId(userA);
-    const userBUuid = MongoIdHelper.toMongoId(userB);
+    const [userAVariants, userBVariants] = [MongoIdHelper.idVariants(userA), MongoIdHelper.idVariants(userB)];
+    const [userAUuid, userBUuid] = [MongoIdHelper.toMongoId(userA), MongoIdHelper.toMongoId(userB)];
 
     const chat = await this.getCollection().findOne({
       type: 'private',
@@ -75,15 +81,8 @@ export class MongoChatRepository {
     }));
   }
 
-  public static async updateLastMessage(
-    chatId: string,
-    lastMessage: { id: string; content: string; sender_id: string; created_at: string }
-  ): Promise<void> {
-    const lastMsgDoc = {
-      ...lastMessage,
-      id: MongoIdHelper.toMongoId(lastMessage.id),
-      sender_id: MongoIdHelper.toMongoId(lastMessage.sender_id),
-    };
+  public static async updateLastMessage(chatId: string, lastMessage: { id: string; content: string; sender_id: string; created_at: string }): Promise<void> {
+    const lastMsgDoc = { ...lastMessage, id: MongoIdHelper.toMongoId(lastMessage.id), sender_id: MongoIdHelper.toMongoId(lastMessage.sender_id) };
     await this.getCollection().updateOne(
       MongoIdHelper.idFilter(chatId) as any,
       { $set: { last_message: lastMsgDoc, updated_at: lastMessage.created_at } }

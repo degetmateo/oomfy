@@ -10,11 +10,22 @@ export interface TokenPayload {
   role: string;
   name?: string;
   sessionId?: string;
+  iat?: number;
+  iatMs?: number;
 }
 
 export class TokenService {
+  private static lastClockMs = 0;
+
+  public static nextMonotonicMs(): number {
+    const now = Date.now();
+    this.lastClockMs = now > this.lastClockMs ? now : this.lastClockMs + 1;
+    return this.lastClockMs;
+  }
+
   public static generateAccessToken(payload: TokenPayload): string {
-    return jwt.sign({ data: payload, jti: uuidv7() }, Environment.JWT_SECRET, {
+    const iatMs = this.nextMonotonicMs();
+    return jwt.sign({ data: { ...payload, iatMs }, tokenType: 'access', jti: uuidv7() }, Environment.JWT_SECRET, {
       expiresIn: '15m',
     });
   }
@@ -26,17 +37,32 @@ export class TokenService {
   }
 
   public static generateVerificationToken(payload: TokenPayload): string {
-    return jwt.sign({ data: payload, jti: uuidv7() }, Environment.JWT_SECRET, {
+    return jwt.sign({ data: payload, tokenType: 'verification', jti: uuidv7() }, Environment.JWT_SECRET, {
       expiresIn: '1h',
     });
   }
 
   public static verifyAccessToken(token: string): TokenPayload {
     try {
-      const decoded = jwt.verify(token, Environment.JWT_SECRET) as { data: TokenPayload };
-      return decoded.data;
+      const decoded = jwt.verify(token, Environment.JWT_SECRET) as { data: TokenPayload; tokenType?: string; iat?: number };
+      if (decoded.tokenType !== 'access') {
+        throw new Error('Invalid tokenType');
+      }
+      return { ...decoded.data, iat: decoded.iat };
     } catch {
       throw new UnauthorizedError('Token de acceso inválido o expirado.');
+    }
+  }
+
+  public static verifyVerificationToken(token: string): TokenPayload {
+    try {
+      const decoded = jwt.verify(token, Environment.JWT_SECRET) as { data: TokenPayload; tokenType?: string };
+      if (decoded.tokenType !== 'verification') {
+        throw new Error('Invalid tokenType');
+      }
+      return decoded.data;
+    } catch {
+      throw new UnauthorizedError('Token de verificación inválido o expirado.');
     }
   }
 

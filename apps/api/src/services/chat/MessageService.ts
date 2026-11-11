@@ -15,64 +15,48 @@ export interface SendMessagePayload {
 }
 
 export class MessageService {
-  public static async sendMessage(
-    chatId: string,
-    sender: { id: string; username: string; name: string },
-    payload: SendMessagePayload | string
-  ): Promise<ChatMessage> {
+  private static async requireParticipant(chatId: string, userId: string): Promise<void> {
+    if (!(await MongoChatRepository.isParticipant(chatId, userId))) {
+      throw new ForbiddenError('No tienes permisos para acceder a este chat.');
+    }
+  }
+
+  public static async sendMessage(chatId: string, sender: { id: string; username: string; name: string }, payload: SendMessagePayload | string): Promise<ChatMessage> {
+    await this.requireParticipant(chatId, sender.id);
     const data: SendMessagePayload = typeof payload === 'string' ? { content: payload } : payload;
     const content = data.content?.trim() || '';
     const messageId = uuidv7();
     const senderMember = await MongoMemberRepository.findById(sender.id);
-    const senderName = senderMember?.name || sender.name || sender.username;
-    const senderIcon = senderMember?.icon_url || null;
+    const senderObj = {
+      id: sender.id, username: sender.username, name: senderMember?.name || sender.name || sender.username,
+      role: (sender as any).role || 'member', icon_url: senderMember?.icon_url || null, banner_url: null,
+    };
 
     let replyTo: any = null;
     if (data.reply_to_id) {
-      const original = await MongoMessageRepository.findById(data.reply_to_id);
-      if (original) {
-        replyTo = {
-          id: original.id,
-          content: original.content,
-          sender_username: original.sender?.username || 'usuario',
-          sender_name: original.sender?.name,
-        };
-      }
+      const original = await MongoMessageRepository.findByIdInChat(data.reply_to_id, chatId);
+      if (!original) throw new ForbiddenError('El mensaje citado no pertenece a este chat.');
+      replyTo = { id: original.id, content: original.content, sender_username: original.sender?.username || 'usuario', sender_name: original.sender?.name };
     }
-
-    const senderObj = {
-      id: sender.id, username: sender.username, name: senderName,
-      role: (sender as any).role || 'member', icon_url: senderIcon, banner_url: null,
-    };
 
     const message = await MongoMessageRepository.insertMessage({
       id: messageId, chat_id: chatId, sender_id: sender.id, sender: senderObj,
-      content, reply_to: replyTo, reply_to_id: data.reply_to_id || null,
-      media_urls: data.media_urls || [], gif_url: data.gif_url || null,
+      content, reply_to: replyTo, reply_to_id: data.reply_to_id || null, media_urls: data.media_urls || [], gif_url: data.gif_url || null,
     });
-
     const snippet = content || (data.gif_url ? 'GIF' : data.media_urls?.length ? 'Imagen' : 'Mensaje');
-
-    await MongoChatRepository.updateLastMessage(chatId, {
-      id: messageId, content: snippet, sender_id: sender.id, created_at: (message as any).created_at,
-    });
-
+    await MongoChatRepository.updateLastMessage(chatId, { id: messageId, content: snippet, sender_id: sender.id, created_at: (message as any).created_at });
     SocketGateway.broadcastChatMessage(chatId, message);
-
-    const participants = await MongoChatRepository.getChatParticipants(chatId);
-    for (const p of participants) {
+    for (const p of await MongoChatRepository.getChatParticipants(chatId)) {
       SocketGateway.sendToUser(p, 'new_chat_message', message);
       if (p !== sender.id) {
-        WebPushService.sendPushToUser(p, {
-          title: `${sender.name} te envió un mensaje`, body: snippet, url: '/chats',
-        }, 'messages').catch(() => { });
+        WebPushService.sendPushToUser(p, { title: `${sender.name} te envió un mensaje`, body: snippet, url: '/chats' }, 'messages').catch(() => {});
       }
     }
-
     return message;
   }
 
   public static async getChatMessages(chatId: string, userId: string, limit = 30, olderId?: string): Promise<any[]> {
+    await this.requireParticipant(chatId, userId);
     await MongoMessageRepository.markChatMessagesAsRead(chatId, userId);
     return MongoMessageRepository.listChatMessages(chatId, limit, olderId);
   }
@@ -82,6 +66,7 @@ export class MessageService {
   }
 
   public static async markAsRead(chatId: string, userId: string): Promise<void> {
+    await this.requireParticipant(chatId, userId);
     await MongoMessageRepository.markChatMessagesAsRead(chatId, userId);
   }
 

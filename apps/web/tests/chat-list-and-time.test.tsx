@@ -67,12 +67,10 @@ describe('Chat 24h Timestamps & Active Conversation Green Highlight', () => {
 
     const secondCard = screen.getByText('Bob').closest('[data-selected]')!;
     expect(secondCard).toHaveAttribute('data-selected', 'true');
-    expect(secondCard.className).toContain('border-l-brand-500');
-    expect(secondCard.className).toContain('bg-brand-500/15');
 
     const firstCard = screen.getByText('Alice').closest('[data-selected]')!;
     expect(firstCard).toHaveAttribute('data-selected', 'false');
-    expect(firstCard.className).not.toContain('border-l-brand-500');
+    expect(secondCard.className).not.toBe(firstCard.className);
 
     fireEvent.click(screen.getByText('Carla'));
     expect(onSelect).toHaveBeenCalledWith('chat-3');

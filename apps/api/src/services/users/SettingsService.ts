@@ -1,5 +1,8 @@
 import { PostgresPool } from '../../infrastructure/database/postgres/PostgresPool.js';
 import { PostgresUserRepository } from '../../infrastructure/repositories/postgres/PostgresUserRepository.js';
+import { PostgresSessionRepository } from '../../infrastructure/repositories/postgres/PostgresSessionRepository.js';
+import { AuthSessionValidator } from '../auth/AuthSessionValidator.js';
+import { SocketGateway } from '../../socket/SocketGateway.js';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
 import { PasswordHasher } from '../../infrastructure/adapters/PasswordHasher.js';
 import { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } from '../../errors/AppError.js';
@@ -46,7 +49,7 @@ export class SettingsService {
     return { username: cleanUsername };
   }
 
-  public static async updatePassword(userId: string, currentPass: string, newPass: string): Promise<void> {
+  public static async updatePassword(userId: string, currentPass: string, newPass: string, currentSessionId?: string): Promise<void> {
     if (!newPass || newPass.length < 8) {
       throw new BadRequestError('La nueva contraseña debe tener al menos 8 caracteres.');
     }
@@ -65,5 +68,13 @@ export class SettingsService {
 
     const hashed = await PasswordHasher.hash(newPass);
     await PostgresUserRepository.updatePassword(userId, hashed);
+    if (currentSessionId) {
+      await PostgresSessionRepository.deleteAllExceptCurrent(userId, currentSessionId);
+      AuthSessionValidator.revokeUserBefore(userId, currentSessionId);
+    } else {
+      await PostgresSessionRepository.revokeUserSessions(userId);
+      AuthSessionValidator.revokeUserBefore(userId);
+      SocketGateway.disconnectUser(userId);
+    }
   }
 }

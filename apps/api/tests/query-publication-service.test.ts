@@ -54,7 +54,7 @@ describe('QueryPublicationService Unit Tests', () => {
   });
 
   it('slices ancestors when thread is long and marks has_more_ancestors as true', async () => {
-    const ancestors = createAncestors(6); // 6 ancestors
+    const ancestors = createAncestors(6);
     (MongoPublicationRepository.findById as any).mockResolvedValue(samplePub);
     (MongoPublicationRepository.findAncestors as any).mockResolvedValue(ancestors);
     (MongoPublicationRepository.findReplies as any).mockResolvedValue([]);
@@ -65,12 +65,11 @@ describe('QueryPublicationService Unit Tests', () => {
     expect(result.total_ancestors).toBe(6);
     expect(result.has_more_ancestors).toBe(true);
     expect(result.ancestors.length).toBe(4);
-    // Closest ancestors immediately preceding the leaf post
     expect(result.ancestors.map((a) => a.id)).toEqual(['pub-2', 'pub-3', 'pub-4', 'pub-5']);
   });
 
   it('returns all ancestors when thread count is within limit', async () => {
-    const ancestors = createAncestors(2); // 2 ancestors
+    const ancestors = createAncestors(2);
     (MongoPublicationRepository.findById as any).mockResolvedValue(samplePub);
     (MongoPublicationRepository.findAncestors as any).mockResolvedValue(ancestors);
     (MongoPublicationRepository.findReplies as any).mockResolvedValue([]);
@@ -84,11 +83,10 @@ describe('QueryPublicationService Unit Tests', () => {
   });
 
   it('paginates earlier ancestors backwards from before_id', async () => {
-    const ancestors = createAncestors(6); // pub-0, pub-1, pub-2, pub-3, pub-4, pub-5
+    const ancestors = createAncestors(6);
     (MongoPublicationRepository.findById as any).mockResolvedValue(samplePub);
     (MongoPublicationRepository.findAncestors as any).mockResolvedValue(ancestors);
 
-    // Request earlier ancestors before pub-2 with limit 2
     const result = await QueryPublicationService.getAncestors('pub-leaf', undefined, 'pub-2', 2);
 
     expect(result.ancestors.map((a) => a.id)).toEqual(['pub-0', 'pub-1']);

@@ -4,6 +4,7 @@ import { UrlPreviewAdapter } from '../infrastructure/adapters/UrlPreviewAdapter.
 import { MongoMemberRepository } from '../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MongoFollowRepository } from '../infrastructure/repositories/mongo/MongoFollowRepository.js';
 import { SocketGateway } from '../socket/SocketGateway.js';
+import { isSafePublicHttpUrl } from '../utils/UrlSecurityHelper.js';
 
 export class AuxController {
   public static async searchGifs(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -22,6 +23,10 @@ export class AuxController {
       const url = req.query.url as string;
       if (!url) {
         res.status(400).json({ success: false, message: 'URL requerida.' });
+        return;
+      }
+      if (!(await isSafePublicHttpUrl(url))) {
+        res.status(400).json({ success: false, message: 'URL no permitida o insegura.' });
         return;
       }
       const preview = await UrlPreviewAdapter.getPreview(url);

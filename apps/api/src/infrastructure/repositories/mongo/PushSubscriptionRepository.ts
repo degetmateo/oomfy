@@ -13,23 +13,13 @@ export class PushSubscriptionRepository {
     return MongoDatabase.getDb().collection('push_subscriptions');
   }
 
-  public static async upsertSubscription(
-    userId: string,
-    data: PushSubscriptionData,
-    previousEndpoint?: string | null
-  ): Promise<void> {
+  public static async upsertSubscription(userId: string, data: PushSubscriptionData, previousEndpoint?: string | null): Promise<void> {
+    if (typeof data?.endpoint !== 'string' || !data.endpoint.trim()) return;
     const col = this.getCollection();
     const now = new Date().toISOString();
-    const updateSet = {
-      user_id: MongoIdHelper.toMongoId(userId),
-      endpoint: data.endpoint,
-      keys: data.keys,
-      is_active: true,
-      status: 'active',
-      updated_at: now,
-    };
-    if (previousEndpoint && previousEndpoint !== data.endpoint) {
-      const prev = await col.updateOne({ endpoint: previousEndpoint }, { $set: updateSet });
+    const updateSet = { user_id: MongoIdHelper.toMongoId(userId), endpoint: data.endpoint, keys: data.keys, is_active: true, status: 'active', updated_at: now };
+    if (typeof previousEndpoint === 'string' && previousEndpoint.trim() && previousEndpoint !== data.endpoint) {
+      const prev = await col.updateOne(this.buildScopedFilter(userId, previousEndpoint), { $set: updateSet });
       if (prev.matchedCount > 0) return;
     }
     const id = uuidv7();
@@ -40,22 +30,20 @@ export class PushSubscriptionRepository {
     );
   }
 
-  public static async deactivateSubscription(endpoint?: string | null, userId?: string | null): Promise<void> {
-    const col = this.getCollection();
-    const filter = endpoint ? { endpoint } : userId ? { user_id: { $in: MongoIdHelper.idVariants(userId) } } : null;
-    if (!filter) return;
-    await col.updateMany(filter, {
-      $set: { is_active: false, status: 'inactive', updated_at: new Date().toISOString() },
-    });
+  private static buildScopedFilter(userId: string, endpoint?: string | null): Record<string, any> {
+    const userFilter = { user_id: { $in: MongoIdHelper.idVariants(userId) } };
+    return typeof endpoint === 'string' && endpoint.trim().length > 0 ? { ...userFilter, endpoint } : userFilter;
   }
 
-  public static async getPreferences(
-    userId: string,
-    endpoint?: string | null
-  ): Promise<{ preferences: PushPreferences; is_active: boolean; status: string }> {
-    const col = this.getCollection();
-    const filter = endpoint ? { endpoint } : { user_id: { $in: MongoIdHelper.idVariants(userId) } };
-    const doc = await col.findOne(filter);
+  public static async deactivateSubscription(endpoint?: string | null, userId?: string | null): Promise<void> {
+    const safeEndpoint = typeof endpoint === 'string' && endpoint.trim().length > 0 ? endpoint : null;
+    const filter = userId ? this.buildScopedFilter(userId, safeEndpoint) : safeEndpoint ? { endpoint: safeEndpoint } : null;
+    if (!filter) return;
+    await this.getCollection().updateMany(filter, { $set: { is_active: false, status: 'inactive', updated_at: new Date().toISOString() } });
+  }
+
+  public static async getPreferences(userId: string, endpoint?: string | null): Promise<{ preferences: PushPreferences; is_active: boolean; status: string }> {
+    const doc = await this.getCollection().findOne(this.buildScopedFilter(userId, endpoint));
     return {
       preferences: { ...DEFAULT_PUSH_PREFERENCES, ...(doc?.preferences || {}) },
       is_active: doc?.is_active !== false,
@@ -63,20 +51,14 @@ export class PushSubscriptionRepository {
     };
   }
 
-  public static async updatePreferences(
-    userId: string,
-    preferences: Partial<PushPreferences>,
-    endpoint?: string | null
-  ): Promise<PushPreferences> {
+  public static async updatePreferences(userId: string, preferences: Partial<PushPreferences>, endpoint?: string | null): Promise<PushPreferences> {
     const col = this.getCollection();
-    const filter = endpoint ? { endpoint } : { user_id: { $in: MongoIdHelper.idVariants(userId) } };
     const setUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
     for (const [k, v] of Object.entries(preferences)) {
       if (typeof v === 'boolean') setUpdates[`preferences.${k}`] = v;
     }
-    await col.updateMany(filter, { $set: setUpdates });
-    const updated = await this.getPreferences(userId, endpoint);
-    return updated.preferences;
+    await col.updateMany(this.buildScopedFilter(userId, endpoint), { $set: setUpdates });
+    return (await this.getPreferences(userId, endpoint)).preferences;
   }
 
   public static async findActiveSubscriptions(userId: string, category?: keyof PushPreferences): Promise<any[]> {

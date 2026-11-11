@@ -1,7 +1,10 @@
 import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { SECURITY_HEADER_VALUES } from '@oomfy/shared';
+import { corsOriginHandler } from '../config/CorsPolicy.js';
 import { TokenService } from '../infrastructure/adapters/TokenService.js';
+import { AuthSessionValidator } from '../services/auth/AuthSessionValidator.js';
+import { MongoChatRepository } from '../infrastructure/repositories/mongo/MongoChatRepository.js';
 import { MessageService } from '../services/chat/MessageService.js';
 
 export class SocketGateway {
@@ -9,23 +12,29 @@ export class SocketGateway {
   private static userSockets: Map<string, Set<string>> = new Map();
 
   public static initialize(server: HttpServer): void {
-    this.io = new Server(server, { cors: { origin: (_o, cb) => cb(null, true), credentials: true } });
+    this.io = new Server(server, { cors: { origin: corsOriginHandler, credentials: true } });
     (this.io as any).engine?.on('headers', (headers: Record<string, any>) => {
       Object.assign(headers, SECURITY_HEADER_VALUES);
     });
-    this.io.use((socket, next) => {
+    this.io.use(async (socket, next) => {
       const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
       if (!token) return next(new Error('Autenticación de socket requerida.'));
       try {
-        (socket as any).user = TokenService.verifyAccessToken(token);
+        const raw = TokenService.verifyAccessToken(token);
+        (socket as any).user = await AuthSessionValidator.validate(raw);
         next();
-      } catch {
-        next(new Error('Token de socket inválido.'));
+      } catch (err) {
+        next(err instanceof Error ? err : new Error('Token de socket inválido.'));
       }
     });
 
     this.io.on('connection', (socket: Socket) => this.handleConnection(socket));
     console.log('🟩 Servidor WebSocket inicializado con éxito.');
+  }
+
+  private static async hasChatAccess(socket: Socket, chatId: string, userId: string): Promise<boolean> {
+    if (!chatId || typeof chatId !== 'string') return false;
+    return socket.rooms.has(`chat:${chatId}`) || MongoChatRepository.isParticipant(chatId, userId);
   }
 
   private static handleConnection(socket: Socket): void {
@@ -36,16 +45,22 @@ export class SocketGateway {
     if (!this.userSockets.has(user.id)) this.userSockets.set(user.id, new Set());
     this.userSockets.get(user.id)!.add(socket.id);
 
-    socket.on('join-chat', (chatId: string) => socket.join(`chat:${chatId}`));
-    socket.on('typing-start', (d: { chatId: string }) => {
-      if (d?.chatId) socket.to(`chat:${d.chatId}`).emit('user-typing', { chatId: d.chatId, userId: user.id, username: user.username });
+    socket.on('join-chat', async (chatId: string) => {
+      if (await this.hasChatAccess(socket, chatId, user.id)) socket.join(`chat:${chatId}`);
     });
-    socket.on('typing-stop', (d: { chatId: string }) => {
-      if (d?.chatId) socket.to(`chat:${d.chatId}`).emit('user-stop-typing', { chatId: d.chatId, userId: user.id, username: user.username });
+    socket.on('typing-start', async (d: { chatId: string }) => {
+      if (d?.chatId && (await this.hasChatAccess(socket, d.chatId, user.id))) {
+        socket.to(`chat:${d.chatId}`).emit('user-typing', { chatId: d.chatId, userId: user.id, username: user.username });
+      }
+    });
+    socket.on('typing-stop', async (d: { chatId: string }) => {
+      if (d?.chatId && (await this.hasChatAccess(socket, d.chatId, user.id))) {
+        socket.to(`chat:${d.chatId}`).emit('user-stop-typing', { chatId: d.chatId, userId: user.id, username: user.username });
+      }
     });
     socket.on('send-message', async (d: { chatId: string; content: string }) => {
       try {
-        if (!d.content?.trim()) return;
+        if (!d?.chatId || !d.content?.trim()) return;
         await MessageService.sendMessage(d.chatId, user, d.content);
       } catch (err) {
         socket.emit('error', { message: (err as Error).message });
@@ -55,6 +70,11 @@ export class SocketGateway {
       this.userSockets.get(user.id)?.delete(socket.id);
       if (this.userSockets.get(user.id)?.size === 0) this.userSockets.delete(user.id);
     });
+  }
+
+  public static disconnectUser(userId: string): void {
+    this.io?.in(`user:${userId}`).disconnectSockets(true);
+    this.userSockets.delete(userId);
   }
 
   public static sendNotification(userId: string, notification: any): void {

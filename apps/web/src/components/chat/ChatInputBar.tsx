@@ -3,7 +3,8 @@ import { Send, Image, Film, Smile } from 'lucide-react';
 import { KlipyGifModal } from '../publication/KlipyGifModal.js';
 import { EmojiPickerMenu } from '../common/EmojiPickerMenu.js';
 import { ChatReplyBanner } from './ChatReplyBanner.js';
-import { ChatAttachmentPreviews } from './ChatAttachmentPreviews.js';
+import { ComposerAttachmentPreviews } from '../common/ComposerAttachmentPreviews.js';
+import { useComposerMedia } from '../../hooks/useComposerMedia.js';
 
 export interface OutgoingChatPayload {
   content: string; files: File[]; gifUrl: string | null; replyToId: string | null; replyTo?: any | null;
@@ -19,82 +20,67 @@ interface Props {
 
 export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSendMessage, onTyping }) => {
   const [content, setContent] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
-  const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [isGifModalOpen, setIsGifModalOpen] = useState(false);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const emojiBtnRef = useRef<HTMLButtonElement>(null);
+  const media = useComposerMedia({ allowCrop: false, maxGifs: 1, maxTotal: 4 });
 
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 112)}px`;
-    }
-  }, [content]);
+    const el = media.textareaRef.current;
+    if (el) { el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 112)}px`; }
+  }, [content, media.textareaRef]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
     if (e.key === 'Enter' && !isTouch && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
   };
 
-  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const selected = Array.from(e.target.files).slice(0, 4 - files.length);
-      setFiles((prev) => [...prev, ...selected].slice(0, 4));
-    }
-    e.target.value = '';
-  };
-
-  const handleInsertEmoji = (emoji: string) => {
-    const el = textareaRef.current;
-    if (el) {
-      const [start, end] = [el.selectionStart || 0, el.selectionEnd || 0];
-      setContent(content.slice(0, start) + emoji + content.slice(end));
-      setTimeout(() => { el.focus(); el.setSelectionRange(start + emoji.length, start + emoji.length); }, 0);
-    } else setContent((prev) => prev + emoji);
-  };
+  const hasPayload = Boolean(content.trim() || media.files.length > 0 || media.gifs.length > 0);
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const trimmed = content.trim();
-    if (!trimmed && files.length === 0 && !gifUrl) return;
+    if (!hasPayload) return;
     const payload: OutgoingChatPayload = {
-      content: trimmed, files: [...files], gifUrl, replyToId: replyingTo?.id || null, replyTo: replyingTo,
+      content: content.trim(),
+      files: [...media.files],
+      gifUrl: media.gifs[0] || null,
+      replyToId: replyingTo?.id || null,
+      replyTo: replyingTo,
     };
-    setContent(''); setFiles([]); setGifUrl(null); onCancelReply();
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    setContent(''); media.clearMedia(); onCancelReply();
+    if (media.textareaRef.current) media.textareaRef.current.style.height = 'auto';
     void onSendMessage(payload);
   };
 
   return (
-    <div className="border-t border-dark-border bg-dark-bg flex flex-col flex-shrink-0 font-mono relative">
+    <div className="border-t border-dark-border bg-dark-bg flex flex-col flex-shrink-0 font-mono relative pb-[env(safe-area-inset-bottom)]">
       <ChatReplyBanner replyingTo={replyingTo} onCancel={onCancelReply} />
-      <ChatAttachmentPreviews files={files} gifUrl={gifUrl} onRemoveFile={(i) => setFiles((p) => p.filter((_, idx) => idx !== i))} onRemoveGif={() => setGifUrl(null)} />
+      <ComposerAttachmentPreviews variant="compact" files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
       <form onSubmit={handleSubmit} className="p-2 sm:p-2.5 flex items-end gap-1.5 sm:gap-2 relative">
-        <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFiles} className="hidden" />
+        <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => { media.attachFiles(Array.from(e.target.files || [])); e.target.value = ''; }} className="hidden" />
         <div className="flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1 flex-shrink-0">
           <div className="flex items-center gap-0.5 sm:gap-1">
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={files.length >= 4} className="p-1.5 sm:p-2.5 text-dark-muted hover:text-brand-400 hover:bg-dark-card rounded transition-colors disabled:opacity-40" title="Adjuntar imagen">
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={media.files.length + media.gifs.length >= 4} className="p-1.5 sm:p-2.5 text-dark-muted hover:text-brand-400 hover:bg-dark-card rounded transition-colors disabled:opacity-40" title="Adjuntar imagen">
               <Image className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
-            <button type="button" onClick={() => setIsGifModalOpen(true)} disabled={Boolean(gifUrl)} className="p-1.5 sm:p-2.5 text-dark-muted hover:text-brand-400 hover:bg-dark-card rounded transition-colors disabled:opacity-40" title="Buscar GIF">
+            <button type="button" onClick={() => setIsGifModalOpen(true)} disabled={media.gifs.length > 0} className="p-1.5 sm:p-2.5 text-dark-muted hover:text-brand-400 hover:bg-dark-card rounded transition-colors disabled:opacity-40" title="Buscar GIF">
               <Film className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
           <div className="relative flex items-center justify-center">
-            <button type="button" onClick={() => setIsEmojiOpen((v) => !v)} className={`p-1.5 sm:p-2.5 rounded transition-colors ${isEmojiOpen ? 'text-brand-400 bg-dark-card' : 'text-dark-muted hover:text-brand-400 hover:bg-dark-card'}`} title="Emojis">
+            <button ref={emojiBtnRef} type="button" onClick={() => setIsEmojiOpen((v) => !v)} className={`p-1.5 sm:p-2.5 rounded transition-colors ${isEmojiOpen ? 'text-brand-400 bg-dark-card' : 'text-dark-muted hover:text-brand-400 hover:bg-dark-card'}`} title="Emojis">
               <Smile className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
-            <EmojiPickerMenu isOpen={isEmojiOpen} onClose={() => setIsEmojiOpen(false)} onSelectEmoji={handleInsertEmoji} position="top" />
+            <EmojiPickerMenu isOpen={isEmojiOpen} anchorRef={emojiBtnRef} onClose={() => setIsEmojiOpen(false)} onSelectEmoji={(emoji) => media.insertEmoji(emoji, content, setContent)} position="top" />
           </div>
         </div>
-        <textarea ref={textareaRef} rows={1} value={content} onChange={(e) => { setContent(e.target.value); onTyping(); }} onKeyDown={handleKeyDown} placeholder="Escribe un mensaje..." className="flex-1 min-w-0 px-3 py-2.5 bg-dark-card border border-dark-border text-base text-white focus:outline-none focus:border-brand-500 font-sans resize-none max-h-28 overflow-y-auto leading-relaxed" />
-        <button type="submit" disabled={!content.trim() && files.length === 0 && !gifUrl} className="px-3.5 sm:px-4 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-black font-bold text-xs pixel-button flex items-center justify-center font-mono flex-shrink-0">
+        <textarea ref={media.attachTextareaRef} rows={1} value={content} onChange={(e) => { setContent(e.target.value); onTyping(); }} onKeyDown={handleKeyDown} onPaste={media.handlePaste} placeholder="Escribe un mensaje..." className="flex-1 min-w-0 px-3 py-2.5 bg-dark-card border border-dark-border text-base text-white focus:outline-none focus:border-brand-500 font-sans resize-none max-h-28 overflow-y-auto leading-relaxed" />
+        <button type="submit" disabled={!hasPayload} className="px-3.5 sm:px-4 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-black font-bold text-xs pixel-button flex items-center justify-center font-mono flex-shrink-0">
           <Send className="w-5 h-5" />
         </button>
       </form>
-      <KlipyGifModal isOpen={isGifModalOpen} onClose={() => setIsGifModalOpen(false)} onSelect={(url) => setGifUrl(url)} />
+      <KlipyGifModal isOpen={isGifModalOpen} onClose={() => setIsGifModalOpen(false)} onSelect={(url) => { media.attachGifUrl(url); setIsGifModalOpen(false); }} />
     </div>
   );
 };

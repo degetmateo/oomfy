@@ -1,5 +1,8 @@
 import { PostgresPool } from '../../infrastructure/database/postgres/PostgresPool.js';
+import { PostgresSessionRepository } from '../../infrastructure/repositories/postgres/PostgresSessionRepository.js';
 import { PasswordHasher } from '../../infrastructure/adapters/PasswordHasher.js';
+import { AuthSessionValidator } from './AuthSessionValidator.js';
+import { SocketGateway } from '../../socket/SocketGateway.js';
 import { BadRequestError } from '../../errors/AppError.js';
 
 export class ResetPasswordService {
@@ -27,6 +30,9 @@ export class ResetPasswordService {
     );
 
     await pool.query(`DELETE FROM password_reset WHERE user_id = $1`, [userId]);
+    await PostgresSessionRepository.revokeUserSessions(userId);
+    AuthSessionValidator.revokeUserBefore(userId);
+    SocketGateway.disconnectUser(userId);
 
     return { message: 'Tu contraseña ha sido restablecida con éxito. Ya puedes iniciar sesión.' };
   }

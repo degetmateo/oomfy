@@ -52,6 +52,11 @@ export class MongoMessageRepository {
     return doc ? this.mapDoc(doc) : null;
   }
 
+  public static async findByIdInChat(id: string, chatId: string): Promise<MongoMessageDoc | null> {
+    const doc = await this.getCollection().findOne({ $and: [MongoIdHelper.idFilter(id), { chat_id: { $in: MongoIdHelper.idVariants(chatId) } }] } as any);
+    return doc ? this.mapDoc(doc) : null;
+  }
+
   public static async deleteMessage(id: string): Promise<boolean> {
     const res = await this.getCollection().deleteOne(MongoIdHelper.idFilter(id) as any);
     return res.deletedCount > 0;

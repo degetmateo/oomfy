@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { TokenService, TokenPayload } from '../infrastructure/adapters/TokenService.js';
+import { AuthSessionValidator } from '../services/auth/AuthSessionValidator.js';
 import { UnauthorizedError, ForbiddenError } from '../errors/AppError.js';
 import { Role } from '@oomfy/shared';
 
@@ -12,36 +13,35 @@ declare global {
 }
 
 export class AuthGuard {
-  public static requireAuth(req: Request, _res: Response, next: NextFunction): void {
+  private static extractToken(req: Request): string | undefined {
     const authHeader = req.headers.authorization;
-    let token: string | undefined;
-
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    } else if (req.cookies?.access_token) {
-      token = req.cookies.access_token;
+      return authHeader.split(' ')[1];
     }
+    return req.cookies?.access_token;
+  }
 
+  public static async requireAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
+    const token = AuthGuard.extractToken(req);
     if (!token) {
       return next(new UnauthorizedError('Acceso no autorizado. Token requerido.'));
     }
 
     try {
       const payload = TokenService.verifyAccessToken(token);
-      req.user = payload;
+      req.user = await AuthSessionValidator.validate(payload);
       next();
     } catch (err) {
       next(err);
     }
   }
 
-  public static optionalAuth(req: Request, _res: Response, next: NextFunction): void {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : req.cookies?.access_token;
-
+  public static async optionalAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
+    const token = AuthGuard.extractToken(req);
     if (token) {
       try {
-        req.user = TokenService.verifyAccessToken(token);
+        const payload = TokenService.verifyAccessToken(token);
+        req.user = await AuthSessionValidator.validate(payload);
       } catch {
       }
     }

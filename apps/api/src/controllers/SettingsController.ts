@@ -15,7 +15,7 @@ export class SettingsController {
   public static async updatePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { current_password, new_password } = req.body;
-      await SettingsService.updatePassword(req.user!.id, current_password, new_password);
+      await SettingsService.updatePassword(req.user!.id, current_password, new_password, req.user?.sessionId);
       res.status(200).json({ success: true, message: 'Contraseña actualizada con éxito.' });
     } catch (err) {
       next(err);

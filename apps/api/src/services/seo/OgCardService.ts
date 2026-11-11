@@ -2,7 +2,9 @@ import { SITE_URL as BASE_URL } from '@oomfy/shared';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 
-const esc = (s: string) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+import { escapeHtml, safeJsonLd } from '../../utils/HtmlEscapeHelper.js';
+
+const esc = escapeHtml;
 
 export class OgCardService {
   public static async generateUserOgSvg(username: string): Promise<string> {
@@ -88,6 +90,6 @@ export class OgCardService {
 <meta property="og:type" content="${ogType}"/><meta property="og:site_name" content="Oomfy"/>
 <meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(desc)}"/><meta name="twitter:image" content="${esc(ogImage)}"/>
-<script type="application/ld+json">${JSON.stringify(jsonLd)}</script></head><body><h1>${esc(title)}</h1><p>${esc(desc)}</p></body></html>`;
+<script type="application/ld+json">${safeJsonLd(jsonLd)}</script></head><body><h1>${esc(title)}</h1><p>${esc(desc)}</p></body></html>`;
   }
 }

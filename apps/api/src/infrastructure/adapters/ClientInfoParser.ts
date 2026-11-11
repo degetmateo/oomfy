@@ -4,11 +4,8 @@ import requestIp from 'request-ip';
 export class ClientInfoParser {
   public static extractClientIp(req: Request): string {
     const rawIp =
-      requestIp.getClientIp(req) ||
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-      (req.headers['x-real-ip'] as string) ||
       req.ip ||
-      req.socket.remoteAddress ||
+      (req.socket?.remoteAddress ? req.socket.remoteAddress : requestIp.getClientIp(req)) ||
       '127.0.0.1';
 
     if (rawIp === '::1' || rawIp === '::ffff:127.0.0.1') {

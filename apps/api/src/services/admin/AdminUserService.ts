@@ -6,6 +6,7 @@ import { BadRequestError, NotFoundError } from '../../errors/AppError.js';
 import { UserSyncService } from '../users/UserSyncService.js';
 import { BackgroundTaskDispatcher } from '../../infrastructure/async/BackgroundTaskDispatcher.js';
 import { AdminUserFilters, AdminUserQueryBuilder } from './AdminUserQueryBuilder.js';
+import { UserStatusEnforcementHelper } from './UserStatusEnforcementHelper.js';
 
 export class AdminUserService {
   public static async listUsers(filters: AdminUserFilters): Promise<AdminUserSummary[]> {
@@ -41,6 +42,7 @@ export class AdminUserService {
         { $set: { status, updated_at: new Date() } }
       );
 
+    await UserStatusEnforcementHelper.onStatusUpdated(userId, status);
     return { message: `Usuario actualizado a estado ${status}.` };
   }
 

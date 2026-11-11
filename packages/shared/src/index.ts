@@ -13,4 +13,5 @@ export * from './schemas/auth.schemas.js';
 export * from './schemas/user.schemas.js';
 export * from './schemas/publication.schemas.js';
 export * from './schemas/chat.schemas.js';
+export * from './schemas/push.schemas.js';
 

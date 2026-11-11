@@ -80,7 +80,6 @@ describe('ProfileService updateProfile media preservation', () => {
     const setKeys = Object.keys(updateDoc.$set);
     const onInsertKeys = Object.keys(updateDoc.$setOnInsert);
 
-    // Crucial check: No key in $set should exist in $setOnInsert (causes MongoDB conflict error)
     const intersectingKeys = setKeys.filter((k) => onInsertKeys.includes(k));
     expect(intersectingKeys).toEqual([]);
     expect(updateDoc.$set.name).toBe('My New Name');

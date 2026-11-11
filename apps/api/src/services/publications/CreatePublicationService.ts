@@ -1,6 +1,7 @@
 import { v7 as uuidv7 } from 'uuid';
 import { CreatePublicationInput, Publication } from '@oomfy/shared';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
+import { PublicationMapper } from '../../infrastructure/repositories/mongo/PublicationMapper.js';
 import { UrlPreviewAdapter } from '../../infrastructure/adapters/UrlPreviewAdapter.js';
 import { AuthorProfileResolver } from './AuthorProfileResolver.js';
 import { PublicationMediaHelper } from './PublicationMediaHelper.js';
@@ -93,7 +94,6 @@ export class CreatePublicationService {
         },
       });
     }
-
-    return newPublication;
+    return { ...newPublication, images: PublicationMapper.sanitizeImages(newPublication.images) };
   }
 }

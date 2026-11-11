@@ -32,7 +32,7 @@ export const AppLayout: React.FC = () => {
 
       <main
         className={`flex-1 min-w-0 ${
-          isChatsRoute ? 'max-w-none h-full overflow-hidden' : 'max-w-2xl min-h-screen pb-24 md:pb-12'
+          isChatsRoute ? 'max-w-none h-full overflow-hidden' : 'max-w-2xl min-h-screen pb-40 md:pb-24'
         } border-x-0 md:border-r border-dark-border`}
       >
         <PushReconnectBanner />

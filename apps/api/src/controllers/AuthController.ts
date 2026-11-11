@@ -7,6 +7,8 @@ import { ForgotPasswordService } from '../services/auth/ForgotPasswordService.js
 import { ResetPasswordService } from '../services/auth/ResetPasswordService.js';
 import { ForgotUsernameService } from '../services/auth/ForgotUsernameService.js';
 import { PostgresSessionRepository } from '../infrastructure/repositories/postgres/PostgresSessionRepository.js';
+import { TokenService } from '../infrastructure/adapters/TokenService.js';
+import { AuthSessionValidator } from '../services/auth/AuthSessionValidator.js';
 import { ClientInfoParser } from '../infrastructure/adapters/ClientInfoParser.js';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -61,12 +63,14 @@ export class AuthController {
 
   public static async logout(req: Request, res: Response): Promise<void> {
     const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
+    const accessToken = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : undefined;
+    try { if (accessToken) AuthSessionValidator.revokeSession(TokenService.verifyAccessToken(accessToken).sessionId); } catch {}
+    try { if (refreshToken) AuthSessionValidator.revokeSession(TokenService.verifyRefreshToken(refreshToken).sessionId); } catch {}
     if (refreshToken) await PostgresSessionRepository.deleteByToken(refreshToken).catch(() => {});
     const isProd = process.env.NODE_ENV === 'production';
     res.clearCookie('refresh_token', { httpOnly: true, secure: isProd, sameSite: 'lax', path: '/' });
     res.status(200).json({ success: true, message: 'Sesión cerrada con éxito.' });
   }
-
   public static async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await ForgotPasswordService.execute(req.body.username);
@@ -75,7 +79,6 @@ export class AuthController {
       next(err);
     }
   }
-
   public static async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await ResetPasswordService.execute(req.body.token, req.body.new_password);

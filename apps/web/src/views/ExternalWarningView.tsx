@@ -16,6 +16,7 @@ export const ExternalWarningView: React.FC = () => {
   }, [targetUrl, navigate]);
 
   let hostname = '';
+  const isSafeExternal = UrlHelper.isSafeHttpUrl(targetUrl);
   try {
     hostname = new URL(targetUrl).hostname;
   } catch {
@@ -23,7 +24,7 @@ export const ExternalWarningView: React.FC = () => {
   }
 
   const handleProceed = () => {
-    if (!targetUrl) return;
+    if (!targetUrl || !isSafeExternal) return;
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -63,7 +64,8 @@ export const ExternalWarningView: React.FC = () => {
 
             <button
               onClick={handleProceed}
-              className="px-4 py-2 bg-brand-500 hover:bg-brand-400 text-black text-xs font-bold pixel-button flex items-center justify-center gap-2"
+              disabled={!isSafeExternal}
+              className="px-4 py-2 bg-brand-500 hover:bg-brand-400 disabled:opacity-40 disabled:cursor-not-allowed text-black text-xs font-bold pixel-button flex items-center justify-center gap-2"
             >
               <span>Continuar al enlace</span>
               <ExternalLink className="w-4 h-4" />

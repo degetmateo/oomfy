@@ -1,6 +1,7 @@
 import { SpotifyEmbedAdapter } from './SpotifyEmbedAdapter.js';
 import { SocialOEmbedAdapter } from './SocialOEmbedAdapter.js';
 import { MongoPublicationRepository } from '../repositories/mongo/MongoPublicationRepository.js';
+import { safeFetchPublicHtml } from '../../utils/UrlSecurityHelper.js';
 
 export interface LinkPreview {
   type: 'spotify' | 'twitter' | 'tiktok' | 'youtube' | 'link' | 'quote';
@@ -64,13 +65,8 @@ export class UrlPreviewAdapter {
         }
       }
 
-      const res = await fetch(url, {
-        signal: AbortSignal.timeout(3500),
-        headers: { 'User-Agent': 'oomfy-bot/1.0 (+https://oomfy.online)' },
-      });
-
-      if (!res.ok) return null;
-      const html = await res.text();
+      const html = await safeFetchPublicHtml(url);
+      if (!html) return null;
       const domain = new URL(url).hostname;
 
       const titleMatch = html.match(/<meta property=["']og:title["'] content=["'](.*?)["']/i) ||

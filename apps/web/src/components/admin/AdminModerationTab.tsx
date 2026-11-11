@@ -14,6 +14,7 @@ export const AdminModerationTab: React.FC = () => {
     mutationFn: (id: string) => ApiClient.delete(`/admin/publications/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-reports'] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       dialog.alert('La publicación ha sido eliminada por moderación.', 'Moderación exitosa');
       setTargetId('');

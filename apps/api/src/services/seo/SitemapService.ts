@@ -1,9 +1,8 @@
 import { DEFAULT_TOPICS as SHARED_TOPICS, SITE_URL as BASE_URL } from '@oomfy/shared';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
+import { escapeHtml as esc } from '../../utils/HtmlEscapeHelper.js';
 
 const DEFAULT_TOPICS = [...SHARED_TOPICS, 'tecnologia', 'retro'];
-
-const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export class SitemapService {
   public static getRobotsTxt(): string {

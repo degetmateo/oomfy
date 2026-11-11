@@ -2,6 +2,7 @@ import { TokenService } from '../../infrastructure/adapters/TokenService.js';
 import { PostgresUserRepository } from '../../infrastructure/repositories/postgres/PostgresUserRepository.js';
 import { PostgresSessionRepository } from '../../infrastructure/repositories/postgres/PostgresSessionRepository.js';
 import { UnauthorizedError } from '../../errors/AppError.js';
+import { AuthSessionValidator } from './AuthSessionValidator.js';
 
 export class TokenRefreshService {
   public static async execute(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
@@ -19,6 +20,7 @@ export class TokenRefreshService {
     const user = await PostgresUserRepository.findById(session.user_id || payload.id);
 
     if (!user || user.status !== 'active') {
+      if (user?.status === 'suspended') AuthSessionValidator.suspendUser(user.id);
       await PostgresSessionRepository.deleteById(session.id, session.user_id).catch(() => {});
       throw new UnauthorizedError('Sesión expirada o usuario no válido.');
     }

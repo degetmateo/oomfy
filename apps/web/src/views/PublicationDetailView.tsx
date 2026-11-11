@@ -86,6 +86,7 @@ export const PublicationDetailView: React.FC = () => {
           {replies.length > 0 ? replies.map((c) => <PublicationCard key={c.id} post={c} />) : isFetching ? (
             <div className="p-8 text-center text-xs text-dark-muted flex items-center justify-center gap-2"><RefreshCw className="w-4 h-4 animate-spin text-brand-400" /><span>Cargando respuestas...</span></div>
           ) : <div className="p-8 text-center text-xs text-dark-muted">No hay respuestas todavía. ¡Sé el primero en responder!</div>}
+          <div className="pb-12" />
         </div>
       </div>
     </PullToRefresh>
