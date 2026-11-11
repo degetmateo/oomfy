@@ -10,8 +10,8 @@ interface Props {
 
 export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
   const {
-    scale, position, isDragging, setIsDragging, handleZoom, resetZoom,
-    handleWheel, handleMouseDown, handleTouchStart, handleTouchMove,
+    scale, position, isDragging, stageRef, handleZoom, resetZoom,
+    handleWheel, handleMouseDown, stopDragging, handleTouchStart, handleTouchMove, handleTouchEnd,
   } = useImageViewerZoom(imageUrl, onClose);
 
   if (!imageUrl) return null;
@@ -25,7 +25,8 @@ export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
     <div
       data-no-card-nav="true"
       onMouseDown={(e) => e.stopPropagation()}
-      onMouseUp={(e) => e.stopPropagation()}
+      onMouseUp={(e) => { e.stopPropagation(); stopDragging(); }}
+      onPointerUp={stopDragging}
       onClick={stopAndClose}
       onWheel={handleWheel}
       className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between items-center select-none font-mono"
@@ -49,12 +50,17 @@ export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
       </div>
 
       <div
+        ref={stageRef}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={handleMouseDown}
+        onMouseUp={(e) => { e.stopPropagation(); stopDragging(); }}
+        onPointerUp={stopDragging}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
-        onTouchEnd={() => setIsDragging(false)}
-        className={`flex-1 flex items-center justify-center overflow-hidden w-full h-full p-4 ${
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        style={{ touchAction: 'none' }}
+        className={`flex-1 flex items-center justify-center overflow-hidden w-full h-full p-4 touch-none ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
       >
@@ -69,13 +75,14 @@ export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
             maxHeight: '90vh',
             maxWidth: '90vw',
             imageRendering: 'auto',
+            touchAction: 'none',
           }}
-          className="object-contain pointer-events-auto"
+          className="object-contain pointer-events-auto touch-none"
         />
       </div>
 
       <div onClick={(e) => e.stopPropagation()} className="p-3 text-[11px] text-dark-muted z-20 text-center">
-        Usa la rueda del mouse para hacer zoom · Arrastra para mover la imagen
+        Usa la rueda o pellizca con dos dedos para hacer zoom · Arrastra para mover
       </div>
     </div>
   );
