@@ -1,83 +1,79 @@
 import { Request, Response, NextFunction } from 'express';
 import { ProfileService } from '../services/users/ProfileService.js';
+import { AccountLifecycleService } from '../services/users/AccountLifecycleService.js';
 import { isHttpUrl } from '../utils/UrlSecurityHelper.js';
+import { AuthCookieHelper } from './AuthCookieHelper.js';
 
 export class ProfileController {
   public static async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const username = req.params.username;
-      const profile = await ProfileService.getProfile(username, req.user?.id);
+      const profile = await ProfileService.getProfile(req.params.username, req.user?.id);
       res.status(200).json({ success: true, data: profile });
-    } catch (err) {
-      next(err);
-    }
+    } catch (err) { next(err); }
   }
 
   public static async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-      const iconFile = files?.icon?.[0];
-      const bannerFile = files?.banner?.[0];
-
-      const updated = await ProfileService.updateProfile(req.user!.id, req.body, iconFile, bannerFile);
-      res.status(200).json({ success: true, data: updated });
-    } catch (err) {
-      next(err);
-    }
+      const uploadedFiles = req.files as Record<string, Express.Multer.File[]> | undefined;
+      const updated = await ProfileService.updateProfile(req.user!.id, req.body, {
+        icon: uploadedFiles?.icon?.[0],
+        banner: uploadedFiles?.banner?.[0],
+      });
+      res.status(200).json({ success: true, message: 'Perfil actualizado con éxito.', data: updated });
+    } catch (err) { next(err); }
   }
 
   public static async getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const profile = await ProfileService.getProfile(req.user!.username);
-      res.status(200).json({ success: true, data: profile });
-    } catch (err) {
-      next(err);
-    }
+      const profile = await ProfileService.getProfile(req.user!.username, req.user!.id);
+      res.status(200).json({ success: true, data: { ...req.user, ...profile } });
+    } catch (err) { next(err); }
   }
 
   public static async getUserIcon(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const iconUrl = await ProfileService.getUserIcon(req.params.username);
-      if (!iconUrl) {
-        res.status(404).send('Icon not found');
+      const url = await ProfileService.getUserIcon(req.params.username);
+      if (!url || !isHttpUrl(url)) {
+        res.status(404).json({ success: false, message: 'Avatar no encontrado.' });
         return;
       }
       res.setHeader('Cache-Control', 'public, max-age=300');
-      if (!iconUrl || !isHttpUrl(iconUrl)) {
-        res.status(404).json({ success: false, message: 'Imagen no disponible.' });
-        return;
-      }
-      res.redirect(302, iconUrl);
-    } catch (err) {
-      next(err);
-    }
+      res.redirect(302, url);
+    } catch (err) { next(err); }
   }
 
   public static async getUserBanner(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const bannerUrl = await ProfileService.getUserBanner(req.params.username);
-      if (!bannerUrl) {
-        res.status(404).send('Banner not found');
+      const url = await ProfileService.getUserBanner(req.params.username);
+      if (!url || !isHttpUrl(url)) {
+        res.status(404).json({ success: false, message: 'Banner no encontrado.' });
         return;
       }
       res.setHeader('Cache-Control', 'public, max-age=300');
-      if (!bannerUrl || !isHttpUrl(bannerUrl)) {
-        res.status(404).json({ success: false, message: 'Imagen no disponible.' });
-        return;
-      }
-      res.redirect(302, bannerUrl);
-    } catch (err) {
-      next(err);
-    }
+      res.redirect(302, url);
+    } catch (err) { next(err); }
   }
 
   public static async acceptTerms(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const updated = await ProfileService.acceptTerms(req.user!.id);
-      res.status(200).json({ success: true, data: updated });
-    } catch (err) {
-      next(err);
-    }
+      res.status(200).json({ success: true, message: 'Términos aceptados correctamente.', data: updated });
+    } catch (err) { next(err); }
+  }
+
+  public static async exportMyData(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const archive = await AccountLifecycleService.exportMyData(req.user!.id);
+      res.setHeader('Content-Disposition', `attachment; filename="oomfy-export-${req.user!.username}.json"`);
+      res.status(200).json({ success: true, data: archive });
+    } catch (err) { next(err); }
+  }
+
+  public static async deleteMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AccountLifecycleService.deleteMyAccount(req.user!.id, req.body.password);
+      AuthCookieHelper.clearRefreshCookie(res);
+      res.status(200).json({ success: true, ...result });
+    } catch (err) { next(err); }
   }
 }
-

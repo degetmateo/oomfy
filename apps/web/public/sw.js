@@ -3,16 +3,20 @@ self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim(
 
 function getApiBase() {
   return (self.location.hostname !== 'localhost' && self.location.hostname !== '127.0.0.1')
-    ? 'https://api-oomfy.onrender.com' : '';
+    ? 'https://api.oomfy.online' : '';
 }
 
-// 1. Regla de los 3 strikes en iOS: todo push debe terminar en una notificación visible
+function toSafeInternalPath(rawUrl, fallback = '/notifications') {
+  const s = String(rawUrl || '');
+  return (s.startsWith('/') && !s.startsWith('//') && !s.startsWith('\\') && !/^\/\\/.test(s)) ? s : fallback;
+}
+
 self.addEventListener('push', (event) => {
   event.waitUntil((async () => {
     let title = 'oomfy';
-    let options = {
+    const options = {
       body: 'Tienes una nueva notificación en oomfy.',
-      icon: '/assets/nav/home-on.svg',
+      icon: '/assets/oomfy-logo-black-bg.png',
       badge: '/assets/nav/home-on.svg',
       data: { url: '/notifications' },
     };
@@ -22,8 +26,8 @@ self.addEventListener('push', (event) => {
         const data = event.data.json();
         if (data.title) title = data.title;
         if (data.body) options.body = data.body;
-        if (data.icon) options.icon = data.icon;
-        if (data.url) options.data.url = data.url;
+        if (typeof data.icon === 'string' && data.icon.startsWith('/')) options.icon = data.icon;
+        if (data.url) options.data.url = toSafeInternalPath(data.url);
       } catch {
         try {
           const text = event.data.text();
@@ -42,28 +46,33 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const safePath = toSafeInternalPath(event.notification.data?.url, '/');
   event.waitUntil(
     clients.matchAll({ type: 'window' }).then((clientList) => {
       for (const client of clientList) {
         if (client.url && 'focus' in client) return client.focus();
       }
-      if (clients.openWindow) return clients.openWindow(event.notification.data?.url || '/');
+      if (clients.openWindow) return clients.openWindow(safePath);
     })
   );
 });
 
-// 2. Renovación automática pushsubscriptionchange (iOS 16.4+ y navegadores modernos)
 self.addEventListener('pushsubscriptionchange', (event) => {
   event.waitUntil((async () => {
     try {
+      const apiBase = getApiBase();
+      const refreshRes = await fetch(`${apiBase}/auth/refresh`, { method: 'POST', credentials: 'include' });
+      if (!refreshRes.ok) return;
+      const refreshData = await refreshRes.json();
+      if (!refreshData?.accessToken) return;
+
       const oldEndpoint = event.oldSubscription ? event.oldSubscription.endpoint : null;
       let newSub = event.newSubscription;
 
       if (!newSub) {
-        const apiBase = getApiBase();
         const keyRes = await fetch(`${apiBase}/notifications/vapid-public-key`);
         const keyData = await keyRes.json();
-        if (!keyData || !keyData.publicKey) return;
+        if (!keyData?.publicKey) return;
 
         const padding = '='.repeat((4 - (keyData.publicKey.length % 4)) % 4);
         const base64 = (keyData.publicKey + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -76,10 +85,13 @@ self.addEventListener('pushsubscriptionchange', (event) => {
 
       if (newSub) {
         const json = newSub.toJSON();
-        const apiBase = getApiBase();
         await fetch(`${apiBase}/notifications/subscribe`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${refreshData.accessToken}`,
+          },
           body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys, previous_endpoint: oldEndpoint }),
         });
       }

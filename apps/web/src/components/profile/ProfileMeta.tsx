@@ -4,6 +4,7 @@ import { Calendar, MapPin, Link as LinkIcon } from 'lucide-react';
 import { PublicUser } from '@oomfy/shared';
 
 import { useAuthStore } from '../../stores/authStore.js';
+import { UrlHelper } from '../../utils/UrlHelper.js';
 
 interface Props {
   user: PublicUser;
@@ -26,7 +27,7 @@ export const ProfileMeta: React.FC<Props> = ({ user }) => {
             <MapPin className="w-3.5 h-3.5" /> {user.location}
           </span>
         )}
-        {user.link && (
+        {user.link && UrlHelper.isSafeHttpUrl(user.link) && (
           <a
             href={user.link}
             target="_blank"

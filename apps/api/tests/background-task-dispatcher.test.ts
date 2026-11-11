@@ -8,8 +8,8 @@ describe('BackgroundTaskDispatcher', () => {
       executed = true;
     });
 
-    expect(executed).toBe(false); // Not run synchronously
-    await Promise.resolve(); // Flush microtasks
+    expect(executed).toBe(false);
+    await Promise.resolve();
     expect(executed).toBe(true);
   });
 

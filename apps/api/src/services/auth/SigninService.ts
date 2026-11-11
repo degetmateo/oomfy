@@ -8,6 +8,8 @@ import { TokenService } from '../../infrastructure/adapters/TokenService.js';
 import { UnauthorizedError, ForbiddenError } from '../../errors/AppError.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 
+const DUMMY_PASSWORD_HASH = '$2b$12$C6UzMDM.H6dfI/f/IKxGhu5xJ9Q6S4Q7K6vT5u1p2B1R3yQ7rQ9y.';
+
 export class SigninService {
   public static async execute(input: SigninInput, ip: string, platform?: string): Promise<{
     accessToken: string;
@@ -16,6 +18,7 @@ export class SigninService {
   }> {
     const user = await PostgresUserRepository.findByUsernameOrEmail(input.username);
     if (!user) {
+      await PasswordHasher.compare(input.password, DUMMY_PASSWORD_HASH);
       throw new UnauthorizedError('Credenciales incorrectas.');
     }
 
@@ -54,7 +57,7 @@ export class SigninService {
       id: sessionId,
       user_id: user.id,
       ip,
-      platform: platform || input.platform || 'Web',
+      platform: platform || 'Web',
       token: refreshToken,
     });
 
@@ -65,7 +68,8 @@ export class SigninService {
         username: user.username,
         name: user.name,
         role: user.role,
-        terms_accepted: false,
+        terms_accepted: Boolean(user.terms_accepted),
+        terms_accepted_at: user.terms_accepted_at || null,
       });
       publicProfile = await MongoMemberRepository.findById(user.id);
     }

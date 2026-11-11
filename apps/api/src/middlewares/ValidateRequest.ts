@@ -1,32 +1,48 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError, ZodIssue } from 'zod';
+import { ZodType, ZodError } from 'zod';
 import { BadRequestError } from '../errors/AppError.js';
 
 export class ValidateRequest {
-  public static body(schema: ZodSchema) {
-    return (req: Request, _res: Response, next: NextFunction) => {
+  private static formatError(error: ZodError): string {
+    return error.issues.map((issue) => issue.message).join(' | ');
+  }
+
+  public static body<T>(schema: ZodType<T>) {
+    return (req: Request, _res: Response, next: NextFunction): void => {
       try {
-        req.body = schema.parse(req.body);
+        req.body = schema.parse(req.body ?? {});
         next();
-      } catch (error: unknown) {
+      } catch (error) {
         if (error instanceof ZodError) {
-          const message = error.errors.map((e: ZodIssue) => e.message).join(' | ');
-          return next(new BadRequestError(message));
+          return next(new BadRequestError(this.formatError(error)));
         }
         next(error);
       }
     };
   }
 
-  public static query(schema: ZodSchema) {
-    return (req: Request, _res: Response, next: NextFunction) => {
+  public static query<T>(schema: ZodType<T>) {
+    return (req: Request, _res: Response, next: NextFunction): void => {
       try {
-        req.query = schema.parse(req.query);
+        req.query = schema.parse(req.query ?? {}) as any;
         next();
-      } catch (error: unknown) {
+      } catch (error) {
         if (error instanceof ZodError) {
-          const message = error.errors.map((e: ZodIssue) => e.message).join(' | ');
-          return next(new BadRequestError(message));
+          return next(new BadRequestError(this.formatError(error)));
+        }
+        next(error);
+      }
+    };
+  }
+
+  public static params<T>(schema: ZodType<T>) {
+    return (req: Request, _res: Response, next: NextFunction): void => {
+      try {
+        req.params = schema.parse(req.params ?? {}) as any;
+        next();
+      } catch (error) {
+        if (error instanceof ZodError) {
+          return next(new BadRequestError(this.formatError(error)));
         }
         next(error);
       }

@@ -1,35 +1,34 @@
-import { PostgresPool } from '../../infrastructure/database/postgres/PostgresPool.js';
+import { PostgresUserRepository } from '../../infrastructure/repositories/postgres/PostgresUserRepository.js';
 import { ResendMailerAdapter } from '../../infrastructure/adapters/ResendMailerAdapter.js';
+import { BackgroundTaskDispatcher } from '../../infrastructure/async/BackgroundTaskDispatcher.js';
+import { Environment } from '../../config/Environment.js';
+import { escapeHtml } from '../../utils/HtmlEscapeHelper.js';
 
 export class ForgotUsernameService {
   public static async execute(email: string): Promise<{ message: string }> {
-    const cleanEmail = email?.trim().toLowerCase();
-    if (!cleanEmail) {
-      return { message: 'Si el correo está registrado, se enviará un recordatorio.' };
-    }
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await PostgresUserRepository.findByUsernameOrEmail(cleanEmail);
 
-    const { rows } = await PostgresPool.getInstance().query(
-      `SELECT username, name FROM members WHERE LOWER(email) = LOWER($1)`,
-      [cleanEmail]
-    );
-
-    if (rows.length > 0) {
-      const user = rows[0];
-      await ResendMailerAdapter.send({
-        to: cleanEmail,
-        subject: 'Recordatorio de tu nombre de usuario en oomfy',
-        html: `
-          <h2>Hola ${user.name},</h2>
-          <p>Has solicitado recordar tu nombre de usuario para tu cuenta en oomfy.</p>
-          <p>Tu nombre de usuario es: <strong>@${user.username}</strong></p>
-          <p>Ya puedes acceder a oomfy con tu nombre de usuario y tu contraseña habitual.</p>
-        `,
-      }).catch((err) => {
-        console.error('Error enviando correo de recordatorio de usuario:', err);
+    if (user && user.email.toLowerCase() === cleanEmail && user.status === 'active') {
+      const signinUrl = `${Environment.FRONTEND_URL}/signin`;
+      const safeName = escapeHtml(user.name);
+      const safeUsername = escapeHtml(user.username);
+      BackgroundTaskDispatcher.dispatch(`forgot-user-${user.id}`, async () => {
+        await ResendMailerAdapter.send({
+          to: user.email,
+          subject: 'Recordatorio de usuario en Oomfy',
+          html: `
+            <div style="font-family: monospace; background: #141414; color: #fff; padding: 20px; border: 2px solid #00dc65;">
+              <h2 style="color: #00dc65;">Recordatorio de Usuario</h2>
+              <p>Hola ${safeName}, tu nombre de usuario en Oomfy es:</p>
+              <div style="padding: 12px; background: #0d0d0d; border: 1px solid #00dc65; font-size: 18px; color: #00dc65; font-weight: bold;">@${safeUsername}</div>
+              <a href="${signinUrl}" style="display: inline-block; margin-top: 16px; padding: 10px 20px; background: #00dc65; color: #000; text-decoration: none; font-weight: bold;">INICIAR SESIÓN</a>
+            </div>
+          `,
+        });
       });
     }
 
-    return { message: 'Si el correo electrónico está registrado, te hemos enviado tu nombre de usuario.' };
+    return { message: 'Si existe una cuenta asociada a ese correo, recibirás tu nombre de usuario en breve.' };
   }
 }
-

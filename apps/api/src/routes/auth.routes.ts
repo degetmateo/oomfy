@@ -5,6 +5,7 @@ import { createRateLimiter } from '../middlewares/RateLimiter.js';
 import {
   SignupSchema,
   SigninSchema,
+  VerifyAccountSchema,
   ForgotPasswordSchema,
   ResetPasswordSchema,
   ForgotUsernameSchema,
@@ -16,8 +17,7 @@ const recoveryLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10, p
 const refreshLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 60, prefix: 'auth-refresh' });
 
 router.post('/signup', strictLimiter, ValidateRequest.body(SignupSchema), AuthController.signup);
-router.post('/verify', AuthController.verify);
-router.get('/verify', AuthController.verify);
+router.post('/verify', strictLimiter, ValidateRequest.body(VerifyAccountSchema), AuthController.verify);
 router.post('/signin', strictLimiter, ValidateRequest.body(SigninSchema), AuthController.signin);
 router.post('/refresh', refreshLimiter, AuthController.refreshToken);
 router.post('/refresh-token', refreshLimiter, AuthController.refreshToken);
@@ -27,4 +27,3 @@ router.post('/forgot-username', recoveryLimiter, ValidateRequest.body(ForgotUser
 router.post('/logout', AuthController.logout);
 
 export default router;
-

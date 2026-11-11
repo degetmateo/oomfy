@@ -34,7 +34,7 @@ export class OgCardService {
     let title = 'Oomfy — Para la oomfiada';
     let desc = 'Explora con los oomfies.';
     let canonical = `${BASE_URL}${cleanPath.split('?')[0]}`;
-    let ogImage = `${BASE_URL}/pwa-512x512.png`, ogType = 'website', robots = 'index, follow';
+    let ogImage = `${BASE_URL}/assets/oomfy-logo-black-bg.png`, ogType = 'website', robots = 'index, follow';
     let jsonLd: Record<string, any> = { '@context': 'https://schema.org', '@type': 'WebSite', name: 'oomfy', url: BASE_URL };
 
     const pubMatch = cleanPath.match(/^\/publication\/([^/?#]+)/);
@@ -76,9 +76,12 @@ export class OgCardService {
           '@context': 'https://schema.org', '@type': 'ProfilePage',
           mainEntity: { '@type': 'Person', name: user.name, alternateName: `@${user.username}`, description: user.bio || desc, image: user.icon_url || ogImage, url: `${BASE_URL}/${user.username}` },
         };
+      } else {
+        robots = 'noindex, nofollow';
       }
     } else if (topicMatch) {
-      const tag = decodeURIComponent(topicMatch[1]);
+      let tag = topicMatch[1];
+      try { tag = decodeURIComponent(topicMatch[1]); } catch {}
       title = `#${tag} — Publicaciones y Comunidad sobre ${tag} | Oomfy`;
       desc = `Explora las mejores publicaciones, imágenes y conversaciones sobre #${tag} en Oomfy.`;
     }

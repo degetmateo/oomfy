@@ -3,11 +3,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { SECURITY_HEADER_VALUES } from '../../packages/shared/src/constants/security.js';
+import { SECURITY_HEADER_VALUES, buildDevCspHeader } from '../../packages/shared/src/constants/security.js';
+
+const DEV_SECURITY_HEADERS = { ...SECURITY_HEADER_VALUES, 'Content-Security-Policy': buildDevCspHeader() };
 
 function securityHeadersPlugin() {
-  const applyHeaders = (_req: any, res: any, next: () => void) => {
-    for (const [k, v] of Object.entries(SECURITY_HEADER_VALUES)) res.setHeader(k, v);
+  const applyHeaders = (headers: Record<string, string>) => (_req: any, res: any, next: () => void) => {
+    for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
     res.removeHeader('X-Powered-By');
     res.removeHeader('Server');
     res.removeHeader('X-XSS-Protection');
@@ -15,8 +17,8 @@ function securityHeadersPlugin() {
   };
   return {
     name: 'oomfy-security-headers',
-    configureServer(s: any) { s.middlewares.use(applyHeaders); },
-    configurePreviewServer(s: any) { s.middlewares.use(applyHeaders); },
+    configureServer(s: any) { s.middlewares.use(applyHeaders(DEV_SECURITY_HEADERS)); },
+    configurePreviewServer(s: any) { s.middlewares.use(applyHeaders(SECURITY_HEADER_VALUES)); },
     writeBundle(options: { dir?: string }) {
       const outDir = options.dir || path.resolve(process.cwd(), 'dist');
       const lines = ['/*', ...Object.entries(SECURITY_HEADER_VALUES).map(([k, v]) => `  ${k}: ${v}`)];
@@ -34,7 +36,7 @@ export default defineConfig({
   envDir: '../../',
   server: {
     port: 5173,
-    headers: SECURITY_HEADER_VALUES,
+    headers: DEV_SECURITY_HEADERS,
     proxy: {
       '^/(auth|members|publications|interactions|follows|notifications|chats|sessions|aux|settings|reports|staff|admin|health|api)': {
         target: 'http://localhost:4000',

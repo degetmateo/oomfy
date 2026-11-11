@@ -37,7 +37,7 @@ describe('useCropBox Hook', () => {
 
     act(() => {
       result.current.onDragStart('inside', 50, 50);
-      result.current.onDragMove(80, 90); // dx = 30, dy = 40
+      result.current.onDragMove(80, 90);
       result.current.onDragEnd();
     });
 
@@ -61,7 +61,7 @@ describe('useCropBox Hook', () => {
 
     act(() => {
       result.current.onDragStart('se', 110, 110);
-      result.current.onDragMove(160, 180); // dx = 50, dy = 70
+      result.current.onDragMove(160, 180);
       result.current.onDragEnd();
     });
 

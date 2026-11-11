@@ -10,7 +10,7 @@ import { useAuthStore } from '../src/stores/authStore.js';
 describe('SEO Head, Guest Banner & UGC Links', () => {
   beforeEach(() => {
     document.head.innerHTML = '';
-    useAuthStore.setState({ user: null, token: null, refreshToken: null, isAuthenticated: false });
+    useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
   });
 
   it('injects dynamic title, canonical link, robots, OpenGraph, and JSON-LD script into document.head', () => {

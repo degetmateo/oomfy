@@ -1,4 +1,5 @@
-import { Role } from '@oomfy/shared';
+import { Role, UserStatus } from '@oomfy/shared';
+import { BadRequestError } from '../../errors/AppError.js';
 
 export interface AdminUserFilters {
   query?: string;
@@ -6,7 +7,7 @@ export interface AdminUserFilters {
   username?: string;
   email?: string;
   role?: Role;
-  status?: string;
+  status?: UserStatus;
   created_from?: string;
   created_to?: string;
   limit?: number;
@@ -15,51 +16,43 @@ export interface AdminUserFilters {
 
 export class AdminUserQueryBuilder {
   public static build(filters: AdminUserFilters): { sql: string; params: any[] } {
-    let sql = 'SELECT id, username, name, email, role, status, created_at FROM members';
     const conditions: string[] = [];
     const params: any[] = [];
 
-    const addParam = (val: any): string => {
-      params.push(val);
-      return `$${params.length}`;
+    const addCond = (sqlFragment: string, value: any) => {
+      params.push(value);
+      conditions.push(sqlFragment.replace('?', `$${params.length}`));
     };
 
     if (filters.query?.trim()) {
-      const q = `%${filters.query.trim()}%`;
-      const p = addParam(q);
-      conditions.push(`(username ILIKE ${p} OR name ILIKE ${p} OR email ILIKE ${p})`);
+      params.push(`%${filters.query.trim()}%`);
+      const idx = params.length;
+      conditions.push(`(username ILIKE $${idx} OR name ILIKE $${idx} OR email ILIKE $${idx})`);
     }
-    if (filters.name?.trim()) {
-      conditions.push(`name ILIKE ${addParam(`%${filters.name.trim()}%`)}`);
-    }
-    if (filters.username?.trim()) {
-      conditions.push(`username ILIKE ${addParam(`%${filters.username.trim()}%`)}`);
-    }
-    if (filters.email?.trim()) {
-      conditions.push(`email ILIKE ${addParam(`%${filters.email.trim()}%`)}`);
-    }
-    if (filters.role && filters.role !== ('all' as any)) {
-      conditions.push(`role = ${addParam(filters.role)}`);
-    }
-    if (filters.status && filters.status !== 'all') {
-      conditions.push(`status = ${addParam(filters.status)}`);
-    }
+    if (filters.name?.trim()) addCond('name ILIKE ?', `%${filters.name.trim()}%`);
+    if (filters.username?.trim()) addCond('username ILIKE ?', `%${filters.username.trim()}%`);
+    if (filters.email?.trim()) addCond('email ILIKE ?', `%${filters.email.trim()}%`);
+    if (filters.role) addCond('role = ?', filters.role);
+    if (filters.status) addCond('status = ?', filters.status);
+
     if (filters.created_from) {
-      conditions.push(`created_at >= ${addParam(filters.created_from)}::timestamptz`);
+      if (Number.isNaN(Date.parse(filters.created_from))) throw new BadRequestError('Fecha inicial inválida.');
+      addCond('created_at >= ?::timestamptz', filters.created_from);
     }
     if (filters.created_to) {
-      conditions.push(`created_at <= ${addParam(filters.created_to)}::timestamptz`);
+      if (Number.isNaN(Date.parse(filters.created_to))) throw new BadRequestError('Fecha final inválida.');
+      addCond('created_at <= ?::timestamptz', filters.created_to);
     }
 
-    if (conditions.length > 0) {
-      sql += ' WHERE ' + conditions.join(' AND ');
-    }
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const rawLimit = Number(filters.limit);
+    const limit = Math.min(Math.max(1, Number.isFinite(rawLimit) && rawLimit > 0 ? Math.floor(rawLimit) : 30), 100);
+    const rawOffset = Number(filters.offset);
+    const offset = Math.max(0, Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset) : 0);
 
-    const limit = filters.limit || 30;
-    const offset = filters.offset || 0;
-    sql += ` ORDER BY created_at DESC LIMIT ${addParam(limit)} OFFSET ${addParam(offset)};`;
-
+    params.push(limit, offset);
+    const fromClause = whereClause ? `FROM members ${whereClause}` : 'FROM members';
+    const sql = `SELECT id, username, name, email, role, status, created_at ${fromClause} ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
     return { sql, params };
   }
 }
-

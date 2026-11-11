@@ -32,4 +32,8 @@ Thumbs.db
 ca.pem
 
 legacy
-.env.example
+.env
+.env.*
+!.env.example
+*.key
+*.pem

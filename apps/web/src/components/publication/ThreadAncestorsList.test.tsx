@@ -7,9 +7,12 @@ import { Publication } from '@oomfy/shared';
 
 vi.mock('../../services/api.js', () => ({ ApiClient: { get: vi.fn() } }));
 
-window.IntersectionObserver = vi.fn().mockReturnValue({
-  observe: () => null, unobserve: () => null, disconnect: () => null,
-}) as any;
+class MockIntersectionObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+window.IntersectionObserver = MockIntersectionObserver as any;
 
 describe('ThreadAncestorsList Component', () => {
   const sampleAncestor: Publication = {

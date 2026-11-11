@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppLayout } from './components/layout/AppLayout.js';
@@ -20,11 +20,9 @@ import { VerifyView } from './views/VerifyView.js';
 import { ResetPasswordView } from './views/ResetPasswordView.js';
 import { PrivacyPolicyView } from './views/PrivacyPolicyView.js';
 import { TermsAndConditionsView } from './views/TermsAndConditionsView.js';
-import { useAuthStore } from './stores/authStore.js';
-import { ApiClient } from './services/api.js';
-import { PushNotificationService } from './services/PushNotificationService.js';
 import { ProtectedRoute } from './components/auth/ProtectedRoute.js';
 import { useRealtimeSync } from './hooks/useRealtimeSync.js';
+import { useSessionInitializer } from './hooks/useSessionInitializer.js';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,20 +36,7 @@ const RealtimeBridge: React.FC = () => {
 };
 
 export const App: React.FC = () => {
-  const { token, refreshToken, setUser, logout } = useAuthStore();
-
-  useEffect(() => {
-    if (token || refreshToken) {
-      ApiClient.get<any>('/members/me')
-        .then((res) => {
-          setUser(res.data);
-          if (PushNotificationService.isPermissionGranted()) {
-            PushNotificationService.syncSubscription().catch(() => {});
-          }
-        })
-        .catch(() => logout());
-    }
-  }, [token, refreshToken, setUser, logout]);
+  useSessionInitializer();
 
   return (
     <QueryClientProvider client={queryClient}>

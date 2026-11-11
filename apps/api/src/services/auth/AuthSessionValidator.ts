@@ -32,49 +32,49 @@ export class AuthSessionValidator {
   }
 
   public static async validate(payload: TokenPayload): Promise<TokenPayload> {
+    if (!payload.sessionId) {
+      throw new UnauthorizedError('Sesión inválida o expirada.');
+    }
+
     if (this.suspendedUsers.has(payload.id)) {
       throw new ForbiddenError('Esta cuenta ha sido suspendida por incumplimiento de términos.');
     }
 
-    if (payload.sessionId && this.revokedSessions.has(payload.sessionId)) {
+    if (this.revokedSessions.has(payload.sessionId)) {
       throw new UnauthorizedError('La sesión ha sido cerrada.');
     }
 
     const revoked = this.userRevokedBefore.get(payload.id);
-    if (revoked !== undefined && (!payload.sessionId || payload.sessionId !== revoked.exceptSessionId)) {
+    if (revoked !== undefined && payload.sessionId !== revoked.exceptSessionId) {
       const issuedAtMs = payload.iatMs ?? (payload.iat ? payload.iat * 1000 : 0);
       if (issuedAtMs < revoked.at) {
         throw new UnauthorizedError('La sesión ha expirado por seguridad.');
       }
     }
 
-    if (payload.sessionId) {
-      const pool = PostgresPool.getInstance();
-      const { rows } = await pool.query(
-        `SELECT s.id, m.status, m.role
-         FROM session s
-         JOIN members m ON m.id = s.user_id
-         WHERE s.id = $1 AND s.user_id = $2`,
-        [payload.sessionId, payload.id]
-      );
+    const pool = PostgresPool.getInstance();
+    const { rows } = await pool.query(
+      `SELECT s.id, m.status, m.role
+       FROM session s
+       JOIN members m ON m.id = s.user_id
+       WHERE s.id = $1 AND s.user_id = $2 AND s.created_at > NOW() - INTERVAL '30 days'`,
+      [payload.sessionId, payload.id]
+    );
 
-      if (rows.length === 0) {
-        this.revokeSession(payload.sessionId);
-        throw new UnauthorizedError('La sesión ha sido cerrada o ya no es válida.');
-      }
-
-      if (rows[0].status === 'suspended') {
-        this.suspendUser(payload.id);
-        throw new ForbiddenError('Esta cuenta ha sido suspendida por incumplimiento de términos.');
-      }
-
-      if (rows[0].status !== 'active') {
-        throw new UnauthorizedError('La cuenta no se encuentra activa.');
-      }
-
-      return { ...payload, role: rows[0].role };
+    if (rows.length === 0) {
+      this.revokeSession(payload.sessionId);
+      throw new UnauthorizedError('La sesión ha sido cerrada o ya no es válida.');
     }
 
-    return payload;
+    if (rows[0].status === 'suspended') {
+      this.suspendUser(payload.id);
+      throw new ForbiddenError('Esta cuenta ha sido suspendida por incumplimiento de términos.');
+    }
+
+    if (rows[0].status !== 'active') {
+      throw new UnauthorizedError('La cuenta no se encuentra activa.');
+    }
+
+    return { ...payload, role: rows[0].role };
   }
 }

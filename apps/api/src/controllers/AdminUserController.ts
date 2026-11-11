@@ -18,7 +18,7 @@ export class AdminUserController {
         limit: Number(req.query.limit) || 30,
         offset: Number(req.query.offset) || 0,
       };
-      const users = await AdminUserService.listUsers(filters);
+      const users = await AdminUserService.listUsers(req.query as any);
       res.status(200).json({ success: true, data: users });
     } catch (err) {
       next(err);

@@ -6,8 +6,9 @@ export function resolveApiBaseUrl(requireOomfyHost = true): string {
   }
   if (!import.meta.env.PROD) return '';
   if (!requireOomfyHost) return API_PROD_URL;
-  if (typeof window !== 'undefined' && window.location.hostname.includes('oomfy.online')) {
-    return API_PROD_URL;
+  if (typeof window !== 'undefined') {
+    const h = window.location.hostname.toLowerCase();
+    if (h === 'oomfy.online' || h.endsWith('.oomfy.online')) return API_PROD_URL;
   }
   return '';
 }
@@ -15,4 +16,3 @@ export function resolveApiBaseUrl(requireOomfyHost = true): string {
 export function getSocketBaseUrl(): string | undefined {
   return resolveApiBaseUrl(true) || undefined;
 }
-

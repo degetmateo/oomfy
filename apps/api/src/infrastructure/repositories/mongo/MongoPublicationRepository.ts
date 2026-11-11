@@ -64,10 +64,6 @@ export class MongoPublicationRepository {
     return PublicationInteractionDecorator.decorate(populated, userId);
   }
 
-  public static findThread(id: string, userId?: string): Promise<Publication[]> {
-    return this.findReplies(id, userId);
-  }
-
   public static async incrementCounters(
     id: string,
     inc: Partial<Record<'upvotes_count' | 'shares_count' | 'quotes_count' | 'comments_count', number>>
@@ -75,8 +71,11 @@ export class MongoPublicationRepository {
     const mongoInc: any = {};
     if (inc.upvotes_count) { mongoInc.upvotes_count = inc.upvotes_count; mongoInc.upvote_count = inc.upvotes_count; }
     if (inc.shares_count) { mongoInc.shares_count = inc.shares_count; mongoInc.share_count = inc.shares_count; }
+    if (inc.quotes_count) { mongoInc.quotes_count = inc.quotes_count; mongoInc.quote_count = inc.quotes_count; }
     if (inc.comments_count) { mongoInc.comments_count = inc.comments_count; mongoInc.comment_count = inc.comments_count; }
-    await this.getCollection().updateOne(MongoIdHelper.idFilter(id), { $inc: mongoInc });
+    if (Object.keys(mongoInc).length > 0) {
+      await this.getCollection().updateOne(MongoIdHelper.idFilter(id), { $inc: mongoInc });
+    }
   }
 
   public static async deleteById(id: string): Promise<boolean> {

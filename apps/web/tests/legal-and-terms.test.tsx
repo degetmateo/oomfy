@@ -12,7 +12,7 @@ import { ApiClient } from '../src/services/api.js';
 describe('Legal Views, Signup Checkbox & Existing User Terms Popup', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    useAuthStore.setState({ user: null, token: null, refreshToken: null, isAuthenticated: false });
+    useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
   });
 
   it('renders Privacy Policy and Terms & Conditions content accurately for Oomfy', () => {

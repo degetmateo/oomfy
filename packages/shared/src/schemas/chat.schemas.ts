@@ -1,22 +1,31 @@
 import { z } from 'zod';
 import { LIMITS } from '../constants/limits.js';
+import { emptyToNull, httpUrlSchema, safeEntityIdSchema } from './url.schemas.js';
 
 export const CreateChatSchema = z.object({
-  target_username: z.string().min(1),
+  target_username: z.string().trim().min(1).max(LIMITS.USERNAME_MAX),
 });
 
 export const SendMessageSchema = z.object({
-  chat_id: z.string().uuid(),
+  chat_id: safeEntityIdSchema,
   content: z
     .string()
-    .max(LIMITS.MESSAGE_CONTENT_MAX, `Máximo ${LIMITS.MESSAGE_CONTENT_MAX} caracteres.`)
+    .max(LIMITS.MESSAGE_CONTENT_MAX, { error: `Máximo ${LIMITS.MESSAGE_CONTENT_MAX} caracteres.` })
     .optional()
     .default(''),
-  reply_to_id: z.string().uuid().nullable().optional(),
-  gif_url: z.string().url().nullable().optional(),
-  media_urls: z.array(z.string().url()).max(4).optional().default([]),
+  reply_to_id: z.preprocess(emptyToNull, safeEntityIdSchema.nullable().optional()),
+  gif_url: z.preprocess(emptyToNull, httpUrlSchema('URL de GIF inválida.').nullable().optional()),
+  media_urls: z.preprocess(
+    (v) => {
+      if (typeof v === 'string') {
+        if (!v.trim()) return [];
+        try { return JSON.parse(v); } catch { return v; }
+      }
+      return v;
+    },
+    z.array(httpUrlSchema('URL de archivo multimedia inválida.')).max(4).optional().default([])
+  ),
 });
 
 export type CreateChatInput = z.infer<typeof CreateChatSchema>;
 export type SendMessageInput = z.infer<typeof SendMessageSchema>;
-

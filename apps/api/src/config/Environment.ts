@@ -24,19 +24,23 @@ export class Environment {
   public static readonly NODE_ENV: string = process.env.NODE_ENV || process.env.ENV || 'development';
   public static readonly PORT: number = Number(process.env.PORT) || 4000;
   public static readonly FRONTEND_URL: string =
-    process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://oomfy.online' : 'http://localhost:5173');
+    process.env.FRONTEND_URL ||
+    ((process.env.NODE_ENV || process.env.ENV) === 'production' ? 'https://oomfy.online' : 'http://localhost:5173');
 
-  public static readonly ALLOWED_ORIGINS: string[] = [
-    'https://oomfy.online',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    process.env.FRONTEND_URL || '',
-  ].filter(Boolean);
+  public static readonly ALLOWED_ORIGINS: string[] = Array.from(
+    new Set(
+      [
+        'https://oomfy.online',
+        'https://www.oomfy.online',
+        ...(process.env.ALLOWED_ORIGINS || '').split(',').map((s) => s.trim()),
+        ...((process.env.NODE_ENV || process.env.ENV) === 'production' ? [] : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000']),
+        process.env.FRONTEND_URL || '',
+      ].filter(Boolean)
+    )
+  );
 
-  public static readonly JWT_SECRET: string =
-    process.env.JWT_SECRET || process.env.JWT_KEY || 'default_jwt_secret_dev';
-  public static readonly JWT_REFRESH_SECRET: string =
-    process.env.JWT_REFRESH_SECRET || process.env.JWT_KEY || 'default_refresh_secret_dev';
+  public static readonly JWT_SECRET: string = process.env.JWT_SECRET || 'default_jwt_secret_dev';
+  public static readonly JWT_REFRESH_SECRET: string = process.env.JWT_REFRESH_SECRET || 'default_refresh_secret_dev';
 
   public static readonly PG_URI: string | undefined =
     process.env.PG_DATABASE_URI || process.env.DATABASE_URL;
@@ -60,9 +64,7 @@ export class Environment {
   public static readonly RESEND_API_KEY: string =
     process.env.RESEND_KEY || process.env.RESEND_API_KEY || '';
   public static readonly IMGBB_KEY: string = process.env.IMGBB_KEY || '';
-  public static readonly TENOR_KEY: string = process.env.TENOR_KEY || '';
   public static readonly KLIPY_KEY: string = process.env.KLIPY_KEY || '';
-  public static readonly RECAPTCHA_KEY: string = process.env.RECAPTCHA_KEY || '';
 
   public static readonly VAPID_PUBLIC_KEY: string = process.env.VAPID_PUBLIC_KEY || '';
   public static readonly VAPID_PRIVATE_KEY: string = process.env.VAPID_PRIVATE_KEY || '';
@@ -70,6 +72,29 @@ export class Environment {
     process.env.VAPID_SUBJECT || 'mailto:soporte@oomfy.online';
 
   public static isProduction(): boolean {
-    return this.NODE_ENV === 'production' || process.env.PRODUCTION === 'TRUE';
+    return (process.env.NODE_ENV || process.env.ENV || this.NODE_ENV) === 'production' || process.env.PRODUCTION === 'TRUE';
   }
+
+  public static assertProductionSecrets(): void {
+    if (!this.isProduction()) return;
+    const insecure = new Set([
+      'default_jwt_secret_dev',
+      'default_refresh_secret_dev',
+      'change_me_dev_access_secret_min_32_chars',
+      'change_me_dev_refresh_secret_min_32_chars',
+    ]);
+    if (!this.JWT_SECRET || this.JWT_SECRET.length < 32 || insecure.has(this.JWT_SECRET)) {
+      throw new Error('FATAL: JWT_SECRET debe configurarse con al menos 32 caracteres seguros en producción.');
+    }
+    if (!this.JWT_REFRESH_SECRET || this.JWT_REFRESH_SECRET.length < 32 || insecure.has(this.JWT_REFRESH_SECRET)) {
+      throw new Error('FATAL: JWT_REFRESH_SECRET debe configurarse con al menos 32 caracteres seguros en producción.');
+    }
+    if (this.JWT_SECRET === this.JWT_REFRESH_SECRET) {
+      throw new Error('FATAL: JWT_SECRET y JWT_REFRESH_SECRET no pueden ser idénticos en producción.');
+    }
+  }
+}
+
+if (Environment.isProduction() && process.env.VITEST !== 'true') {
+  Environment.assertProductionSecrets();
 }

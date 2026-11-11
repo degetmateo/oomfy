@@ -6,7 +6,7 @@ export function isOriginAllowed(origin?: string): boolean {
   try {
     const parsed = new URL(origin);
     const host = parsed.hostname.toLowerCase();
-    const isProdOrigin = parsed.protocol === 'https:' && (host === 'oomfy.online' || host.endsWith('.oomfy.online') || host.endsWith('.onrender.com'));
+    const isProdOrigin = parsed.protocol === 'https:' && (host === 'oomfy.online' || host.endsWith('.oomfy.online'));
     if (isProdOrigin) return true;
     if (!Environment.isProduction() && (host === 'localhost' || host === '127.0.0.1')) return true;
     return false;
@@ -18,4 +18,3 @@ export function isOriginAllowed(origin?: string): boolean {
 export function corsOriginHandler(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void): void {
   callback(null, isOriginAllowed(origin));
 }
-

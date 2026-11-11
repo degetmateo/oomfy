@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
-import { getSocketBaseUrl } from '../utils/apiBase';
+import { getSocketBaseUrl } from '../utils/apiBase.js';
+import { getAccessToken } from './sessionTokenMemory.js';
 
 export class SocketClient {
   private static socket: Socket | null = null;
@@ -7,7 +8,8 @@ export class SocketClient {
   public static getSocket(token?: string): Socket {
     if (!this.socket) {
       this.socket = io(getSocketBaseUrl(), {
-        auth: { token: token || localStorage.getItem('oomfy_token') },
+        auth: { token: token || getAccessToken() },
+        withCredentials: true,
         transports: ['websocket', 'polling'],
       });
     }

@@ -78,7 +78,7 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
             <div className="p-2.5 flex-1 min-w-0 flex flex-col justify-center">
               <span className="text-[11px] text-brand-400 truncate flex items-center gap-1 font-bold">
                 <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                {emb.site_name || (emb.url ? new URL(emb.url).hostname : 'Enlace')}
+                {emb.site_name || (() => { try { return emb.url ? new URL(emb.url).hostname : 'Enlace'; } catch { return 'Enlace'; } })()}
               </span>
               <h4 className="text-xs font-bold text-white truncate mt-0.5">{emb.title || emb.url}</h4>
               {emb.description && <p className="text-[11px] text-dark-muted line-clamp-2 mt-1 font-sans">{emb.description}</p>}

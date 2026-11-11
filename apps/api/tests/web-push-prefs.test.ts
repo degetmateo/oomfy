@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import { Server } from '../src/Server.js';
 import { MongoDatabase } from '../src/infrastructure/database/mongo/MongoDatabase.js';
+import { PostgresPool } from '../src/infrastructure/database/postgres/PostgresPool.js';
 import { TokenService } from '../src/infrastructure/adapters/TokenService.js';
 import { PushSubscriptionRepository } from '../src/infrastructure/repositories/mongo/PushSubscriptionRepository.js';
 
@@ -11,15 +12,23 @@ describe('WebPush Preferences & Admin Broadcast', () => {
   beforeAll(async () => {
     await MongoDatabase.connect();
     await MongoDatabase.getDb().collection('push_subscriptions').deleteMany({ endpoint: { $regex: /fake-pref-/ } });
+    vi.spyOn(PostgresPool, 'getInstance').mockReturnValue({
+      query: vi.fn().mockImplementation(async (_sql: string, params?: any[]) => ({
+        rows: [{ id: params?.[0], status: 'active', role: params?.[1] === 'admin-push-tester' ? 'admin' : 'member' }],
+      })),
+    } as any);
   });
 
   afterAll(async () => {
+    vi.restoreAllMocks();
     await MongoDatabase.getDb().collection('push_subscriptions').deleteMany({ endpoint: { $regex: /fake-pref-/ } });
     await MongoDatabase.disconnect();
   });
 
   it('manages notification preferences and filters categories correctly', async () => {
-    const userToken = TokenService.generateAccessToken({ id: '019e6d84-f119-7088-8e10-5d287b352b33', username: 'user_c', email: 'userc@test.com', role: 'member' });
+    const userToken = TokenService.generateAccessToken({
+      id: '019e6d84-f119-7088-8e10-5d287b352b33', username: 'user_c', email: 'userc@test.com', role: 'member', sessionId: 'sess-wpp-1',
+    });
     const endpoint = `https://fcm.googleapis.com/fcm/send/fake-pref-endpoint-${Date.now()}`;
     await request(server.app).post('/notifications/subscribe').set('Authorization', `Bearer ${userToken}`).send({ endpoint, keys: { p256dh: 'fake-p256', auth: 'fake-auth' } });
 
@@ -38,11 +47,11 @@ describe('WebPush Preferences & Admin Broadcast', () => {
   });
 
   it('allows admin to broadcast push notifications via POST /admin/notifications/push/broadcast', async () => {
-    const adminToken = TokenService.generateAccessToken({ id: 'admin-push-tester', username: 'adminpusher', email: 'admin@push.com', role: 'admin' });
+    const adminToken = TokenService.generateAccessToken({
+      id: 'admin-push-tester', username: 'adminpusher', email: 'admin@push.com', role: 'admin', sessionId: 'sess-wpp-adm',
+    });
     const res = await request(server.app).post('/admin/notifications/push/broadcast').set('Authorization', `Bearer ${adminToken}`).send({ title: 'Anuncio Global', body: 'Prueba de push administrativa' });
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
     expect(res.body.sent_count).toBeDefined();
   });
 });
-

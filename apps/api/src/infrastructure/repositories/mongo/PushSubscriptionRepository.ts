@@ -2,6 +2,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { PushPreferences, DEFAULT_PUSH_PREFERENCES } from '@oomfy/shared';
 import { MongoDatabase } from '../../database/mongo/MongoDatabase.js';
 import { MongoIdHelper } from './MongoIdHelper.js';
+import { ForbiddenError } from '../../../errors/AppError.js';
 
 export interface PushSubscriptionData {
   endpoint: string;
@@ -17,11 +18,22 @@ export class PushSubscriptionRepository {
     if (typeof data?.endpoint !== 'string' || !data.endpoint.trim()) return;
     const col = this.getCollection();
     const now = new Date().toISOString();
-    const updateSet = { user_id: MongoIdHelper.toMongoId(userId), endpoint: data.endpoint, keys: data.keys, is_active: true, status: 'active', updated_at: now };
+    const mongoUid = MongoIdHelper.toMongoId(userId);
+    const updateSet = { user_id: mongoUid, endpoint: data.endpoint, keys: data.keys, is_active: true, status: 'active', updated_at: now };
+
     if (typeof previousEndpoint === 'string' && previousEndpoint.trim() && previousEndpoint !== data.endpoint) {
       const prev = await col.updateOne(this.buildScopedFilter(userId, previousEndpoint), { $set: updateSet });
       if (prev.matchedCount > 0) return;
     }
+
+    const existing = await col.findOne({ endpoint: data.endpoint });
+    if (existing && existing.is_active !== false) {
+      const sameOwner = MongoIdHelper.idVariants(userId).some((v) => String(v) === String(existing.user_id));
+      if (!sameOwner) {
+        throw new ForbiddenError('Esta suscripción push ya está registrada en otra cuenta activa.');
+      }
+    }
+
     const id = uuidv7();
     await col.updateOne(
       { endpoint: data.endpoint },
@@ -52,12 +64,11 @@ export class PushSubscriptionRepository {
   }
 
   public static async updatePreferences(userId: string, preferences: Partial<PushPreferences>, endpoint?: string | null): Promise<PushPreferences> {
-    const col = this.getCollection();
     const setUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
     for (const [k, v] of Object.entries(preferences)) {
       if (typeof v === 'boolean') setUpdates[`preferences.${k}`] = v;
     }
-    await col.updateMany(this.buildScopedFilter(userId, endpoint), { $set: setUpdates });
+    await this.getCollection().updateMany(this.buildScopedFilter(userId, endpoint), { $set: setUpdates });
     return (await this.getPreferences(userId, endpoint)).preferences;
   }
 
@@ -72,9 +83,10 @@ export class PushSubscriptionRepository {
   }
 
   public static async markExpired(endpoint: string): Promise<void> {
-    await this.getCollection().updateOne(
-      { endpoint },
-      { $set: { is_active: false, status: 'expired', updated_at: new Date().toISOString() } }
-    );
+    await this.getCollection().updateOne({ endpoint }, { $set: { is_active: false, status: 'expired', updated_at: new Date().toISOString() } });
+  }
+
+  public static async deleteByUserId(userId: string): Promise<void> {
+    await this.getCollection().deleteMany({ user_id: { $in: MongoIdHelper.idVariants(userId) } });
   }
 }

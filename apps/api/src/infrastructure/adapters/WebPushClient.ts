@@ -36,7 +36,7 @@ export class WebPushClient {
     return JSON.stringify({
       title: payload.title || 'oomfy',
       body: payload.body || '',
-      icon: payload.icon || '/assets/logo/oomfy-logo.png',
+      icon: payload.icon || '/assets/oomfy-logo-black-bg.png',
       url: payload.url || '/notifications',
     });
   }

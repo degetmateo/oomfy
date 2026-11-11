@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { FileFilterCallback } from 'multer';
 import { BadRequestError } from '../errors/AppError.js';
+import { stripImageMetadata } from '../utils/ImageMetadataStripper.js';
 
 const ALLOWED_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
@@ -29,7 +30,7 @@ export function validateUploadedImages(req: Request, _res: Response, next: NextF
     if (!hasValidImageSignature(file.buffer)) {
       return next(new BadRequestError('Archivo corrupto o tipo de imagen no válido.'));
     }
+    file.buffer = stripImageMetadata(file.buffer);
   }
   next();
 }
-

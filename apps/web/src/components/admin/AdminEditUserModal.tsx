@@ -1,14 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, UserCheck } from 'lucide-react';
 import { AdminUserSummary, Role } from '@oomfy/shared';
 import { ApiClient } from '../../services/api.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 
-interface Props {
-  user: AdminUserSummary | null;
-  onClose: () => void;
-  onSuccess: () => void;
-}
+interface Props { user: AdminUserSummary | null; onClose: () => void; onSuccess: () => void; }
 
 export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }) => {
   const dialog = useDialogStore();
@@ -19,6 +15,11 @@ export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }
   const [status, setStatus] = useState<string>(user?.status || 'active');
   const [role, setRole] = useState<Role>(user?.role || 'member');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setName(user?.name || ''); setUsername(user?.username || ''); setEmail(user?.email || '');
+    setPassword(''); setStatus(user?.status || 'active'); setRole(user?.role || 'member');
+  }, [user]);
 
   if (!user) return null;
 
@@ -70,18 +71,13 @@ export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }
             <div>
               <label className="block text-[10px] uppercase text-dark-muted mb-1">Estado</label>
               <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full bg-dark-card border border-dark-border p-2 text-white text-xs">
-                <option value="active">Activo</option>
-                <option value="pending">Pendiente</option>
-                <option value="suspended">Suspendido</option>
+                <option value="active">Activo</option><option value="pending">Pendiente</option><option value="suspended">Suspendido</option>
               </select>
             </div>
             <div>
               <label className="block text-[10px] uppercase text-dark-muted mb-1">Rol</label>
               <select value={role} onChange={(e) => setRole(e.target.value as Role)} className="w-full bg-dark-card border border-dark-border p-2 text-white text-xs">
-                <option value="member">Miembro</option>
-                <option value="mod">Mod</option>
-                <option value="tester">Tester</option>
-                <option value="admin">Admin</option>
+                <option value="member">Miembro</option><option value="mod">Mod</option><option value="tester">Tester</option><option value="admin">Admin</option>
               </select>
             </div>
           </div>

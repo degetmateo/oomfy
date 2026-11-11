@@ -7,7 +7,7 @@ async function bootstrap() {
   try {
     console.log('🟨 Conectando a servicios de almacenamiento...');
     await MongoDatabase.connect();
-    await MongoMigrationRunner.run();
+    await MongoMigrationRunner.ensureIndexes();
     await PostgresPool.getInstance().query('SELECT 1');
     console.log('🟩 Conectado a PostgreSQL.');
 

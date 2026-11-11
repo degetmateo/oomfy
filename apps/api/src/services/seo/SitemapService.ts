@@ -1,8 +1,6 @@
-import { DEFAULT_TOPICS as SHARED_TOPICS, SITE_URL as BASE_URL } from '@oomfy/shared';
+import { DEFAULT_TOPICS, SITE_URL as BASE_URL } from '@oomfy/shared';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
 import { escapeHtml as esc } from '../../utils/HtmlEscapeHelper.js';
-
-const DEFAULT_TOPICS = [...SHARED_TOPICS, 'tecnologia', 'retro'];
 
 export class SitemapService {
   public static getRobotsTxt(): string {
@@ -58,7 +56,7 @@ export class SitemapService {
   public static async getUsersSitemap(): Promise<string> {
     try {
       const users = await MongoDatabase.getDb().collection('members')
-        .find({ $or: [{ publication_count: { $gt: 0 } }, { follower_count: { $gt: 0 } }, { bio: { $nin: [null, ''] } }] })
+        .find({ status: { $nin: ['suspended', 'pending'] }, $or: [{ publication_count: { $gt: 0 } }, { follower_count: { $gt: 0 } }, { bio: { $nin: [null, ''] } }] })
         .project({ username: 1, updated_at: 1, created_at: 1 }).limit(5000).toArray();
       return this.wrapUrlSet(users.filter((u) => u.username).map((u) => ({
         loc: `${BASE_URL}/${encodeURIComponent(u.username)}`,

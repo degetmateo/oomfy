@@ -44,7 +44,7 @@ describe('Composers Emoji Portal, Clipboard Paste & Mobile Keyboard GIFs', () =>
 
     const chatView = wrap(<ChatInputBar replyingTo={null} onCancelReply={vi.fn()} onSendMessage={vi.fn()} onTyping={vi.fn()} />);
     fireEvent.paste(chatView.getByPlaceholderText('Escribe un mensaje...'), { clipboardData: dt });
-    expect(chatView.getByText('screenshot.png')).toBeInTheDocument();
+    expect(chatView.getByAltText('screenshot.png')).toBeInTheDocument();
   });
 
   it('attaches GIFs inserted from mobile keyboard beforeinput dataTransfer in posts and chats', () => {

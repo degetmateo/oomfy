@@ -9,9 +9,12 @@ export * from './types/chat.js';
 export * from './types/session.js';
 export * from './types/admin.js';
 export * from './types/report.js';
+export * from './schemas/url.schemas.js';
+export * from './schemas/common.schemas.js';
 export * from './schemas/auth.schemas.js';
 export * from './schemas/user.schemas.js';
 export * from './schemas/publication.schemas.js';
 export * from './schemas/chat.schemas.js';
 export * from './schemas/push.schemas.js';
-
+export * from './schemas/report.schemas.js';
+export * from './schemas/admin.schemas.js';

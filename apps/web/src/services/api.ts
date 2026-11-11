@@ -1,89 +1,88 @@
-import { resolveApiBaseUrl } from '../utils/apiBase';
+import { resolveApiBaseUrl } from '../utils/apiBase.js';
+import { getAccessToken, setAccessToken } from './sessionTokenMemory.js';
 
 export class ApiClient {
-  public static getBaseUrl(): string {
-    return resolveApiBaseUrl(true);
-  }
-
+  private static readonly BASE_URL = resolveApiBaseUrl(false);
   private static refreshPromise: Promise<string | null> | null = null;
 
-  public static async refreshSession(): Promise<string | null> {
+  public static async refreshAccessToken(): Promise<string | null> {
     if (this.refreshPromise) return this.refreshPromise;
 
     this.refreshPromise = (async () => {
       try {
-        const base = this.getBaseUrl();
-        const refreshToken = localStorage.getItem('oomfy_refresh_token');
-        const refreshRes = await fetch(`${base}/auth/refresh`, {
+        const res = await fetch(`${this.BASE_URL}/auth/refresh`, {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken }),
         });
-
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          if (refreshData.accessToken) {
-            localStorage.setItem('oomfy_token', refreshData.accessToken);
-            if (refreshData.refreshToken) {
-              localStorage.setItem('oomfy_refresh_token', refreshData.refreshToken);
-            }
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('auth:token-refreshed', { detail: refreshData }));
-            }
-            return refreshData.accessToken as string;
-          }
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data?.success && data.accessToken) {
+          setAccessToken(data.accessToken);
+          window.dispatchEvent(new CustomEvent('auth:token-refreshed', { detail: { accessToken: data.accessToken } }));
+          return data.accessToken as string;
         }
+        return null;
       } catch {
+        return null;
+      } finally {
+        this.refreshPromise = null;
       }
-
-      localStorage.removeItem('oomfy_token');
-      localStorage.removeItem('oomfy_refresh_token');
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('auth:unauthorized'));
-      }
-      return null;
-    })().finally(() => {
-      this.refreshPromise = null;
-    });
+    })();
 
     return this.refreshPromise;
   }
 
   public static async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = localStorage.getItem('oomfy_token');
-    const headers = new Headers(options.headers || {});
-    if (token) headers.set('Authorization', `Bearer ${token}`);
-    if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
-    }
+    const token = getAccessToken();
+    const isFormData = options.body instanceof FormData;
+    const headers: Record<string, string> = {
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers as Record<string, string>),
+    };
 
-    const base = this.getBaseUrl();
-    const res = await fetch(`${base}${endpoint}`, { ...options, credentials: 'include', headers });
-    const isAuthRoute = ['/auth/signin', '/auth/signup', '/auth/refresh', '/auth/logout'].some((p) => endpoint.includes(p));
+    const res = await fetch(`${this.BASE_URL}${endpoint}`, { ...options, credentials: 'include', headers });
 
-    if (res.status === 401 && !isAuthRoute) {
-      const hasSessionToken = Boolean(localStorage.getItem('oomfy_token') || localStorage.getItem('oomfy_refresh_token'));
-      if (hasSessionToken) {
-        const newAccessToken = await this.refreshSession();
-        if (newAccessToken) {
-          headers.set('Authorization', `Bearer ${newAccessToken}`);
-          const retryRes = await fetch(`${base}${endpoint}`, { ...options, credentials: 'include', headers });
-          const retryData = await retryRes.json().catch(() => ({}));
-          if (!retryRes.ok) throw new Error(retryData.message || 'Error en la petición.');
-          return retryData as T;
-        }
+    if (res.status === 401 && !endpoint.includes('/auth/')) {
+      const hadToken = Boolean(token);
+      const newToken = hadToken ? await this.refreshAccessToken() : null;
+      if (newToken) {
+        headers.Authorization = `Bearer ${newToken}`;
+        const retryRes = await fetch(`${this.BASE_URL}${endpoint}`, { ...options, credentials: 'include', headers });
+        const retryData = await retryRes.json().catch(() => ({}));
+        if (!retryRes.ok) throw new Error(retryData.message || 'Error en la petición.');
+        return retryData as T;
+      }
+      if (hadToken) {
+        setAccessToken(null);
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
       }
     }
 
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || 'Error en la petición al servidor.');
+    if (!res.ok) throw new Error(data.message || `Error ${res.status}: ${res.statusText}`);
     return data as T;
   }
 
-  public static get<T>(url: string): Promise<T> { return this.request<T>(url, { method: 'GET' }); }
-  public static post<T>(url: string, body?: any): Promise<T> { return this.request<T>(url, { method: 'POST', body: body instanceof FormData ? body : JSON.stringify(body) }); }
-  public static put<T>(url: string, body?: any): Promise<T> { return this.request<T>(url, { method: 'PUT', body: body instanceof FormData ? body : JSON.stringify(body) }); }
-  public static patch<T>(url: string, body?: any): Promise<T> { return this.request<T>(url, { method: 'PATCH', body: body instanceof FormData ? body : JSON.stringify(body) }); }
-  public static delete<T>(url: string): Promise<T> { return this.request<T>(url, { method: 'DELETE' }); }
+  public static get<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: 'GET' });
+  }
+  public static post<T>(endpoint: string, body?: any, options?: RequestInit): Promise<T> {
+    const isFormData = body instanceof FormData;
+    return this.request<T>(endpoint, { ...options, method: 'POST', body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined });
+  }
+  public static put<T>(endpoint: string, body?: any, options?: RequestInit): Promise<T> {
+    const isFormData = body instanceof FormData;
+    return this.request<T>(endpoint, { ...options, method: 'PUT', body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined });
+  }
+  public static patch<T>(endpoint: string, body?: any, options?: RequestInit): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: 'PATCH', body: body !== undefined ? JSON.stringify(body) : undefined });
+  }
+  public static delete<T>(endpoint: string, body?: any, options?: RequestInit): Promise<T> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'DELETE',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  }
 }

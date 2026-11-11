@@ -1,15 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Image, Film, Smile } from 'lucide-react';
-import { Publication } from '@oomfy/shared';
+import { LIMITS, Publication } from '@oomfy/shared';
 import { ApiClient } from '../../services/api.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
-import { KlipyGifModal } from './KlipyGifModal.js';
-import { EmojiPickerMenu } from '../common/EmojiPickerMenu.js';
-import { ImageCropperModal } from '../common/ImageCropperModal.js';
 import { ComposerAttachmentPreviews } from '../common/ComposerAttachmentPreviews.js';
 import { PublicationQuotedPreview } from './PublicationQuotedPreview.js';
+import { PublicationComposerToolbar } from './PublicationComposerToolbar.js';
 import { PublicationCacheService } from '../../services/PublicationCacheService.js';
 import { useComposerMedia } from '../../hooks/useComposerMedia.js';
 
@@ -25,11 +22,8 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
   const { isAuthenticated } = useAuthStore();
   const dialog = useDialogStore();
   const [content, setContent] = useState('');
-  const [showGifModal, setShowGifModal] = useState(false);
-  const [showEmojiMenu, setShowEmojiMenu] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const emojiBtnRef = useRef<HTMLButtonElement>(null);
-  const media = useComposerMedia({ allowCrop: true, cropTitle: 'Recortar imagen', maxGifs: 4, maxTotal: 4, maxLength: 500 });
+  const media = useComposerMedia({ allowCrop: true, cropTitle: 'Recortar imagen', maxGifs: 4, maxTotal: 4, maxLength: LIMITS.POST_CONTENT_MAX });
 
   if (!isAuthenticated) return null;
 
@@ -49,41 +43,43 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
       if (quotedPublication) {
         PublicationCacheService.applyPatch(queryClient, quotedPublication.id, (p) => ({ ...p, is_quoted: true, quotes_count: (p.quotes_count || 0) + 1 }), quotedPublication);
       }
-      setContent(''); media.clearMedia(); onRemoveQuoted?.();
+      setContent('');
+      media.clearMedia();
+      onRemoveQuoted?.();
       PublicationCacheService.invalidatePublicationLists(queryClient);
       onCreated?.();
-    } catch (err) { dialog.alert((err as Error).message, 'Error al publicar'); }
-    finally { setIsSubmitting(false); }
+    } catch (err) {
+      dialog.alert((err as Error).message, 'Error al publicar');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <>
-      <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-b border-dark-border bg-dark-bg font-mono">
-        <textarea ref={media.attachTextareaRef} autoFocus={autoFocus} value={content} onChange={(e) => setContent(e.target.value)} onPaste={media.handlePaste} placeholder={quotedPublication ? 'Añade un comentario...' : '¿Qué estás pensando?'} rows={3} maxLength={500} className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans" />
-        {quotedPublication && <PublicationQuotedPreview quotedPublication={quotedPublication} onRemove={onRemoveQuoted} />}
-        <ComposerAttachmentPreviews files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-dark-border">
-          <div className="flex items-center gap-2 text-dark-muted relative">
-            <label className="p-1.5 hover:text-brand-400 cursor-pointer transition-colors border border-transparent hover:border-dark-border" title="Subir imagen/GIF">
-              <Image className="w-4 h-4" />
-              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { media.attachFiles(Array.from(e.target.files || [])); e.target.value = ''; }} />
-            </label>
-            <button type="button" onClick={() => setShowGifModal(true)} className="p-1.5 hover:text-brand-400 transition-colors border border-transparent hover:border-dark-border" title="Buscar GIF"><Film className="w-4 h-4" /></button>
-            <div className="relative">
-              <button ref={emojiBtnRef} type="button" onClick={() => setShowEmojiMenu((v) => !v)} className={`p-1.5 transition-colors border border-transparent hover:border-dark-border ${showEmojiMenu ? 'text-brand-400' : 'hover:text-brand-400'}`} title="Emojis"><Smile className="w-4 h-4" /></button>
-              <EmojiPickerMenu isOpen={showEmojiMenu} anchorRef={emojiBtnRef} onClose={() => setShowEmojiMenu(false)} onSelectEmoji={(emoji) => media.insertEmoji(emoji, content, setContent)} position="bottom" />
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] text-dark-muted">{content.length}/500</span>
-            <button type="submit" disabled={isSubmitting || !hasContent} className="px-4 py-1.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-black font-bold text-xs uppercase tracking-wider pixel-button transition-colors">
-              {isSubmitting ? 'Publicando...' : 'Publicar'}
-            </button>
-          </div>
-        </div>
-      </form>
-      <KlipyGifModal isOpen={showGifModal} onClose={() => setShowGifModal(false)} onSelect={(url: string) => { media.attachGifUrl(url); setShowGifModal(false); }} />
-      <ImageCropperModal file={media.cropQueue.currentFile} isOpen={media.cropQueue.isCropping} aspectRatio={media.cropQueue.options.aspectRatio ?? 'free'} title={media.cropQueue.options.title ?? 'Recortar imagen'} allowAspectChange={media.cropQueue.options.allowAspectChange ?? true} onCrop={media.cropQueue.handleCrop} onClose={media.cropQueue.handleClose} />
-    </>
+    <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-b border-dark-border bg-dark-bg font-mono">
+      <textarea
+        ref={media.attachTextareaRef}
+        autoFocus={autoFocus}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        onPaste={media.handlePaste}
+        placeholder={quotedPublication ? 'Añade un comentario...' : '¿Qué estás pensando?'}
+        rows={3}
+        maxLength={LIMITS.POST_CONTENT_MAX}
+        className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans"
+      />
+      {quotedPublication && <PublicationQuotedPreview quotedPublication={quotedPublication} onRemove={onRemoveQuoted} />}
+      <ComposerAttachmentPreviews files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
+      <PublicationComposerToolbar
+        content={content}
+        onChangeContent={setContent}
+        media={media}
+        isSubmitting={isSubmitting}
+        hasContent={hasContent}
+        submitLabel="Publicar"
+        submittingLabel="Publicando..."
+        cropTitle="Recortar imagen"
+      />
+    </form>
   );
 };

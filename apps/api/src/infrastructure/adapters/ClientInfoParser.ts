@@ -1,13 +1,8 @@
 import { Request } from 'express';
-import requestIp from 'request-ip';
 
 export class ClientInfoParser {
   public static extractClientIp(req: Request): string {
-    const rawIp =
-      req.ip ||
-      (req.socket?.remoteAddress ? req.socket.remoteAddress : requestIp.getClientIp(req)) ||
-      '127.0.0.1';
-
+    const rawIp = req.ip || req.socket?.remoteAddress || '127.0.0.1';
     if (rawIp === '::1' || rawIp === '::ffff:127.0.0.1') {
       return '127.0.0.1';
     }
@@ -19,14 +14,12 @@ export class ClientInfoParser {
 
   public static parseDevicePlatform(userAgent?: string): string {
     if (!userAgent) return 'Web Desconocido';
-
     const ua = userAgent.toLowerCase();
     let os = 'Dispositivo';
-    let browser = '';
+    let browser = 'Navegador Web';
 
     if (ua.includes('android')) os = 'Android';
     else if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) os = 'iOS';
-    else if (ua.includes('windows phone')) os = 'Windows Phone';
     else if (ua.includes('windows nt 10.0')) os = 'Windows 10/11';
     else if (ua.includes('windows')) os = 'Windows';
     else if (ua.includes('macintosh') || ua.includes('mac os x')) os = 'macOS';
@@ -39,9 +32,7 @@ export class ClientInfoParser {
     else if (ua.includes('chrome/') || ua.includes('crios/')) browser = 'Chrome';
     else if (ua.includes('firefox/') || ua.includes('fxios/')) browser = 'Firefox';
     else if (ua.includes('safari/') && !ua.includes('chrome/')) browser = 'Safari';
-    else browser = 'Navegador Web';
 
     return `${os} • ${browser}`;
   }
 }
-

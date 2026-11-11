@@ -1,5 +1,5 @@
 export const SITE_URL = 'https://oomfy.online';
-export const API_PROD_URL = 'https://api-oomfy.onrender.com';
+export const API_PROD_URL = 'https://api.oomfy.online';
 
 export const DEFAULT_TOPICS = [
   'gaming',
@@ -8,5 +8,6 @@ export const DEFAULT_TOPICS = [
   'musica',
   'pixel-art',
   'anime',
+  'tecnologia',
+  'retro',
 ] as const;
-

@@ -1,15 +1,35 @@
 import { v7 as uuidv7 } from 'uuid';
 import { CreateReportInput, Report, ReportStatus } from '@oomfy/shared';
 import { MongoReportRepository } from '../../infrastructure/repositories/mongo/MongoReportRepository.js';
+import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
+import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
+import { MongoMessageRepository } from '../../infrastructure/repositories/mongo/MongoMessageRepository.js';
 import { BadRequestError, NotFoundError } from '../../errors/AppError.js';
 
 export class ReportService {
-  public static async createReport(
-    reporter: { id: string; username: string },
-    input: CreateReportInput
-  ): Promise<Report> {
-    if (!input.target_id || !input.target_type || !input.reason) {
-      throw new BadRequestError('Faltan campos obligatorios para enviar el reporte.');
+  public static async createReport(reporter: { id: string; username: string }, input: CreateReportInput): Promise<Report> {
+    if (!input.target_type || !input.target_id || !input.reason?.trim()) {
+      throw new BadRequestError('Faltan datos obligatorios para generar el reporte.');
+    }
+
+    let verifiedUsername: string | null = input.target_username || null;
+    let verifiedContent: string | null = input.target_content || null;
+
+    if (input.target_type === 'publication') {
+      const pub = await MongoPublicationRepository.findById(input.target_id);
+      if (!pub) throw new NotFoundError('Publicación reportada no encontrada.');
+      verifiedUsername = pub.author.username;
+      verifiedContent = pub.content ? pub.content.slice(0, 300) : null;
+    } else if (input.target_type === 'user') {
+      const member = await MongoMemberRepository.findById(input.target_id) || await MongoMemberRepository.findByUsername(input.target_id);
+      if (!member) throw new NotFoundError('Usuario reportado no encontrado.');
+      verifiedUsername = member.username;
+      verifiedContent = member.bio ? member.bio.slice(0, 300) : null;
+    } else if (input.target_type === 'message') {
+      const msg = await MongoMessageRepository.findById(input.target_id);
+      if (!msg) throw new NotFoundError('Mensaje reportado no encontrado.');
+      verifiedUsername = msg.sender?.username || null;
+      verifiedContent = msg.content ? msg.content.slice(0, 300) : null;
     }
 
     const report: Report = {
@@ -18,50 +38,27 @@ export class ReportService {
       reporter_username: reporter.username,
       target_type: input.target_type,
       target_id: input.target_id,
-      target_username: input.target_username || null,
-      target_content: input.target_content || null,
+      target_username: verifiedUsername,
+      target_content: verifiedContent,
       reason: input.reason.trim(),
-      details: input.details ? input.details.trim() : null,
+      details: input.details?.trim() || null,
       status: 'pending',
       created_at: new Date().toISOString(),
-      resolved_at: null,
-      resolved_by: null,
     };
 
     await MongoReportRepository.create(report);
     return report;
   }
 
-  public static async listReports(
-    status?: ReportStatus,
-    page: number = 1,
-    limit: number = 20
-  ): Promise<{ reports: Report[]; total: number; page: number; totalPages: number }> {
-    const safePage = Math.max(1, page);
-    const safeLimit = Math.min(50, Math.max(1, limit));
-    const skip = (safePage - 1) * safeLimit;
-
-    const { reports, total } = await MongoReportRepository.list(status, safeLimit, skip);
-    return {
-      reports,
-      total,
-      page: safePage,
-      totalPages: Math.ceil(total / safeLimit) || 1,
-    };
+  public static async listReports(status?: ReportStatus, page: number = 1, limit: number = 30) {
+    return MongoReportRepository.list(status, Math.max(1, page || 1), Math.min(Math.max(1, limit || 30), 50));
   }
 
-  public static async resolveReport(
-    reportId: string,
-    status: ReportStatus,
-    resolvedBy: string
-  ): Promise<{ message: string }> {
-    const report = await MongoReportRepository.findById(reportId);
-    if (!report) {
-      throw new NotFoundError('Reporte no encontrado.');
-    }
-
-    await MongoReportRepository.updateStatus(reportId, status, resolvedBy);
-    return { message: `Reporte actualizado a estado ${status}.` };
+  public static async resolveReport(id: string, status: 'resolved' | 'dismissed', adminUsername: string): Promise<{ message: string }> {
+    const existing = await MongoReportRepository.findById(id);
+    if (!existing) throw new NotFoundError('Reporte no encontrado.');
+    if (!['resolved', 'dismissed'].includes(status)) throw new BadRequestError('Estado de resolución inválido.');
+    await MongoReportRepository.updateStatus(id, status, adminUsername);
+    return { message: `Reporte marcado como ${status}.` };
   }
 }
-

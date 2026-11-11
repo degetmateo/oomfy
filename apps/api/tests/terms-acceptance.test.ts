@@ -33,6 +33,7 @@ describe('Terms & Privacy Acceptance Flow (API)', () => {
       username: 'legacy_user',
       email: 'legacy@oomfy.online',
       role: 'member',
+      sessionId: 'sess-terms-1',
     });
 
     const acceptedUser: any = {
@@ -45,7 +46,11 @@ describe('Terms & Privacy Acceptance Flow (API)', () => {
     };
 
     vi.spyOn(MongoMemberRepository, 'acceptTerms').mockResolvedValue(acceptedUser);
-    vi.spyOn(PostgresPool, 'getInstance').mockReturnValue({ query: vi.fn().mockResolvedValue({}) } as any);
+    vi.spyOn(PostgresPool, 'getInstance').mockReturnValue({
+      query: vi.fn().mockImplementation(async (sql: string) =>
+        sql.includes('FROM session') ? { rows: [{ id: 'sess-terms-1', status: 'active', role: 'member' }] } : { rows: [] }
+      ),
+    } as any);
     const spy = vi.spyOn(ProfileService, 'acceptTerms');
 
     const res = await request(server.app)

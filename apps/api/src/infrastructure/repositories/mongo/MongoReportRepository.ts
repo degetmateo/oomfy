@@ -4,80 +4,66 @@ import { MongoIdHelper } from './MongoIdHelper.js';
 
 export class MongoReportRepository {
   private static getCollection() {
-    return MongoDatabase.getDb().collection<Report>('reports');
+    return MongoDatabase.getDb().collection<any>('reports');
   }
 
   public static async create(report: Report): Promise<void> {
-    const col = this.getCollection();
-    const id = report.id;
-    const idUuid = MongoIdHelper.toMongoId(id);
-    const reporterUuid = MongoIdHelper.toMongoId(report.reporter_id);
-    const targetUuid = MongoIdHelper.toMongoId(report.target_id);
-    await col.insertOne({
+    await this.getCollection().insertOne({
       ...report,
-      _id: idUuid,
-      id,
-      reporter_id: reporterUuid,
-      target_id: targetUuid,
-    } as any);
+      _id: MongoIdHelper.toMongoId(report.id),
+      id: report.id,
+      reporter_id: MongoIdHelper.toMongoId(report.reporter_id),
+      target_id: MongoIdHelper.toMongoId(report.target_id),
+    });
   }
 
-  public static async list(
-    status?: ReportStatus,
-    limit: number = 20,
-    skip: number = 0
-  ): Promise<{ reports: Report[]; total: number }> {
+  public static async list(status?: ReportStatus, page: number = 1, limit: number = 30): Promise<{ reports: Report[]; pendingCount: number }> {
     const col = this.getCollection();
+    const safeLimit = Math.min(Math.max(1, limit || 30), 100);
+    const safeSkip = Math.max(0, (Math.max(1, page || 1) - 1) * safeLimit);
     const query: any = {};
     if (status) query.status = status;
 
-    const [reports, total] = await Promise.all([
-      col.find(query).sort({ created_at: -1 }).skip(skip).limit(limit).toArray(),
-      col.countDocuments(query),
+    const [docs, pendingCount] = await Promise.all([
+      col.find(query).sort({ created_at: -1 }).skip(safeSkip).limit(safeLimit).toArray(),
+      col.countDocuments({ status: 'pending' }),
     ]);
 
-    return {
-      reports: reports.map((r: any) => ({
-        ...r,
-        id: String(r.id || r._id),
-        reporter_id: String(r.reporter_id),
-        target_id: String(r.target_id),
-        resolved_by: r.resolved_by ? String(r.resolved_by) : null,
-      })),
-      total,
-    };
+    const reports: Report[] = docs.map((d: any) => ({
+      id: String(d.id || d._id),
+      reporter_id: String(d.reporter_id),
+      reporter_username: d.reporter_username,
+      target_type: d.target_type,
+      target_id: String(d.target_id),
+      target_username: d.target_username || null,
+      target_content: d.target_content || null,
+      reason: d.reason,
+      details: d.details || null,
+      status: d.status || 'pending',
+      created_at: d.created_at instanceof Date ? d.created_at.toISOString() : String(d.created_at),
+      resolved_at: d.resolved_at ? String(d.resolved_at) : null,
+      resolved_by: d.resolved_by ? String(d.resolved_by) : null,
+    }));
+
+    return { reports, pendingCount };
   }
 
   public static async findById(id: string): Promise<Report | null> {
-    const col = this.getCollection();
-    const r = await col.findOne(MongoIdHelper.idFilter(id) as any);
-    if (!r) return null;
+    const doc = await this.getCollection().findOne(MongoIdHelper.idFilter(id));
+    if (!doc) return null;
     return {
-      ...r,
-      id: String((r as any).id || (r as any)._id),
-      reporter_id: String((r as any).reporter_id),
-      target_id: String((r as any).target_id),
-      resolved_by: (r as any).resolved_by ? String((r as any).resolved_by) : null,
+      ...doc,
+      id: String(doc.id || doc._id),
+      reporter_id: String(doc.reporter_id),
+      target_id: String(doc.target_id),
+      created_at: doc.created_at instanceof Date ? doc.created_at.toISOString() : String(doc.created_at),
     };
   }
 
-  public static async updateStatus(
-    id: string,
-    status: ReportStatus,
-    resolvedBy: string
-  ): Promise<boolean> {
-    const col = this.getCollection();
-    const resolvedByUuid = MongoIdHelper.toMongoId(resolvedBy);
-    const result = await col.updateOne(
-      MongoIdHelper.idFilter(id) as any,
-      {
-        $set: {
-          status,
-          resolved_at: new Date().toISOString(),
-          resolved_by: resolvedByUuid,
-        },
-      }
-    );
-    return result.modifiedCount > 0;
+  public static async updateStatus(id: string, status: ReportStatus, resolvedBy: string): Promise<boolean> {
+    const res = await this.getCollection().updateOne(MongoIdHelper.idFilter(id), {
+      $set: { status, resolved_at: new Date().toISOString(), resolved_by: resolvedBy },
+    });
+    return res.modifiedCount > 0;
   }
 }

@@ -6,10 +6,11 @@ import { Header } from '../components/layout/Header.js';
 import { PublicationCard } from '../components/publication/PublicationCard.js';
 import { SeoHead } from '../components/common/SeoHead.js';
 import { useCursorFeed } from '../hooks/useCursorFeed.js';
+import { UrlHelper } from '../utils/UrlHelper.js';
 
 export const TopicHubView: React.FC = () => {
   const { tag = 'comunidad' } = useParams<{ tag: string }>();
-  const cleanTag = decodeURIComponent(tag).replace(/^#/, '').toLowerCase();
+  const cleanTag = UrlHelper.decodeParamSafe(tag).replace(/^#/, '').toLowerCase();
 
   const { posts, isLoading, isFetchingNextPage, hasNextPage, refetch, loadMoreRef } = useCursorFeed({
     queryKey: ['topic-hub', cleanTag],

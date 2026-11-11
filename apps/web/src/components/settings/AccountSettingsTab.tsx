@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ApiClient } from '../../services/api.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
+import { AccountLifecycleSection } from './AccountLifecycleSection.js';
 
 export const AccountSettingsTab: React.FC = () => {
   const { user, setUser } = useAuthStore();
@@ -30,6 +31,7 @@ export const AccountSettingsTab: React.FC = () => {
   };
 
   return (
+    <div className="flex flex-col">
     <form onSubmit={handleUpdateUsername} className="flex flex-col gap-4">
       <div>
         <h3 className="text-sm font-bold text-white mb-1">Nombre de Usuario</h3>
@@ -57,6 +59,8 @@ export const AccountSettingsTab: React.FC = () => {
         {savingUsername ? 'Guardando...' : 'Actualizar @'}
       </button>
     </form>
+    <AccountLifecycleSection />
+    </div>
   );
 };
 

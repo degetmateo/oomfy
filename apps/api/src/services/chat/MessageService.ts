@@ -21,7 +21,7 @@ export class MessageService {
     }
   }
 
-  public static async sendMessage(chatId: string, sender: { id: string; username: string; name: string }, payload: SendMessagePayload | string): Promise<ChatMessage> {
+  public static async sendMessage(chatId: string, sender: { id: string; username: string; name: string; role?: string }, payload: SendMessagePayload | string): Promise<ChatMessage> {
     await this.requireParticipant(chatId, sender.id);
     const data: SendMessagePayload = typeof payload === 'string' ? { content: payload } : payload;
     const content = data.content?.trim() || '';
@@ -29,7 +29,7 @@ export class MessageService {
     const senderMember = await MongoMemberRepository.findById(sender.id);
     const senderObj = {
       id: sender.id, username: sender.username, name: senderMember?.name || sender.name || sender.username,
-      role: (sender as any).role || 'member', icon_url: senderMember?.icon_url || null, banner_url: null,
+      role: sender.role || senderMember?.role || 'member', icon_url: senderMember?.icon_url || null, banner_url: null,
     };
 
     let replyTo: any = null;
@@ -58,7 +58,7 @@ export class MessageService {
   public static async getChatMessages(chatId: string, userId: string, limit = 30, olderId?: string): Promise<any[]> {
     await this.requireParticipant(chatId, userId);
     await MongoMessageRepository.markChatMessagesAsRead(chatId, userId);
-    return MongoMessageRepository.listChatMessages(chatId, limit, olderId);
+    return MongoMessageRepository.listChatMessages(chatId, Math.min(Math.max(1, limit || 30), 50), olderId);
   }
 
   public static async getUnreadCount(userId: string): Promise<number> {
@@ -70,14 +70,13 @@ export class MessageService {
     await MongoMessageRepository.markChatMessagesAsRead(chatId, userId);
   }
 
-  public static async deleteMessage(id: string, requesterId?: string, requesterRole?: string): Promise<boolean> {
+  public static async deleteMessage(id: string, requesterId: string, requesterRole?: string): Promise<boolean> {
+    if (!requesterId) throw new ForbiddenError('Autenticación requerida.');
     const msg = await MongoMessageRepository.findById(id);
     if (!msg) throw new NotFoundError('Mensaje no encontrado.');
-    if (requesterId) {
-      const isOwner = msg.sender_id === requesterId || (msg.sender as any)?.id === requesterId;
-      const isStaff = requesterRole === 'admin' || requesterRole === 'mod';
-      if (!isOwner && !isStaff) throw new ForbiddenError('No tienes permisos para eliminar este mensaje.');
-    }
+    const isOwner = msg.sender_id === requesterId || (msg.sender as any)?.id === requesterId;
+    const isStaff = requesterRole === 'admin' || requesterRole === 'mod';
+    if (!isOwner && !isStaff) throw new ForbiddenError('No tienes permisos para eliminar este mensaje.');
     const deleted = await MongoMessageRepository.deleteMessage(id);
     if (deleted && msg.chat_id) SocketGateway.broadcastDeleteMessage(msg.chat_id, id);
     return deleted;

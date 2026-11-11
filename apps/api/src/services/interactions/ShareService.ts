@@ -1,88 +1,88 @@
 import { v7 as uuidv7 } from 'uuid';
-import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
-import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
-import { NotificationDispatcher } from '../notifications/NotificationDispatcher.js';
-import { PublicationSnippetHelper } from '../publications/PublicationSnippetHelper.js';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
+import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
+import { NotificationDispatcher } from '../notifications/NotificationDispatcher.js';
 import { NotFoundError } from '../../errors/AppError.js';
 
 export class ShareService {
-  public static async share(
-    publicationId: string,
-    user: { id: string; username: string; name: string; role: any; icon_url?: string }
-  ): Promise<{ shared: boolean; shares_count: number }> {
-    const target = await MongoPublicationRepository.findById(publicationId);
-    if (!target) throw new NotFoundError('Publicación no encontrada.');
+  private static getPublicationsCol() {
+    return MongoDatabase.getDb().collection<any>('publications');
+  }
 
-    const col = MongoDatabase.getDb().collection('publications');
-    const uVars = MongoIdHelper.idVariants(user.id);
-    const pVars = MongoIdHelper.idVariants(publicationId);
+  public static async share(
+    pubId: string,
+    user: { id: string; username: string; name: string; role: string }
+  ): Promise<{ shared: boolean; shares_count: number }> {
+    const pub = await MongoPublicationRepository.findById(pubId);
+    if (!pub) throw new NotFoundError('Publicación no encontrada.');
+
+    const col = this.getPublicationsCol();
+    const userVariants = MongoIdHelper.idVariants(user.id);
+    const pubVariants = MongoIdHelper.idVariants(pubId);
+
     const existing = await col.findOne({
       type: 'shared',
-      $or: [{ 'author.id': { $in: uVars } }, { 'author._id': { $in: uVars } }],
-      $and: [{ $or: [{ target_publication_id: { $in: pVars } }, { parent_publication_id: { $in: pVars } }] }],
+      $and: [
+        { $or: [{ 'author.id': { $in: userVariants } }, { 'author._id': { $in: userVariants } }] },
+        { $or: [{ parent_publication_id: { $in: pubVariants } }, { target_publication_id: { $in: pubVariants } }] },
+      ],
     });
-    if (existing) return this.unshare(publicationId, user.id);
+    if (existing) {
+      return { shared: true, shares_count: pub.shares_count || 0 };
+    }
 
-    const sender = await MongoMemberRepository.findById(user.id);
-    const sharePost = {
+    const shareDoc = {
       id: uuidv7(),
-      author: {
-        id: user.id,
-        username: user.username,
-        name: sender?.name || user.name || user.username,
-        role: user.role,
-        icon_url: sender?.icon_url || `/members/${user.username}/icon`,
-        banner_url: null,
-      },
+      author: { id: user.id, username: user.username, name: user.name, role: user.role as any, icon_url: `/members/${user.username}/icon`, banner_url: `/members/${user.username}/banner` },
       type: 'shared' as const,
       content: null,
       created_at: new Date().toISOString(),
-      parent_publication_id: publicationId,
-      root_publication_id: target.root_publication_id || publicationId,
-      target_publication_id: publicationId,
-      images: [], media_urls: [], upvotes_count: 0, replies_count: 0, quotes_count: 0, shares_count: 0,
+      parent_publication_id: pubId,
+      root_publication_id: null,
+      thread_ids: [],
+      images: [],
+      embeds: [],
+      upvotes_count: 0, shares_count: 0, quotes_count: 0, comments_count: 0,
+      target_publication: pub,
     };
 
-    await MongoPublicationRepository.create(sharePost as any);
-    await MongoPublicationRepository.incrementCounters(publicationId, { shares_count: 1 });
+    await MongoPublicationRepository.create(shareDoc);
+    await MongoPublicationRepository.incrementCounters(pubId, { shares_count: 1 });
+    await NotificationDispatcher.dispatch({
+      recipientId: pub.author.id,
+      sender: user,
+      type: 'share',
+      targetPublicationId: pubId,
+      push: {
+        title: `${user.name} compartió`,
+        body: pub.content ? `"${pub.content.slice(0, 80)}"` : 'tu publicación.',
+        url: `/publication/${pubId}`,
+        category: 'shares',
+      },
+    });
 
-    if (target.author.id !== user.id) {
-      await NotificationDispatcher.dispatch({
-        recipientId: target.author.id,
-        sender: sharePost.author,
-        type: 'share',
-        targetPublicationId: publicationId,
-        push: {
-          title: `${user.name} compartió`,
-          body: PublicationSnippetHelper.extractSnippet(target),
-          url: `/publication/${publicationId}`,
-          category: 'shares',
-        },
-      });
-    }
-
-    return { shared: true, shares_count: target.shares_count + 1 };
+    return { shared: true, shares_count: (pub.shares_count || 0) + 1 };
   }
 
   public static async unshare(pubId: string, userId: string): Promise<{ shared: boolean; shares_count: number }> {
-    const target = await MongoPublicationRepository.findById(pubId);
-    if (!target) throw new NotFoundError('Publicación no encontrada.');
+    const pub = await MongoPublicationRepository.findById(pubId);
+    if (!pub) throw new NotFoundError('Publicación no encontrada.');
 
-    const col = MongoDatabase.getDb().collection('publications');
-    const uVars = MongoIdHelper.idVariants(userId);
-    const pVars = MongoIdHelper.idVariants(pubId);
-    const result = await col.deleteOne({
+    const userVariants = MongoIdHelper.idVariants(userId);
+    const pubVariants = MongoIdHelper.idVariants(pubId);
+
+    const res = await this.getPublicationsCol().deleteMany({
       type: 'shared',
-      $or: [{ 'author.id': { $in: uVars } }, { 'author._id': { $in: uVars } }],
-      $and: [{ $or: [{ target_publication_id: { $in: pVars } }, { parent_publication_id: { $in: pVars } }] }],
+      $and: [
+        { $or: [{ 'author.id': { $in: userVariants } }, { 'author._id': { $in: userVariants } }] },
+        { $or: [{ parent_publication_id: { $in: pubVariants } }, { target_publication_id: { $in: pubVariants } }] },
+      ],
     });
 
-    if (result.deletedCount > 0) {
-      await MongoPublicationRepository.incrementCounters(pubId, { shares_count: -1 });
-      return { shared: false, shares_count: Math.max(0, target.shares_count - 1) };
-    }
-    return { shared: false, shares_count: target.shares_count };
+    const deletedCount = res.deletedCount ?? 0;
+    if (deletedCount > 0) await MongoPublicationRepository.incrementCounters(pubId, { shares_count: -1 });
+    const currentCount = pub.shares_count || 0;
+    return { shared: false, shares_count: deletedCount > 0 ? Math.max(0, currentCount - 1) : currentCount };
   }
 }

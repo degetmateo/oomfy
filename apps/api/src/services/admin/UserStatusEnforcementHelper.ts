@@ -8,9 +8,18 @@ export class UserStatusEnforcementHelper {
       await PostgresSessionRepository.revokeUserSessions(userId);
       AuthSessionValidator.suspendUser(userId);
       SocketGateway.disconnectUser(userId);
+    } else if (status === 'pending') {
+      await PostgresSessionRepository.revokeUserSessions(userId);
+      AuthSessionValidator.revokeUserBefore(userId);
+      SocketGateway.disconnectUser(userId);
     } else if (status === 'active') {
       AuthSessionValidator.unsuspendUser(userId);
     }
   }
-}
 
+  public static async revokeForSecurityChange(userId: string): Promise<void> {
+    await PostgresSessionRepository.revokeUserSessions(userId);
+    AuthSessionValidator.revokeUserBefore(userId);
+    SocketGateway.disconnectUser(userId);
+  }
+}

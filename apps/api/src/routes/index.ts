@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { createRateLimiter } from '../middlewares/RateLimiter.js';
 import authRoutes from './auth.routes.js';
 import profileRoutes from './profile.routes.js';
 import publicationRoutes from './publication.routes.js';
@@ -14,6 +15,7 @@ import { adminRouter } from './admin.routes.js';
 import seoRoutes from './seo.routes.js';
 
 const apiRouter = Router();
+apiRouter.use(createRateLimiter({ windowMs: 60_000, max: 180, prefix: 'global' }));
 
 apiRouter.use('/', seoRoutes);
 apiRouter.use('/auth', authRoutes);
