@@ -1,12 +1,8 @@
+import { resolveApiBaseUrl } from '../utils/apiBase';
+
 export class ApiClient {
   public static getBaseUrl(): string {
-    if (import.meta.env.VITE_API_URL) {
-      return `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}`;
-    }
-    if (import.meta.env.PROD && typeof window !== 'undefined' && window.location.hostname.includes('oomfy.online')) {
-      return 'https://api-oomfy.onrender.com';
-    }
-    return '';
+    return resolveApiBaseUrl(true);
   }
 
   private static refreshPromise: Promise<string | null> | null = null;
@@ -39,7 +35,6 @@ export class ApiClient {
           }
         }
       } catch {
-        // Network error during refresh
       }
 
       localStorage.removeItem('oomfy_token');

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { Publication } from '@oomfy/shared';
+import { DEFAULT_TOPICS as HOME_TOPICS, Publication, SITE_URL } from '@oomfy/shared';
 import { Header } from '../components/layout/Header.js';
 import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { SeoHead } from '../components/common/SeoHead.js';
@@ -11,7 +11,6 @@ import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
 
-const HOME_TOPICS = ['gaming', 'arte-digital', 'desarrollo-web', 'musica', 'pixel-art', 'anime'];
 
 export const HomeView: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
@@ -42,7 +41,7 @@ export const HomeView: React.FC = () => {
           title="oomfy — Para la oomfiada"
           description="Explora publicaciones, debates, arte digital, gaming y comunidades en tiempo real en oomfy."
           canonicalPath="/"
-          jsonLd={{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'oomfy', url: 'https://oomfy.online' }}
+          jsonLd={{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'oomfy', url: SITE_URL }}
         />
         <Header title="Inicio" onRefresh={() => refetch()} />
 

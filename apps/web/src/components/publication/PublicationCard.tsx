@@ -50,8 +50,20 @@ export const PublicationCard: React.FC<Props> = ({ post, onDelete }) => {
 
   return (
     <article {...cardHandlers} className="p-3 sm:p-4 border-b border-dark-border hover:bg-dark-card/40 transition-colors flex gap-3 cursor-pointer font-mono relative">
-      <div className="flex-shrink-0 cursor-pointer" data-no-card-nav="true">
-        <PixelAvatar src={post.author.icon_url} username={post.author.username} sizeClass="w-12 h-12" onClick={(e) => { e.stopPropagation(); navigate(`/${post.author.username}`); }} />
+      <div className="flex-shrink-0 cursor-pointer" data-no-card-nav="true"
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/publication/${post.id}`);
+        }}>
+        <PixelAvatar
+          src={post.author.icon_url}
+          username={post.author.username}
+          sizeClass="w-12 h-12"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/${post.author.username}`);
+          }}
+        />
       </div>
       <div className="flex-1 min-w-0">
         {post.type === 'reply' && (

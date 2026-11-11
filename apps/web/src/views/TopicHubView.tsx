@@ -2,14 +2,13 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Hash } from 'lucide-react';
-import { Publication } from '@oomfy/shared';
+import { DEFAULT_TOPICS as POPULAR_TOPICS, Publication } from '@oomfy/shared';
 import { Header } from '../components/layout/Header.js';
 import { PublicationCard } from '../components/publication/PublicationCard.js';
 import { SeoHead } from '../components/common/SeoHead.js';
 import { ApiClient } from '../services/api.js';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
 
-const POPULAR_TOPICS = ['gaming', 'arte-digital', 'desarrollo-web', 'musica', 'pixel-art', 'anime'];
 
 export const TopicHubView: React.FC = () => {
   const { tag = 'comunidad' } = useParams<{ tag: string }>();

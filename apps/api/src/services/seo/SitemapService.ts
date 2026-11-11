@@ -1,7 +1,7 @@
+import { DEFAULT_TOPICS as SHARED_TOPICS, SITE_URL as BASE_URL } from '@oomfy/shared';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
 
-const BASE_URL = 'https://oomfy.online';
-const DEFAULT_TOPICS = ['gaming', 'arte-digital', 'desarrollo-web', 'musica', 'pixel-art', 'anime', 'tecnologia', 'retro'];
+const DEFAULT_TOPICS = [...SHARED_TOPICS, 'tecnologia', 'retro'];
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 

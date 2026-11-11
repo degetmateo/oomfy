@@ -37,7 +37,6 @@ export class SignupService {
       status: 'pending',
     });
 
-    // Sincronizar inmediatamente en MongoDB members con aceptación explícita de términos
     await MongoMemberRepository.createOrUpdate({
       id: user.id,
       username: user.username,

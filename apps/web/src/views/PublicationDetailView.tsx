@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
-import { Publication } from '@oomfy/shared';
+import { Publication, SITE_URL } from '@oomfy/shared';
 import { Header } from '../components/layout/Header.js';
 import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { SeoHead } from '../components/common/SeoHead.js';
@@ -58,7 +58,7 @@ export const PublicationDetailView: React.FC = () => {
   const snippet = (publication.content || 'Publicación multimedia').replace(/\s+/g, ' ').trim();
   const plain = snippet.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\s]/gu, '');
   const isThin = plain.length < 15 && (!publication.images || publication.images.length === 0);
-  const ogImg = publication.images?.[0]?.url || `https://oomfy.online/og/user/${publication.author.username}`;
+  const ogImg = publication.images?.[0]?.url || `${SITE_URL}/og/user/${publication.author.username}`;
 
   const handleDelete = async () => {
     const confirmed = await dialog.confirm({ title: 'Eliminar publicación', message: '¿Estás seguro de que deseas eliminar esta publicación? Esta acción no se puede deshacer.', isDanger: true });
@@ -71,7 +71,7 @@ export const PublicationDetailView: React.FC = () => {
 
   const jsonLd = {
     '@context': 'https://schema.org', '@type': 'SocialMediaPosting', headline: snippet.slice(0, 110), articleBody: publication.content || '', datePublished: publication.created_at,
-    author: { '@type': 'Person', name: publication.author.name, url: `https://oomfy.online/${publication.author.username}` },
+    author: { '@type': 'Person', name: publication.author.name, url: `${SITE_URL}/${publication.author.username}` },
     interactionStatistic: [
       { '@type': 'InteractionCounter', interactionType: 'https://schema.org/LikeAction', userInteractionCount: publication.upvotes_count || 0 },
       { '@type': 'InteractionCounter', interactionType: 'https://schema.org/CommentAction', userInteractionCount: publication.comments_count || replies.length },

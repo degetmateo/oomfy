@@ -15,7 +15,7 @@ export class ForgotPasswordService {
     if (user && user.email) {
       const resetId = uuidv7();
       const token = uuidv7();
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
       await PostgresPool.getInstance().query(
         `INSERT INTO password_reset (id, user_id, token, expires_at) VALUES ($1, $2, $3, $4)`,

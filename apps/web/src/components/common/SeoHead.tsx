@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-
-const BASE_URL = 'https://oomfy.online';
+import { SITE_URL as BASE_URL } from '@oomfy/shared';
 
 export interface SeoHeadProps {
   title: string;

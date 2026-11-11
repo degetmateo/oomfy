@@ -48,7 +48,7 @@ describe('PublicationCacheService', () => {
       pages: [{ data: [samplePost] }],
     });
 
-    const initial = PublicationCacheService.getInitialDetailData(queryClient, 'post-test-123');
+    const initial = PublicationCacheService.getPlaceholderDetailData(queryClient, 'post-test-123');
     expect(initial).toBeDefined();
     expect(initial?.publication.id).toBe('post-test-123');
     expect(initial?.replies).toEqual([]);

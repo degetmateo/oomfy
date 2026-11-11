@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { PublicUser, Publication } from '@oomfy/shared';
+import { PublicUser, Publication, SITE_URL } from '@oomfy/shared';
 import { Header } from '../components/layout/Header.js';
 import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { SeoHead } from '../components/common/SeoHead.js';
@@ -59,8 +59,8 @@ export const ProfileView: React.FC = () => {
           <SeoHead
             title={`${user.name} (@${user.username}) — Perfil y Publicaciones | Oomfy`}
             description={(user.bio || `Mira las últimas publicaciones, fotos y actividad de ${user.name} (@${user.username}) en Oomfy.`).slice(0, 155)}
-            canonicalPath={`/${user.username}`} ogImage={`https://oomfy.online/og/user/${user.username}`} ogType="profile" noIndex={isThinProfile}
-            jsonLd={{ '@context': 'https://schema.org', '@type': 'ProfilePage', mainEntity: { '@type': 'Person', name: user.name, alternateName: `@${user.username}`, description: user.bio || '', image: user.icon_url || `https://oomfy.online/og/user/${user.username}`, url: `https://oomfy.online/${user.username}` } }}
+            canonicalPath={`/${user.username}`} ogImage={`${SITE_URL}/og/user/${user.username}`} ogType="profile" noIndex={isThinProfile}
+            jsonLd={{ '@context': 'https://schema.org', '@type': 'ProfilePage', mainEntity: { '@type': 'Person', name: user.name, alternateName: `@${user.username}`, description: user.bio || '', image: user.icon_url || `${SITE_URL}/og/user/${user.username}`, url: `${SITE_URL}/${user.username}` } }}
           />
         )}
         <Header title={user?.name || `@${username}`} subtitle={`${user?.publication_count || 0} publicaciones`} onRefresh={handleRefresh} />

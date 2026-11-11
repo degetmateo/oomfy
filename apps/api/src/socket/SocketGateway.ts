@@ -1,8 +1,8 @@
 import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
+import { SECURITY_HEADER_VALUES } from '@oomfy/shared';
 import { TokenService } from '../infrastructure/adapters/TokenService.js';
 import { MessageService } from '../services/chat/MessageService.js';
-import { APP_SECURITY_HEADERS } from '../middlewares/SecurityHeaders.js';
 
 export class SocketGateway {
   private static io: Server | null = null;
@@ -11,7 +11,7 @@ export class SocketGateway {
   public static initialize(server: HttpServer): void {
     this.io = new Server(server, { cors: { origin: (_o, cb) => cb(null, true), credentials: true } });
     (this.io as any).engine?.on('headers', (headers: Record<string, any>) => {
-      Object.assign(headers, APP_SECURITY_HEADERS);
+      Object.assign(headers, SECURITY_HEADER_VALUES);
     });
     this.io.use((socket, next) => {
       const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];

@@ -43,7 +43,6 @@ export class AuthGuard {
       try {
         req.user = TokenService.verifyAccessToken(token);
       } catch {
-        // Ignorar token inválido para rutas opcionales
       }
     }
     next();

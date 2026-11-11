@@ -22,7 +22,6 @@ describe('useDialogStore', () => {
     expect(state.type).toBe('danger');
     expect(state.confirmText).toBe('Sí, borrar');
 
-    // Confirm it
     state.handleConfirm();
     const result = await promise;
     expect(result).toBe(true);

@@ -7,15 +7,12 @@ export class PublicationCacheService {
   public static findInCache(queryClient: QueryClient, id?: string): Publication | undefined {
     if (!id) return undefined;
 
-    // 1. Check existing publication detail cache
     const detail = queryClient.getQueryData<{ publication?: Publication }>(['publication', id]);
     if (detail?.publication) return detail.publication;
 
-    // 2. Check preview map
     const preview = this.previewMap.get(id);
     if (preview) return preview;
 
-    // 3. Check feed cache (infinite query)
     const feed = queryClient.getQueryData<{ pages?: { data: Publication[] }[]; data?: Publication[] }>(['feed']);
     if (feed?.pages) {
       for (const page of feed.pages) {
@@ -27,7 +24,6 @@ export class PublicationCacheService {
       if (found) return found;
     }
 
-    // 4. Check user-posts cache across profile views
     const queries = queryClient.getQueryCache().findAll({ queryKey: ['user-posts'] });
     for (const q of queries) {
       const qData = q.state.data as { pages?: { data: Publication[] }[]; data?: Publication[] } | undefined;
@@ -55,11 +51,6 @@ export class PublicationCacheService {
       has_more_ancestors: false,
       replies: [],
     };
-  }
-
-  // Alias for backward compatibility
-  public static getInitialDetailData(queryClient: QueryClient, id?: string) {
-    return this.getPlaceholderDetailData(queryClient, id);
   }
 
   public static primePublication(_queryClient: QueryClient, post: Publication): void {

@@ -23,7 +23,6 @@ export class MongoMigrationRunner {
     const db: Db = await MongoDatabase.connect();
     console.log('🟨 Asegurando colecciones e índices en MongoDB...');
 
-    // 1. Colección publications
     const publications = db.collection('publications');
     await this.safeCreateIndex(publications, { created_at: -1 });
     await this.safeCreateIndex(publications, { type: 1, created_at: -1 });
@@ -33,29 +32,24 @@ export class MongoMigrationRunner {
     await this.safeCreateIndex(publications, { root_publication_id: 1 });
     await this.safeCreateIndex(publications, { type: 1 });
 
-    // 2. Colección members
     const members = db.collection('members');
     await this.safeCreateIndex(members, { username: 1 });
     await this.safeCreateIndex(members, { created_at: -1 });
     await members.updateMany({ terms_accepted: { $exists: false } }, { $set: { terms_accepted: false } });
 
-    // 3. Colección follows
     const follows = db.collection('follows');
     await this.safeCreateIndex(follows, { follower_id: 1, followed_id: 1 });
     await this.safeCreateIndex(follows, { 'follower.username': 1 });
     await this.safeCreateIndex(follows, { 'followed.username': 1 });
 
-    // 4. Colección upvotes
     const upvotes = db.collection('upvotes');
     await this.safeCreateIndex(upvotes, { user_id: 1, publication_id: 1 });
     await this.safeCreateIndex(upvotes, { publication_id: 1 });
 
-    // 5. Colección notifications
     const notifications = db.collection('notifications');
     await this.safeCreateIndex(notifications, { recipient_id: 1, created_at: -1 });
     await this.safeCreateIndex(notifications, { recipient_id: 1, status: 1 });
 
-    // 5. Normalización de fechas de publicaciones (conversión segura de strings a BSON Date)
     const stringDocs = await publications.find({ created_at: { $type: 'string' } }).toArray();
     if (stringDocs.length > 0) {
       console.log(`🟨 Normalizando ${stringDocs.length} fechas string en publicaciones...`);
@@ -68,7 +62,6 @@ export class MongoMigrationRunner {
       console.log(`🟩 ${stringDocs.length} fechas normalizadas a BSON Date.`);
     }
 
-    // 6. Normalización y migración de _id a UUID BSON en colecciones secundarias
     await UuidMigrationService.migrateAll();
 
     console.log('🟩 Índices y colecciones de MongoDB asegurados con éxito.');

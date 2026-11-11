@@ -1,3 +1,5 @@
+import { resolveApiBaseUrl } from './apiBase';
+
 export function resolveMediaUrl(url?: string | null): string | null {
   if (!url) return null;
   if (
@@ -9,12 +11,7 @@ export function resolveMediaUrl(url?: string | null): string | null {
     return url;
   }
   if (url.startsWith('/members/') || url.startsWith('/api')) {
-    const apiBase = import.meta.env.VITE_API_URL
-      ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
-      : import.meta.env.PROD
-      ? 'https://api-oomfy.onrender.com'
-      : '';
-    return `${apiBase}${url}`;
+    return `${resolveApiBaseUrl(false)}${url}`;
   }
   return url;
 }
