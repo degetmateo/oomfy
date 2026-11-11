@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TokenRefreshService } from '../src/services/auth/TokenRefreshService.js';
 import { TokenService } from '../src/infrastructure/adapters/TokenService.js';
+import { PostgresPool } from '../src/infrastructure/database/postgres/PostgresPool.js';
 import { PostgresSessionRepository } from '../src/infrastructure/repositories/postgres/PostgresSessionRepository.js';
 import { PostgresUserRepository } from '../src/infrastructure/repositories/postgres/PostgresUserRepository.js';
 
@@ -49,5 +50,44 @@ describe('TokenRefreshService (DB-Backed Sliding Session Refresh)', () => {
     const decodedAccess = TokenService.verifyAccessToken(result.accessToken);
     expect(decodedAccess.sessionId).toBe('sess-1');
     expect(decodedAccess.name).toBe('Alice Updated');
+  });
+
+  it('tolerates concurrent multi-tab rotation within grace window without deleting session', async () => {
+    const payload = { id: 'u-1', username: 'alice', email: 'a@oomfy.online', role: 'member' as const, sessionId: 'sess-grace' };
+    const prevRefresh = TokenService.generateRefreshToken(payload);
+
+    vi.spyOn(PostgresSessionRepository, 'findByToken').mockResolvedValue({
+      id: 'sess-grace', user_id: 'u-1', token: 'hashed-r2', previous_token_hash: 'hashed-r1',
+      reused: false, rotatedFromPrevious: true, created_at: new Date().toISOString(),
+    });
+    vi.spyOn(PostgresUserRepository, 'findById').mockResolvedValue({
+      id: 'u-1', username: 'alice', name: 'Alice', email: 'a@oomfy.online', role: 'member', status: 'active',
+    } as any);
+    const updateSpy = vi.spyOn(PostgresSessionRepository, 'updateToken').mockResolvedValue();
+    const deleteSpy = vi.spyOn(PostgresSessionRepository, 'deleteById').mockResolvedValue(true);
+
+    const res = await TokenRefreshService.execute(prevRefresh);
+    expect(res.accessToken).toBeTruthy();
+    expect(res.refreshToken).not.toBe(prevRefresh);
+    expect(deleteSpy).not.toHaveBeenCalled();
+    expect(updateSpy).toHaveBeenCalledWith('sess-grace', res.refreshToken, undefined);
+  });
+
+  it('distinguishes concurrent grace window vs stale previous-token replay in PostgresSessionRepository', async () => {
+    const prevToken = 'raw-prev-token';
+    const prevHash = TokenService.hashToken(prevToken);
+    const queryMock = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ id: 's1', user_id: 'u1', token: 'new-hash', previous_token_hash: prevHash, within_grace: true }] })
+      .mockResolvedValueOnce({ rows: [{ id: 's1', user_id: 'u1', token: 'new-hash', previous_token_hash: prevHash, within_grace: false }] });
+    vi.spyOn(PostgresPool, 'getInstance').mockReturnValue({ query: queryMock } as any);
+
+    const withinGrace = await PostgresSessionRepository.findByToken(prevToken);
+    expect(withinGrace?.reused).toBe(false);
+    expect(withinGrace?.rotatedFromPrevious).toBe(true);
+
+    const staleReplay = await PostgresSessionRepository.findByToken(prevToken);
+    expect(staleReplay?.reused).toBe(true);
+    expect(staleReplay?.rotatedFromPrevious).toBe(false);
   });
 });

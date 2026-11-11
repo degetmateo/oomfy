@@ -1,45 +1,49 @@
 import { useEffect, useRef } from 'react';
 import { ApiClient } from '../services/api.js';
 import { PushNotificationService } from '../services/PushNotificationService.js';
+import { getAccessToken } from '../services/sessionTokenMemory.js';
 import { useAuthStore } from '../stores/authStore.js';
 
 export function useSessionInitializer(): void {
-  const { token, user, setToken, setUser, setLoading, logout } = useAuthStore();
-  const bootCheckedRef = useRef(false);
+  const bootPromiseRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
-    let active = true;
-    const syncSession = async () => {
-      let currentToken = token;
-      if (!currentToken && !bootCheckedRef.current) {
-        bootCheckedRef.current = true;
-        setLoading(true);
-        const refreshed = await ApiClient.refreshAccessToken();
-        if (!active) return;
-        if (refreshed) {
-          setToken(refreshed);
-          currentToken = refreshed;
-        } else {
-          setLoading(false);
-          return;
-        }
-      }
-      if (currentToken && !useAuthStore.getState().user) {
+    if (!bootPromiseRef.current) {
+      bootPromiseRef.current = (async () => {
         try {
-          const res = await ApiClient.get<any>('/members/me');
-          if (!active) return;
-          setUser(res.data);
-          if (PushNotificationService.isPermissionGranted()) {
-            PushNotificationService.syncSubscription().catch(() => {});
+          const store = useAuthStore.getState();
+          let currentToken = store.token || getAccessToken();
+
+          if (!currentToken) {
+            store.setLoading(true);
+            const refreshed = await ApiClient.refreshAccessToken();
+            if (refreshed) {
+              useAuthStore.getState().setToken(refreshed);
+              currentToken = refreshed;
+            } else {
+              return;
+            }
           }
-        } catch {
-          if (active) logout(false);
+
+          if (currentToken && !useAuthStore.getState().user) {
+            try {
+              const res = await ApiClient.get<any>('/members/me');
+              useAuthStore.getState().setUser(res.data);
+              if (PushNotificationService.isPermissionGranted()) {
+                PushNotificationService.syncSubscription().catch(() => {});
+              }
+            } catch (err) {
+              const status = (err as { status?: number })?.status;
+              if (status === 401 || status === 403) {
+                useAuthStore.getState().logout(false);
+              }
+            }
+          }
+        } finally {
+          useAuthStore.getState().setLoading(false);
         }
-      }
-      if (active) setLoading(false);
-    };
-    void syncSession();
-    return () => { active = false; };
-  }, [token, user, setToken, setUser, setLoading, logout]);
+      })();
+    }
+  }, []);
 }
 

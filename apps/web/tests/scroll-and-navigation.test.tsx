@@ -27,7 +27,7 @@ describe('Per-View Scroll Restoration & Guest Navigation Restrictions', () => {
     vi.spyOn(window, 'scrollTo').mockImplementation((arg: any, yArg?: number) => {
       currentY = typeof arg === 'object' ? arg.top ?? 0 : yArg ?? 0;
     });
-    useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
+    useAuthStore.setState({ user: null, token: null, isAuthenticated: false, isLoading: false });
   });
 
   it('isolates scroll per view and restores scroll when returning back', () => {

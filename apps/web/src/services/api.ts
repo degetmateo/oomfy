@@ -5,6 +5,10 @@ export class ApiClient {
   private static readonly BASE_URL = resolveApiBaseUrl(false);
   private static refreshPromise: Promise<string | null> | null = null;
 
+  private static createHttpError(message: string, status: number): Error {
+    return Object.assign(new Error(message), { status });
+  }
+
   public static async refreshAccessToken(): Promise<string | null> {
     if (this.refreshPromise) return this.refreshPromise;
 
@@ -50,7 +54,7 @@ export class ApiClient {
         headers.Authorization = `Bearer ${newToken}`;
         const retryRes = await fetch(`${this.BASE_URL}${endpoint}`, { ...options, credentials: 'include', headers });
         const retryData = await retryRes.json().catch(() => ({}));
-        if (!retryRes.ok) throw new Error(retryData.message || 'Error en la petición.');
+        if (!retryRes.ok) throw this.createHttpError(retryData.message || 'Error en la petición.', retryRes.status);
         return retryData as T;
       }
       if (hadToken) {
@@ -60,7 +64,7 @@ export class ApiClient {
     }
 
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || `Error ${res.status}: ${res.statusText}`);
+    if (!res.ok) throw this.createHttpError(data.message || `Error ${res.status}: ${res.statusText}`, res.status);
     return data as T;
   }
 

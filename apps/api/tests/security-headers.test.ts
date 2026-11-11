@@ -36,16 +36,19 @@ describe('Helmet Security Headers Middleware', () => {
     }
   });
 
-  it('sets Secure, HttpOnly, and SameSite=Lax on cookies in production', async () => {
+  it('sets Secure, HttpOnly, and SameSite=None on cookies in production and blocks untrusted origins', async () => {
     const origEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
     try {
-      const res = await request(server.app).post('/auth/logout');
+      const res = await request(server.app).post('/auth/logout').set('Host', 'api.oomfy.online').set('Origin', 'https://oomfy.online');
       const setCookie = res.headers['set-cookie'];
       const cookieStr = Array.isArray(setCookie) ? setCookie.join(';') : String(setCookie || '');
       expect(cookieStr).toContain('HttpOnly');
-      expect(cookieStr).toContain('SameSite=Lax');
+      expect(cookieStr).toContain('SameSite=None');
       expect(cookieStr).toContain('Secure');
+
+      const csrfRes = await request(server.app).post('/auth/refresh').set('Origin', 'https://evil.com');
+      expect(csrfRes.status).toBe(403);
     } finally {
       process.env.NODE_ENV = origEnv;
     }

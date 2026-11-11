@@ -72,7 +72,7 @@ export class ProfileController {
   public static async deleteMe(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await AccountLifecycleService.deleteMyAccount(req.user!.id, req.body.password);
-      AuthCookieHelper.clearRefreshCookie(res);
+      AuthCookieHelper.clearRefreshCookie(res, req);
       res.status(200).json({ success: true, ...result });
     } catch (err) { next(err); }
   }

@@ -1,22 +1,27 @@
 import { Pool, PoolConfig } from 'pg';
 import { Environment } from '../../../config/Environment.js';
 
+function resolveCaCert(raw?: string): string | undefined {
+  const clean = raw?.trim();
+  if (!clean) return undefined;
+  return clean.includes('BEGIN CERTIFICATE')
+    ? clean.replace(/\\n/g, '\n')
+    : Buffer.from(clean, 'base64').toString('utf8');
+}
+
 export class PostgresPool {
   private static instance: Pool | null = null;
 
   public static getInstance(): Pool {
     if (!this.instance) {
-      const hasCa = Boolean(Environment.PG_CA && Environment.PG_CA.trim().length > 0);
+      const ca = resolveCaCert(Environment.PG_CA);
       const isRemote = Boolean(Environment.PG_URI) || (Environment.PG_HOST !== 'localhost' && Environment.PG_HOST !== '127.0.0.1');
       const rejectUnauthorized = process.env.PG_SSL_REJECT_UNAUTHORIZED !== 'false';
 
       const config: PoolConfig = Environment.PG_URI
         ? {
             connectionString: Environment.PG_URI,
-            ssl: {
-              rejectUnauthorized,
-              ca: hasCa ? Buffer.from(Environment.PG_CA!, 'base64').toString() : undefined,
-            },
+            ssl: { rejectUnauthorized, ca },
           }
         : {
             host: Environment.PG_HOST,
@@ -24,7 +29,7 @@ export class PostgresPool {
             database: Environment.PG_DATABASE,
             user: Environment.PG_USER,
             password: Environment.PG_PASSWORD,
-            ssl: isRemote ? { rejectUnauthorized } : undefined,
+            ssl: isRemote ? { rejectUnauthorized, ca } : undefined,
             max: 20,
             idleTimeoutMillis: 30000,
           };

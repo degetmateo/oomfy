@@ -50,11 +50,12 @@ describe('Hito 49 Hardening: EXIF Strip, CORS, SSRF, Cookies, Verify & Account L
     process.env.NODE_ENV = 'production';
     try {
       vi.spyOn(SigninService, 'execute').mockResolvedValue({ accessToken: 'acc-1', refreshToken: 'ref-1', user: { id: 'u1', username: 'alice', role: 'member' } });
-      const res = await request(server.app).post('/auth/signin').send({ username: 'alice', password: 'Password123!' });
+      const res = await request(server.app).post('/auth/signin').set('Host', 'api.oomfy.online').send({ username: 'alice', password: 'Password123!' });
       expect(res.status).toBe(200);
       expect(res.body.refreshToken).toBeUndefined();
       const cookies = Array.isArray(res.headers['set-cookie']) ? res.headers['set-cookie'].join(';') : '';
       expect(cookies).toContain('Domain=.oomfy.online');
+      expect(cookies).toContain('SameSite=None');
       expect(cookies).toContain('HttpOnly');
       expect(cookies).toContain('Secure');
     } finally {

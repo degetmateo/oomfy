@@ -26,7 +26,7 @@ export class AuthController {
       const ip = ClientInfoParser.extractClientIp(req);
       const platform = ClientInfoParser.parseDevicePlatform(req.headers['user-agent']);
       const result = await VerifyService.execute(req.body.token, ip, platform);
-      AuthCookieHelper.setRefreshCookie(res, result.refreshToken);
+      AuthCookieHelper.setRefreshCookie(res, result.refreshToken, req);
       res.status(200).json({ success: true, accessToken: result.accessToken, user: result.user });
     } catch (err) { next(err); }
   }
@@ -36,20 +36,24 @@ export class AuthController {
       const ip = ClientInfoParser.extractClientIp(req);
       const platform = ClientInfoParser.parseDevicePlatform(req.headers['user-agent']);
       const result = await SigninService.execute(req.body, ip, platform);
-      AuthCookieHelper.setRefreshCookie(res, result.refreshToken);
+      AuthCookieHelper.setRefreshCookie(res, result.refreshToken, req);
       res.status(200).json({ success: true, accessToken: result.accessToken, user: result.user });
     } catch (err) { next(err); }
   }
 
   public static async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      AuthCookieHelper.assertAllowedCookieOrigin(req);
       const result = await TokenRefreshService.execute(req.cookies?.refresh_token);
-      AuthCookieHelper.setRefreshCookie(res, result.refreshToken);
+      AuthCookieHelper.setRefreshCookie(res, result.refreshToken, req);
       res.status(200).json({ success: true, accessToken: result.accessToken });
     } catch (err) { next(err); }
   }
 
-  public static async logout(req: Request, res: Response): Promise<void> {
+  public static async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      AuthCookieHelper.assertAllowedCookieOrigin(req);
+    } catch (err) { return next(err); }
     const refreshToken = req.cookies?.refresh_token;
     const accessToken = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : undefined;
     try {
@@ -69,7 +73,7 @@ export class AuthController {
       }
     } catch {}
     if (refreshToken) await PostgresSessionRepository.deleteByToken(refreshToken).catch(() => {});
-    AuthCookieHelper.clearRefreshCookie(res);
+    AuthCookieHelper.clearRefreshCookie(res, req);
     res.status(200).json({ success: true, message: 'Sesión cerrada con éxito.' });
   }
 

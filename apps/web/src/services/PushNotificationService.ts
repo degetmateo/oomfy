@@ -84,7 +84,7 @@ export class PushNotificationService {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (!sub) return { healthy: false, needsReconnect: true };
-      const statusRes = await PushPreferencesApi.getPreferences(sub.endpoint).catch(() => null);
+      const statusRes = await PushPreferencesApi.getPreferences(sub.endpoint);
       if (statusRes?.status === 'expired') return { healthy: false, needsReconnect: true };
       await this.syncSubscription();
       return { healthy: true, needsReconnect: false };

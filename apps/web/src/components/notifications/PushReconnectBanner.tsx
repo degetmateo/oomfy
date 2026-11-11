@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, X, RefreshCw } from 'lucide-react';
 import { PushNotificationService } from '../../services/PushNotificationService.js';
+import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 
 export const PushReconnectBanner: React.FC = () => {
+  const { isAuthenticated, isLoading, token } = useAuthStore();
   const [needsReconnect, setNeedsReconnect] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const dialog = useDialogStore();
 
   useEffect(() => {
+    if (!isAuthenticated || isLoading || !token) {
+      if (!isAuthenticated && !isLoading) setNeedsReconnect(false);
+      return;
+    }
     let isMounted = true;
     PushNotificationService.checkSubscriptionHealth().then((res) => {
       if (isMounted && res.needsReconnect) {
@@ -17,7 +23,7 @@ export const PushReconnectBanner: React.FC = () => {
       }
     });
     return () => { isMounted = false; };
-  }, []);
+  }, [isAuthenticated, isLoading, token]);
 
   if (!needsReconnect || isDismissed) return null;
 

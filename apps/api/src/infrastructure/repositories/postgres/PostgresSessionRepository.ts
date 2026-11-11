@@ -11,6 +11,7 @@ export interface SessionRecord {
   token: string;
   previous_token_hash?: string | null;
   reused?: boolean;
+  rotatedFromPrevious?: boolean;
   created_at: string;
 }
 
@@ -31,15 +32,14 @@ export class PostgresSessionRepository {
   public static async findByToken(token: string): Promise<SessionRecord | null> {
     const hash = TokenService.hashToken(token);
     const { rows } = await PostgresPool.getInstance().query(
-      `SELECT id, user_id, ip, platform, token, previous_token_hash, created_at
-       FROM session
-       WHERE (token = $1 OR previous_token_hash = $1) AND created_at > NOW() - INTERVAL '30 days'
-       LIMIT 1`,
+      `SELECT id, user_id, ip, platform, token, previous_token_hash, created_at, (last_active_at > NOW() - INTERVAL '15 seconds') AS within_grace
+       FROM session WHERE (token = $1 OR previous_token_hash = $1) AND created_at > NOW() - INTERVAL '30 days' LIMIT 1`,
       [hash]
     );
     if (!rows[0]) return null;
-    const row = rows[0] as SessionRecord;
-    return { ...row, reused: row.previous_token_hash === hash && row.token !== hash };
+    const row = rows[0] as SessionRecord & { within_grace?: boolean };
+    const isPrev = row.previous_token_hash === hash && row.token !== hash;
+    return { ...row, reused: isPrev && !row.within_grace, rotatedFromPrevious: isPrev && Boolean(row.within_grace) };
   }
 
   public static async updateToken(sessionId: string, newToken: string, previousToken?: string): Promise<void> {

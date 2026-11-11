@@ -47,7 +47,11 @@ export class TokenRefreshService {
     const newAccessToken = TokenService.generateAccessToken(tokenPayload);
     const newRefreshToken = TokenService.generateRefreshToken(tokenPayload);
 
-    await PostgresSessionRepository.updateToken(session.id, newRefreshToken, refreshToken);
+    await PostgresSessionRepository.updateToken(
+      session.id,
+      newRefreshToken,
+      session.rotatedFromPrevious ? undefined : refreshToken
+    );
 
     return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
