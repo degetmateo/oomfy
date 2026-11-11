@@ -13,11 +13,14 @@ export class ApiClient {
     if (this.refreshPromise) return this.refreshPromise;
 
     this.refreshPromise = (async () => {
+      const storedRefresh = typeof localStorage !== 'undefined' ? localStorage.getItem('oomfy_refresh_token') : null;
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(), storedRefresh ? 15_000 : 4_000) : null;
       try {
-        const storedRefresh = typeof localStorage !== 'undefined' ? localStorage.getItem('oomfy_refresh_token') : null;
         const res = await fetch(`${this.BASE_URL}/auth/refresh`, {
           method: 'POST',
           credentials: 'include',
+          ...(controller ? { signal: controller.signal } : {}),
           ...(storedRefresh ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: storedRefresh }) } : {}),
         });
         if (!res.ok) {
@@ -35,6 +38,7 @@ export class ApiClient {
       } catch {
         return null;
       } finally {
+        if (timer) clearTimeout(timer);
         this.refreshPromise = null;
       }
     })();
@@ -74,25 +78,14 @@ export class ApiClient {
     return data as T;
   }
 
-  public static get<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    return this.request<T>(endpoint, { ...options, method: 'GET' });
+  private static sendWithBody<T>(method: string, endpoint: string, body?: any, options?: RequestInit): Promise<T> {
+    const serialized = body instanceof FormData ? body : body !== undefined ? JSON.stringify(body) : undefined;
+    return this.request<T>(endpoint, { ...options, method, body: serialized });
   }
-  public static post<T>(endpoint: string, body?: any, options?: RequestInit): Promise<T> {
-    const isFormData = body instanceof FormData;
-    return this.request<T>(endpoint, { ...options, method: 'POST', body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined });
-  }
-  public static put<T>(endpoint: string, body?: any, options?: RequestInit): Promise<T> {
-    const isFormData = body instanceof FormData;
-    return this.request<T>(endpoint, { ...options, method: 'PUT', body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined });
-  }
-  public static patch<T>(endpoint: string, body?: any, options?: RequestInit): Promise<T> {
-    return this.request<T>(endpoint, { ...options, method: 'PATCH', body: body !== undefined ? JSON.stringify(body) : undefined });
-  }
-  public static delete<T>(endpoint: string, body?: any, options?: RequestInit): Promise<T> {
-    return this.request<T>(endpoint, {
-      ...options,
-      method: 'DELETE',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
-  }
+
+  public static get = <T>(ep: string, opts?: RequestInit) => this.request<T>(ep, { ...opts, method: 'GET' });
+  public static post = <T>(ep: string, body?: any, opts?: RequestInit) => this.sendWithBody<T>('POST', ep, body, opts);
+  public static put = <T>(ep: string, body?: any, opts?: RequestInit) => this.sendWithBody<T>('PUT', ep, body, opts);
+  public static patch = <T>(ep: string, body?: any, opts?: RequestInit) => this.sendWithBody<T>('PATCH', ep, body, opts);
+  public static delete = <T>(ep: string, body?: any, opts?: RequestInit) => this.sendWithBody<T>('DELETE', ep, body, opts);
 }

@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore.js';
 
 export const GuestBottomBanner: React.FC = () => {
-  const { isAuthenticated } = useAuthStore();
-  if (isAuthenticated) return null;
+  const { isAuthenticated, isLoading } = useAuthStore();
+  if (isLoading || isAuthenticated) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#12161f]/95 backdrop-blur border-t-2 border-brand-500 px-4 py-2.5 font-mono shadow-lg">

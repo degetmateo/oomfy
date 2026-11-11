@@ -53,5 +53,17 @@ export default defineConfig({
     port: Number(process.env.PORT) || 5173,
     headers: SECURITY_HEADER_VALUES,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('react-router') || id.includes('\\react\\') || id.includes('/react/') || id.includes('react-dom')) return 'vendor-react';
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          if (id.includes('@tanstack') || id.includes('zustand') || id.includes('socket.io') || id.includes('zod')) return 'vendor-data';
+        },
+      },
+    },
+  },
   test: { globals: true, environment: 'jsdom', setupFiles: './src/setupTests.ts' },
 });
