@@ -76,8 +76,7 @@ describe('TokenRefreshService (DB-Backed Sliding Session Refresh)', () => {
   it('distinguishes concurrent grace window vs stale previous-token replay in PostgresSessionRepository', async () => {
     const prevToken = 'raw-prev-token';
     const prevHash = TokenService.hashToken(prevToken);
-    const queryMock = vi
-      .fn()
+    const queryMock = vi.fn()
       .mockResolvedValueOnce({ rows: [{ id: 's1', user_id: 'u1', token: 'new-hash', previous_token_hash: prevHash, within_grace: true }] })
       .mockResolvedValueOnce({ rows: [{ id: 's1', user_id: 'u1', token: 'new-hash', previous_token_hash: prevHash, within_grace: false }] });
     vi.spyOn(PostgresPool, 'getInstance').mockReturnValue({ query: queryMock } as any);
@@ -89,5 +88,11 @@ describe('TokenRefreshService (DB-Backed Sliding Session Refresh)', () => {
     const staleReplay = await PostgresSessionRepository.findByToken(prevToken);
     expect(staleReplay?.reused).toBe(true);
     expect(staleReplay?.rotatedFromPrevious).toBe(false);
+  });
+
+  it('aborts executeAny immediately when token reuse security error is thrown', async () => {
+    const spy = vi.spyOn(TokenRefreshService, 'execute').mockRejectedValueOnce(new Error('La sesión ha sido cerrada por seguridad.'));
+    await expect(TokenRefreshService.executeAny(['reused', 'valid-backup'])).rejects.toThrow('por seguridad');
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

@@ -6,6 +6,20 @@ import { AuthSessionValidator } from './AuthSessionValidator.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
 
 export class TokenRefreshService {
+  public static async executeAny(candidates: string[]): Promise<{ accessToken: string; refreshToken: string }> {
+    if (candidates.length === 0) return this.execute('');
+    let lastErr: unknown;
+    for (const candidate of candidates) {
+      try {
+        return await this.execute(candidate);
+      } catch (err) {
+        lastErr = err;
+        if ((err as Error)?.message?.includes('por seguridad')) throw err;
+      }
+    }
+    throw lastErr;
+  }
+
   public static async execute(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
     if (!refreshToken) {
       throw new UnauthorizedError('Token de actualización requerido.');
