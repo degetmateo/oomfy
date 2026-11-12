@@ -8,7 +8,7 @@ import { PixelAvatar } from '../common/PixelAvatar.js';
 import { UrlHelper } from '../../utils/UrlHelper.js';
 import { formatRelativeTime, formatExactDateTime } from '../../utils/formatTime.js';
 import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
-import { usePublicationSnapshot } from '../../hooks/usePublicationSnapshot.js';
+import { usePublicationModel } from '../../hooks/usePublicationModel.js';
 
 interface Props {
   embeds?: any[];
@@ -17,7 +17,7 @@ interface Props {
 
 export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublication: rawTarget }) => {
   const navigate = useNavigate();
-  const targetPublication = usePublicationSnapshot(rawTarget);
+  const targetPublication = usePublicationModel(rawTarget) || rawTarget;
   const quoteHandlers = useCardClickGuard(() => {
     if (targetPublication?.id) navigate(`/publication/${targetPublication.id}`);
   });
@@ -30,7 +30,7 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
   };
 
   return (
-    <div className="mt-2.5 flex flex-col gap-2 font-mono">
+    <div className="mt-2.5 mb-2.5 flex flex-col gap-2 font-mono">
       {targetPublication && (
         <div
           data-no-card-nav="true"

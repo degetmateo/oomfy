@@ -43,8 +43,12 @@ export class QueryPublicationService {
     const hasMoreAncestors = totalAncestors > ancestorsLimit;
     const initialAncestors = hasMoreAncestors ? allAncestors.slice(-ancestorsLimit) : allAncestors;
 
+    const commentsCount = Math.max(publication.comments_count || 0, replies.length);
+    const upvotesCount = Math.max(publication.upvotes_count || 0, publication.is_upvoted ? 1 : 0);
+    const normalizedPub: Publication = { ...publication, comments_count: commentsCount, upvotes_count: upvotesCount };
+
     return {
-      publication,
+      publication: normalizedPub,
       ancestors: initialAncestors,
       total_ancestors: totalAncestors,
       has_more_ancestors: hasMoreAncestors,

@@ -14,9 +14,9 @@ export class MongoMemberMapper {
       icon_url: doc.icon?.url || doc.icon_url || null,
       banner_url: doc.banner?.url || doc.banner_url || null,
       created_at: doc.created_at || new Date().toISOString(),
-      follower_count: doc.follower_count || 0,
-      followed_count: doc.followed_count || 0,
-      publication_count: doc.publication_count || 0,
+      follower_count: Math.max(0, doc.follower_count || 0),
+      followed_count: Math.max(0, doc.followed_count || 0),
+      publication_count: Math.max(0, doc.publication_count || 0),
       terms_accepted: doc.terms_accepted === true,
       terms_accepted_at: doc.terms_accepted_at || null,
     };

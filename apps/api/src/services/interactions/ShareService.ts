@@ -29,9 +29,10 @@ export class ShareService {
       ],
     });
     if (existing) {
-      return { shared: true, shares_count: pub.shares_count || 0 };
+      return { shared: true, shares_count: Math.max(0, pub.shares_count || 0) };
     }
 
+    const currentShares = Math.max(0, pub.shares_count || 0);
     const shareDoc = {
       id: uuidv7(),
       author: { id: user.id, username: user.username, name: user.name, role: user.role as any, icon_url: `/members/${user.username}/icon`, banner_url: `/members/${user.username}/banner` },
@@ -44,7 +45,7 @@ export class ShareService {
       images: [],
       embeds: [],
       upvotes_count: 0, shares_count: 0, quotes_count: 0, comments_count: 0,
-      target_publication: pub,
+      target_publication: { ...pub, shares_count: currentShares + 1, is_shared: true },
     };
 
     await MongoPublicationRepository.create(shareDoc);
@@ -62,7 +63,7 @@ export class ShareService {
       },
     });
 
-    return { shared: true, shares_count: (pub.shares_count || 0) + 1 };
+    return { shared: true, shares_count: currentShares + 1 };
   }
 
   public static async unshare(pubId: string, userId: string): Promise<{ shared: boolean; shares_count: number }> {
@@ -82,7 +83,7 @@ export class ShareService {
 
     const deletedCount = res.deletedCount ?? 0;
     if (deletedCount > 0) await MongoPublicationRepository.incrementCounters(pubId, { shares_count: -1 });
-    const currentCount = pub.shares_count || 0;
+    const currentCount = Math.max(0, pub.shares_count || 0);
     return { shared: false, shares_count: deletedCount > 0 ? Math.max(0, currentCount - 1) : currentCount };
   }
 }

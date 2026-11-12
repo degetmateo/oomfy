@@ -46,7 +46,7 @@ describe('Hito 49 Hardening: EXIF Strip, CORS, SSRF, Cookies, Verify & Account L
     expect(isPrivateOrReservedIp('8.8.8.8')).toBe(false);
   });
 
-  it('sets host-only httpOnly cookie, purges legacy Domain=.oomfy.online shadow cookie, and falls back across duplicate cookies', async () => {
+  it('sets Domain=.oomfy.online httpOnly cookie and supports fallback across candidates', async () => {
     const origEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
     try {
@@ -56,12 +56,11 @@ describe('Hito 49 Hardening: EXIF Strip, CORS, SSRF, Cookies, Verify & Account L
       expect(res.body.refreshToken).toBe('ref-1');
       const setCookies = Array.isArray(res.headers['set-cookie']) ? res.headers['set-cookie'] : [];
       expect(setCookies[0]).toContain('refresh_token=ref-1');
-      expect(setCookies[0]).not.toContain('Domain=.oomfy.online');
+      expect(setCookies[0]).toContain('Domain=.oomfy.online');
       expect(['SameSite=None', 'HttpOnly', 'Secure'].every((a) => setCookies[0].includes(a))).toBe(true);
-      expect(setCookies.some((c: string) => c.includes('Domain=.oomfy.online') && c.includes('refresh_token=;'))).toBe(true);
 
       const execSpy = vi.spyOn(TokenRefreshService, 'execute').mockRejectedValueOnce(new Error('Token inválido')).mockResolvedValueOnce({ accessToken: 'acc-2', refreshToken: 'ref-2' });
-      const refRes = await request(server.app).post('/auth/refresh').set('Host', 'api.oomfy.online').set('Origin', 'https://oomfy.online').set('Cookie', 'refresh_token=legacy-shadow; refresh_token=ref-1').send({ refreshToken: 'ref-1' });
+      const refRes = await request(server.app).post('/auth/refresh').set('Host', 'api.oomfy.online').set('Origin', 'https://oomfy.online').set('Cookie', 'refresh_token=legacy-shadow; refresh_token=ref-1');
       expect(refRes.status).toBe(200);
       expect(execSpy).toHaveBeenNthCalledWith(1, 'legacy-shadow');
       expect(execSpy).toHaveBeenNthCalledWith(2, 'ref-1');

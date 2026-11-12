@@ -1,6 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 import { Publication } from '@oomfy/shared';
-import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
+import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 
 export const PUBLICATION_LIST_KEYS = ['feed', 'user-posts', 'explore-posts', 'topic-hub'] as const;
 
@@ -17,8 +17,8 @@ function mapPub(pub: Publication | null | undefined, id: string, updater: (p: Pu
 export class PublicationCacheService {
   public static findInCache(queryClient: QueryClient, id?: string): Publication | undefined {
     if (!id) return undefined;
-    const fromRegistry = useEntityRegistryStore.getState().publications[id];
-    if (fromRegistry) return fromRegistry;
+    const fromMap = publicationIdentityMap.get(id);
+    if (fromMap) return fromMap;
 
     const detail = queryClient.getQueryData<{ publication?: Publication }>(['publication', id]);
     if (detail?.publication) return detail.publication;
@@ -38,9 +38,10 @@ export class PublicationCacheService {
   public static getPlaceholderDetailData(queryClient: QueryClient, id?: string) {
     const post = this.findInCache(queryClient, id);
     if (!post) return undefined;
-    const registry = useEntityRegistryStore.getState().publications;
-    const resolved = registry[post.id] || post;
-    const target = resolved.target_publication?.id ? (registry[resolved.target_publication.id] || resolved.target_publication) : null;
+    const resolved = publicationIdentityMap.get(post.id) || post;
+    const target = resolved.target_publication?.id
+      ? (publicationIdentityMap.get(resolved.target_publication.id) || resolved.target_publication)
+      : null;
     return {
       publication: target ? { ...resolved, target_publication: target } : resolved,
       ancestors: target ? [target] : [],
@@ -51,9 +52,8 @@ export class PublicationCacheService {
   }
 
   public static applyPatch(queryClient: QueryClient, id: string, updater: (p: Publication) => Publication, fallback?: Publication): void {
-    const store = useEntityRegistryStore.getState();
-    if (!store.publications[id] && fallback) store.seedPublications([fallback]);
-    store.patchPublication(id, updater);
+    if (!publicationIdentityMap.get(id) && fallback) publicationIdentityMap.seed([fallback]);
+    publicationIdentityMap.patch(id, updater);
 
     for (const prefix of PUBLICATION_LIST_KEYS) {
       queryClient.setQueriesData({ queryKey: [prefix] }, (old: any) => {
@@ -84,6 +84,6 @@ export class PublicationCacheService {
 
   public static primePublication(post: Publication): void {
     if (!post?.id) return;
-    useEntityRegistryStore.getState().ingestPublications([post]);
+    publicationIdentityMap.seed([post]);
   }
 }

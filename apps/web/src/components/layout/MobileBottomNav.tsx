@@ -15,7 +15,7 @@ export const MobileBottomNav: React.FC = () => {
   const links = buildNavItems(user, badges);
 
   return (
-    <nav aria-label="Navegación móvil" className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#161616]/95 backdrop-blur border-t border-dark-border py-2 px-2 flex justify-around items-center font-mono">
+    <nav aria-label="Navegación móvil" className="md:hidden mobile-keyboard-hide fixed bottom-0 left-0 right-0 z-40 bg-[#161616]/95 backdrop-blur border-t border-dark-border py-2 px-2 flex justify-around items-center font-mono">
       {links.map(({ to, label, icon, badge }) => (
         <NavLink
           key={to}

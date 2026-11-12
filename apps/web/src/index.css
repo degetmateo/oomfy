@@ -118,3 +118,17 @@ dialog::backdrop {
     background: var(--scrollbar-thumb-hover);
   }
 }
+
+/* Mobile input auto-zoom prevention and keyboard layout adaptation */
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  body:has(input:focus:not([type="checkbox"]):not([type="radio"]), textarea:focus, [contenteditable="true"]:focus) .mobile-keyboard-hide,
+  body.keyboard-open .mobile-keyboard-hide {
+    display: none !important;
+  }
+}

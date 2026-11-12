@@ -7,7 +7,8 @@ export class PublicationInteractionDecorator {
     if (!userId || posts.length === 0) return posts;
 
     const postIds = posts.map((p) => p.id);
-    const allPostVariants = postIds.flatMap((id) => MongoIdHelper.idVariants(id));
+    const targetIds = posts.map((p) => p.target_publication?.id).filter(Boolean) as string[];
+    const allPostVariants = [...postIds, ...targetIds].flatMap((id) => MongoIdHelper.idVariants(id));
     const userVariants = MongoIdHelper.idVariants(userId);
     const db = MongoDatabase.getDb();
 
@@ -57,6 +58,12 @@ export class PublicationInteractionDecorator {
       post.is_upvoted = upvotedSet.has(pid);
       post.is_shared = sharedSet.has(pid);
       post.is_quoted = quotedSet.has(pid);
+      if (post.target_publication) {
+        const tid = (post.target_publication.id || '').toLowerCase();
+        post.target_publication.is_upvoted = upvotedSet.has(tid);
+        post.target_publication.is_shared = sharedSet.has(tid);
+        post.target_publication.is_quoted = quotedSet.has(tid);
+      }
     }
 
     return posts;

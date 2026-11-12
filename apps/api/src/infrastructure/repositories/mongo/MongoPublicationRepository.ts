@@ -74,7 +74,16 @@ export class MongoPublicationRepository {
     if (inc.quotes_count) { mongoInc.quotes_count = inc.quotes_count; mongoInc.quote_count = inc.quotes_count; }
     if (inc.comments_count) { mongoInc.comments_count = inc.comments_count; mongoInc.comment_count = inc.comments_count; }
     if (Object.keys(mongoInc).length > 0) {
-      await this.getCollection().updateOne(MongoIdHelper.idFilter(id), { $inc: mongoInc });
+      const filter = MongoIdHelper.idFilter(id);
+      await this.getCollection().updateOne(filter, { $inc: mongoInc });
+      if (Object.values(mongoInc).some((v) => typeof v === 'number' && v < 0)) {
+        await this.getCollection().updateOne(filter, {
+          $max: {
+            upvotes_count: 0, upvote_count: 0, shares_count: 0, share_count: 0,
+            quotes_count: 0, quote_count: 0, comments_count: 0, comment_count: 0,
+          },
+        });
+      }
     }
   }
 

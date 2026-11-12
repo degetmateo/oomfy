@@ -10,7 +10,7 @@ import { PixelShare } from '../icons/PixelShare.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { FormattedText } from '../common/FormattedText.js';
 import { formatExactDateTime } from '../../utils/formatTime.js';
-import { usePublicationSnapshot } from '../../hooks/usePublicationSnapshot.js';
+import { usePublicationModel } from '../../hooks/usePublicationModel.js';
 
 interface Props {
   publication: Publication; repliesCount: number; canDelete: boolean; isAuthenticated: boolean;
@@ -20,7 +20,7 @@ interface Props {
 export const PublicationDetailArticle: React.FC<Props> = ({
   publication: rawPublication, repliesCount, canDelete, articleRef, onDelete, onQuote,
 }) => {
-  const publication = usePublicationSnapshot(rawPublication);
+  const publication = usePublicationModel(rawPublication) || rawPublication;
   const navigate = useNavigate();
 
   return (
@@ -83,13 +83,13 @@ export const PublicationDetailArticle: React.FC<Props> = ({
 
       <PublicationActions
         postId={publication.id}
-        initialUpvotes={publication.upvotes_count || 0}
+        initialUpvotes={Math.max(0, publication.upvotes_count || 0, publication.is_upvoted ? 1 : 0)}
         initialIsUpvoted={publication.is_upvoted}
-        initialShares={publication.shares_count || 0}
+        initialShares={Math.max(0, publication.shares_count || 0)}
         initialIsShared={publication.is_shared}
         initialIsQuoted={publication.is_quoted}
-        quotesCount={publication.quotes_count || 0}
-        commentsCount={publication.comments_count || repliesCount}
+        quotesCount={Math.max(0, publication.quotes_count || 0)}
+        commentsCount={Math.max(0, publication.comments_count || 0, repliesCount)}
         onQuoteClick={onQuote}
       />
     </article>

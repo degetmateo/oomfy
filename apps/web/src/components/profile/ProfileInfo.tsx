@@ -8,6 +8,7 @@ import { ProfileMeta } from './ProfileMeta.js';
 import { ProfileHeaderActions } from './ProfileHeaderActions.js';
 import { ChatStartingOverlay } from '../chat/ChatStartingOverlay.js';
 import { useProfileActions } from '../../hooks/useProfileActions.js';
+import { useUserModel } from '../../hooks/useUserModel.js';
 
 interface Props {
   user: PublicUser;
@@ -16,7 +17,9 @@ interface Props {
   onAvatarClick?: (url: string) => void;
 }
 
-export const ProfileInfo: React.FC<Props> = ({ user, isOwnProfile = false, onEditClick, onAvatarClick }) => {
+export const ProfileInfo: React.FC<Props> = ({ user: rawUser, isOwnProfile = false, onEditClick, onAvatarClick }) => {
+  const liveUser = useUserModel(rawUser);
+  const user = liveUser || rawUser;
   const actions = useProfileActions(user);
 
   return (

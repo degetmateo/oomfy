@@ -17,6 +17,7 @@ import { useDialogStore } from '../stores/dialogStore.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
 import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
 import { RouteScrollStore } from '../stores/routeScrollStore.js';
+import { usePublicationModel } from '../hooks/usePublicationModel.js';
 
 export const PublicationDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,7 +51,9 @@ export const PublicationDetailView: React.FC = () => {
     },
   });
 
-  const publication: Publication | undefined = data?.publication;
+  const rawPub: Publication | undefined = data?.publication;
+  const livePub = usePublicationModel(rawPub || id);
+  const publication = livePub || rawPub;
   const ancestors: Publication[] = data?.ancestors || [];
   const replies: Publication[] = data?.replies || data?.thread || [];
 

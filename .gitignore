@@ -37,3 +37,4 @@ legacy
 !.env.example
 *.key
 *.pem
+tasks/

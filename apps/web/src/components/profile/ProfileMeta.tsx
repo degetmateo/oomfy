@@ -52,23 +52,23 @@ export const ProfileMeta: React.FC<Props> = ({ user }) => {
               onClick={() => navigate(`/${user.username}/following`)}
               className="text-dark-muted hover:underline hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
             >
-              <strong className="text-white">{user.followed_count || 0}</strong> Siguiendo
+              <strong className="text-white">{Math.max(0, user.followed_count || 0)}</strong> Siguiendo
             </button>
             <button
               type="button"
               onClick={() => navigate(`/${user.username}/followers`)}
               className="text-dark-muted hover:underline hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
             >
-              <strong className="text-white">{user.follower_count || 0}</strong> Seguidores
+              <strong className="text-white">{Math.max(0, user.follower_count || 0)}</strong> Seguidores
             </button>
           </>
         ) : (
           <>
             <span className="text-dark-muted flex items-center gap-1">
-              <strong className="text-white">{user.followed_count || 0}</strong> Siguiendo
+              <strong className="text-white">{Math.max(0, user.followed_count || 0)}</strong> Siguiendo
             </span>
             <span className="text-dark-muted flex items-center gap-1">
-              <strong className="text-white">{user.follower_count || 0}</strong> Seguidores
+              <strong className="text-white">{Math.max(0, user.follower_count || 0)}</strong> Seguidores
             </span>
           </>
         )}

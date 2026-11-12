@@ -22,8 +22,9 @@ export class UpvoteService {
     const pubVariants = MongoIdHelper.idVariants(pubId);
 
     const existing = await col.findOne({ user_id: { $in: userVariants }, publication_id: { $in: pubVariants } });
+    const currentUpvotes = Math.max(0, pub.upvotes_count || 0);
     if (existing) {
-      return { upvoted: true, upvotes_count: pub.upvotes_count || 0 };
+      return { upvoted: true, upvotes_count: currentUpvotes };
     }
 
     const idVal = uuidv7();
@@ -36,7 +37,7 @@ export class UpvoteService {
         created_at: new Date(),
       });
     } catch (err: any) {
-      if (err?.code === 11000) return { upvoted: true, upvotes_count: pub.upvotes_count || 0 };
+      if (err?.code === 11000) return { upvoted: true, upvotes_count: currentUpvotes };
       throw err;
     }
 
@@ -54,7 +55,7 @@ export class UpvoteService {
       },
     });
 
-    return { upvoted: true, upvotes_count: (pub.upvotes_count || 0) + 1 };
+    return { upvoted: true, upvotes_count: currentUpvotes + 1 };
   }
 
   public static async downvote(pubId: string, userId: string): Promise<{ upvoted: boolean; upvotes_count: number }> {
@@ -71,7 +72,7 @@ export class UpvoteService {
       await MongoPublicationRepository.incrementCounters(pubId, { upvotes_count: -1 });
     }
 
-    const currentCount = pub.upvotes_count || 0;
+    const currentCount = Math.max(0, pub.upvotes_count || 0);
     return { upvoted: false, upvotes_count: deletedCount > 0 ? Math.max(0, currentCount - 1) : currentCount };
   }
 }

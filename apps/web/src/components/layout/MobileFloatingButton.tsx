@@ -26,7 +26,7 @@ export const MobileFloatingButton: React.FC = () => {
       onClick={() => openPostModal()}
       title="Publicar"
       aria-label="Nueva publicación"
-      className="md:hidden fixed bottom-20 right-4 z-40 w-12 h-12 bg-brand-500 hover:bg-brand-600 text-black flex items-center justify-center border-2 border-black shadow-pixel pixel-button"
+      className="md:hidden mobile-keyboard-hide fixed bottom-20 right-4 z-40 w-12 h-12 bg-brand-500 hover:bg-brand-600 text-black flex items-center justify-center border-2 border-black shadow-pixel pixel-button"
     >
       <Plus className="w-6 h-6 stroke-[3]" aria-hidden="true" />
     </button>

@@ -16,7 +16,7 @@ export class PostgresPool {
     if (!this.instance) {
       const ca = resolveCaCert(Environment.PG_CA);
       const isRemote = Boolean(Environment.PG_URI) || (Environment.PG_HOST !== 'localhost' && Environment.PG_HOST !== '127.0.0.1');
-      const rejectUnauthorized = process.env.PG_SSL_REJECT_UNAUTHORIZED !== 'false';
+      const rejectUnauthorized = process.env.PG_SSL_REJECT_UNAUTHORIZED === 'true' || (Boolean(ca) && process.env.PG_SSL_REJECT_UNAUTHORIZED !== 'false');
 
       const config: PoolConfig = Environment.PG_URI
         ? {

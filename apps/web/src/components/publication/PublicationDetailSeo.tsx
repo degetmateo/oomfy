@@ -27,8 +27,8 @@ export const PublicationDetailSeo: React.FC<{ publication: Publication; repliesC
         datePublished: publication.created_at,
         author: { '@type': 'Person', name: publication.author.name, url: `${SITE_URL}/${publication.author.username}` },
         interactionStatistic: [
-          { '@type': 'InteractionCounter', interactionType: 'https://schema.org/LikeAction', userInteractionCount: publication.upvotes_count || 0 },
-          { '@type': 'InteractionCounter', interactionType: 'https://schema.org/CommentAction', userInteractionCount: publication.comments_count || repliesCount },
+          { '@type': 'InteractionCounter', interactionType: 'https://schema.org/LikeAction', userInteractionCount: Math.max(0, publication.upvotes_count || 0) },
+          { '@type': 'InteractionCounter', interactionType: 'https://schema.org/CommentAction', userInteractionCount: Math.max(0, publication.comments_count || repliesCount) },
         ],
       }}
     />

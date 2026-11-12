@@ -8,7 +8,7 @@ export class PublicationTargetPopulator {
     if (!posts || posts.length === 0) return posts;
     const col = MongoDatabase.getDb().collection<any>('publications');
 
-    const needed = posts.filter((p) => !p.target_publication && p.parent_publication_id);
+    const needed = posts.filter((p) => p.parent_publication_id);
     if (needed.length === 0) return posts;
 
     const targetIds = Array.from(new Set(needed.map((p) => String(p.parent_publication_id))));
@@ -26,7 +26,7 @@ export class PublicationTargetPopulator {
     }
 
     for (const p of posts) {
-      if (!p.target_publication && p.parent_publication_id) {
+      if (p.parent_publication_id) {
         const key = String(p.parent_publication_id).toLowerCase();
         const found = map.get(key);
         if (found) p.target_publication = found;
@@ -56,4 +56,3 @@ export class PublicationTargetPopulator {
     return posts;
   }
 }
-

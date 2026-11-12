@@ -12,6 +12,7 @@ import { PushReconnectBanner } from '../notifications/PushReconnectBanner.js';
 import { useUIStore } from '../../stores/uiStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useRouteScroll } from '../../hooks/useRouteScroll.js';
+import { useVirtualKeyboard } from '../../hooks/useVirtualKeyboard.js';
 
 export const AppLayout: React.FC = () => {
   const { isPostModalOpen, closePostModal } = useUIStore();
@@ -19,6 +20,7 @@ export const AppLayout: React.FC = () => {
   const location = useLocation();
   const isChatsRoute = location.pathname.startsWith('/chats');
   useRouteScroll();
+  useVirtualKeyboard();
 
   return (
     <div

@@ -46,8 +46,16 @@ export class MongoMigrationRunner {
 
     const members = db.collection('members');
     await members.updateMany({ terms_accepted: { $exists: false } }, { $set: { terms_accepted: false } });
+    await members.updateMany(
+      { $or: [{ follower_count: { $lt: 0 } }, { followed_count: { $lt: 0 } }, { publication_count: { $lt: 0 } }] },
+      { $max: { follower_count: 0, followed_count: 0, publication_count: 0 } }
+    );
 
     const publications = db.collection('publications');
+    await publications.updateMany(
+      { $or: [{ shares_count: { $lt: 0 } }, { share_count: { $lt: 0 } }, { upvotes_count: { $lt: 0 } }, { upvote_count: { $lt: 0 } }, { quotes_count: { $lt: 0 } }, { quote_count: { $lt: 0 } }, { comments_count: { $lt: 0 } }, { comment_count: { $lt: 0 } }] },
+      { $max: { shares_count: 0, share_count: 0, upvotes_count: 0, upvote_count: 0, quotes_count: 0, quote_count: 0, comments_count: 0, comment_count: 0 } }
+    );
     const stringDocs = await publications.find({ created_at: { $type: 'string' } }).toArray();
     for (const doc of stringDocs) {
       const d = new Date(doc.created_at);

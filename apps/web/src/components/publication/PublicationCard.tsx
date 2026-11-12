@@ -13,10 +13,10 @@ import { SharedPublicationCard } from './SharedPublicationCard.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useUIStore } from '../../stores/uiStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
-import { ApiClient } from '../../services/api.js';
 import { PublicationCacheService } from '../../services/PublicationCacheService.js';
 import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
-import { usePublicationSnapshot } from '../../hooks/usePublicationSnapshot.js';
+import { usePublicationModel } from '../../hooks/usePublicationModel.js';
+import { PublicationController } from '../../controllers/PublicationController.js';
 
 interface Props {
   post: Publication;
@@ -24,7 +24,7 @@ interface Props {
 }
 
 export const PublicationCard: React.FC<Props> = ({ post: rawPost, onDelete }) => {
-  const post = usePublicationSnapshot(rawPost);
+  const post = usePublicationModel(rawPost) || rawPost;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuthStore();
@@ -39,9 +39,8 @@ export const PublicationCard: React.FC<Props> = ({ post: rawPost, onDelete }) =>
     });
     if (!confirmed) return;
     try {
-      await ApiClient.delete(`/publications/${post.id}`);
+      await PublicationController.deletePublication(post.id, queryClient);
       onDelete?.(post.id);
-      PublicationCacheService.invalidatePublicationLists(queryClient);
     } catch (err: any) { dialog.alert(err.message, 'Error al eliminar'); }
   };
 
@@ -52,20 +51,8 @@ export const PublicationCard: React.FC<Props> = ({ post: rawPost, onDelete }) =>
 
   return (
     <article {...cardHandlers} className="p-3 sm:p-4 border-b border-dark-border hover:bg-dark-card/40 transition-colors flex gap-3 cursor-pointer font-mono relative">
-      <div className="flex-shrink-0 cursor-pointer" data-no-card-nav="true"
-        onClick={(e) => {
-          e.stopPropagation();
-          navigate(`/publication/${post.id}`);
-        }}>
-        <PixelAvatar
-          src={post.author.icon_url}
-          username={post.author.username}
-          sizeClass="w-12 h-12"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/${post.author.username}`);
-          }}
-        />
+      <div className="flex-shrink-0 cursor-pointer" data-no-card-nav="true" onClick={(e) => { e.stopPropagation(); navigate(`/publication/${post.id}`); }}>
+        <PixelAvatar src={post.author.icon_url} username={post.author.username} sizeClass="w-12 h-12" onClick={(e) => { e.stopPropagation(); navigate(`/${post.author.username}`); }} />
       </div>
       <div className="flex-1 min-w-0">
         {post.type === 'reply' && (
@@ -89,9 +76,9 @@ export const PublicationCard: React.FC<Props> = ({ post: rawPost, onDelete }) =>
         <MediaGrid images={post.images || []} />
         <LinkPreviewCard embeds={post.embeds} targetPublication={post.type === 'quote' ? post.target_publication : undefined} />
         <PublicationActions
-          postId={post.id} initialUpvotes={post.upvotes_count || 0} initialIsUpvoted={post.is_upvoted}
-          initialShares={post.shares_count || 0} initialIsShared={post.is_shared} initialIsQuoted={post.is_quoted}
-          quotesCount={post.quotes_count || 0} commentsCount={post.comments_count || 0}
+          postId={post.id} initialUpvotes={Math.max(0, post.upvotes_count || 0, post.is_upvoted ? 1 : 0)} initialIsUpvoted={post.is_upvoted}
+          initialShares={Math.max(0, post.shares_count || 0)} initialIsShared={post.is_shared} initialIsQuoted={post.is_quoted}
+          quotesCount={Math.max(0, post.quotes_count || 0)} commentsCount={Math.max(0, post.comments_count || 0)}
           onCommentClick={() => navigate(`/publication/${post.id}`)} onQuoteClick={handleQuoteClick}
         />
       </div>

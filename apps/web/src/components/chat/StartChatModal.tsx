@@ -25,7 +25,6 @@ export const StartChatModal: React.FC<Props> = ({ isOpen, onClose, onChatSelecte
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
-
   const { data: usersData, isLoading } = useQuery<{ success: boolean; data: PublicUser[] }>({
     queryKey: ['chat-search-users', searchTerm],
     queryFn: () => (!searchTerm.trim()
@@ -35,15 +34,15 @@ export const StartChatModal: React.FC<Props> = ({ isOpen, onClose, onChatSelecte
   });
 
   if (!isOpen) return null;
-
   const handleStart = async (username: string) => {
     setTargetUsername(username);
     setIsStarting(true);
     try {
-      const res = await ApiClient.post<{ success: boolean; chatId: string }>('/chats/start', { target_username: username });
-      if (res.chatId) {
+      const res = await ApiClient.post<{ success: boolean; chatId?: string; data?: { id: string } }>('/chats/start', { target_username: username });
+      const cid = res.chatId || res.data?.id;
+      if (cid) {
         await queryClient.refetchQueries({ queryKey: ['chats'] });
-        onChatSelected(res.chatId);
+        onChatSelected(cid);
         onClose();
       }
     } catch (err: any) {

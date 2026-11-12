@@ -21,16 +21,20 @@ export function useProfileActions(user: PublicUser) {
     if (!isAuthenticated) return navigate('/signin');
     setIsStartingChat(true);
     try {
-      const res = await ApiClient.post<{ success: boolean; chatId: string }>('/chats/start', {
+      const res = await ApiClient.post<{ success: boolean; chatId?: string; data?: { id: string } }>('/chats/start', {
         target_username: user.username,
       });
-      if (res.chatId) {
+      const resolvedChatId = res.chatId || res.data?.id;
+      if (resolvedChatId) {
         await queryClient.refetchQueries({ queryKey: ['chats'] });
-        navigate(`/chats?id=${res.chatId}`);
-      } else setIsStartingChat(false);
+        navigate(`/chats?id=${resolvedChatId}`);
+      } else {
+        throw new Error('No se pudo abrir la conversación.');
+      }
     } catch (err: any) {
-      setIsStartingChat(false);
       dialog.alert(err.message || 'Error al iniciar chat', 'Error');
+    } finally {
+      setIsStartingChat(false);
     }
   };
 

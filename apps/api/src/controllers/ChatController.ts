@@ -12,7 +12,7 @@ export class ChatController {
         { id: user.id, username: user.username, name: user.name || user.username },
         req.body.target_username
       );
-      res.status(result.isNew ? 201 : 200).json({ success: true, data: result });
+      res.status(result.isNew ? 201 : 200).json({ success: true, data: result, chatId: result.id });
     } catch (err) {
       next(err);
     }

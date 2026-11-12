@@ -15,7 +15,7 @@ export class ApiClient {
     this.refreshPromise = (async () => {
       const storedRefresh = typeof localStorage !== 'undefined' ? localStorage.getItem('oomfy_refresh_token') : null;
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timer = controller ? setTimeout(() => controller.abort(), storedRefresh ? 15_000 : 4_000) : null;
+      const timer = controller ? setTimeout(() => controller.abort(), 15_000) : null;
       try {
         const res = await fetch(`${this.BASE_URL}/auth/refresh`, {
           method: 'POST',

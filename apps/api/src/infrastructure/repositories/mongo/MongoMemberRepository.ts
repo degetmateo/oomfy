@@ -84,7 +84,13 @@ export class MongoMemberRepository {
     id: string,
     inc: Partial<Record<'follower_count' | 'followed_count' | 'publication_count', number>>
   ): Promise<void> {
-    await this.getCollection().updateOne(MongoIdHelper.idFilter(id), { $inc: inc });
+    const filter = MongoIdHelper.idFilter(id);
+    await this.getCollection().updateOne(filter, { $inc: inc });
+    if (Object.values(inc).some((v) => typeof v === 'number' && v < 0)) {
+      await this.getCollection().updateOne(filter, {
+        $max: { follower_count: 0, followed_count: 0, publication_count: 0 },
+      });
+    }
   }
 
   public static async deleteById(id: string): Promise<void> {

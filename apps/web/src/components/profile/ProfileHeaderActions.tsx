@@ -61,6 +61,7 @@ export const ProfileHeaderActions: React.FC<Props> = ({
           disabled={isStartingChat}
           className="p-2 border border-brand-500/60 text-brand-400 hover:bg-brand-500/10 bg-dark-card pixel-button flex items-center gap-1 text-xs"
           title="Enviar mensaje"
+          aria-label="Enviar mensaje"
         >
           <MessageSquare className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Mensaje</span>

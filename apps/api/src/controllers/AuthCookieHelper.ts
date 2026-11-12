@@ -6,7 +6,7 @@ import { ForbiddenError } from '../errors/AppError.js';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 export class AuthCookieHelper {
-  public static getOptions(includeOomfyDomain = false) {
+  public static getOptions(includeOomfyDomain = true) {
     const isProd = Environment.isProduction();
     return {
       httpOnly: true,
@@ -18,16 +18,16 @@ export class AuthCookieHelper {
   }
 
   public static setRefreshCookie(res: Response, token: string, _req?: Request): void {
-    res.cookie('refresh_token', token, { ...this.getOptions(false), maxAge: THIRTY_DAYS_MS });
+    res.cookie('refresh_token', token, { ...this.getOptions(true), maxAge: THIRTY_DAYS_MS });
     if (Environment.isProduction()) {
-      res.clearCookie('refresh_token', this.getOptions(true));
+      res.clearCookie('refresh_token', this.getOptions(false));
     }
   }
 
   public static clearRefreshCookie(res: Response, _req?: Request): void {
-    res.clearCookie('refresh_token', this.getOptions(false));
+    res.clearCookie('refresh_token', this.getOptions(true));
     if (Environment.isProduction()) {
-      res.clearCookie('refresh_token', this.getOptions(true));
+      res.clearCookie('refresh_token', this.getOptions(false));
     }
   }
 
@@ -36,6 +36,8 @@ export class AuthCookieHelper {
     const add = (val?: unknown) => {
       if (typeof val === 'string' && val.trim() && !candidates.includes(val.trim())) candidates.push(val.trim());
     };
+    add(req.body?.refreshToken);
+    add(req.cookies?.refresh_token);
     const rawHeader = req.headers.cookie;
     if (typeof rawHeader === 'string' && rawHeader) {
       for (const part of rawHeader.split(';')) {
@@ -44,8 +46,6 @@ export class AuthCookieHelper {
         try { add(decodeURIComponent(part.slice(eq + 1).trim())); } catch {}
       }
     }
-    add(req.cookies?.refresh_token);
-    add(req.body?.refreshToken);
     return candidates;
   }
 

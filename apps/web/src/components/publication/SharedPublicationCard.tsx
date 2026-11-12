@@ -4,13 +4,14 @@ import { Publication } from '@oomfy/shared';
 import { MediaGrid } from './MediaGrid.js';
 import { LinkPreviewCard } from './LinkPreviewCard.js';
 import { PublicationHeader } from './PublicationHeader.js';
+import { PublicationActions } from './PublicationActions.js';
 import { PixelShare } from '../icons/PixelShare.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { FormattedText } from '../common/FormattedText.js';
 import { PublicationMenu } from './PublicationMenu.js';
 import { PublicationCacheService } from '../../services/PublicationCacheService.js';
 import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
-import { usePublicationSnapshot } from '../../hooks/usePublicationSnapshot.js';
+import { usePublicationModel } from '../../hooks/usePublicationModel.js';
 
 interface Props {
   post: Publication;
@@ -19,14 +20,11 @@ interface Props {
 }
 
 export const SharedPublicationCard: React.FC<Props> = ({ post: rawPost, canDelete, onDelete }) => {
-  const post = usePublicationSnapshot(rawPost);
+  const post = usePublicationModel(rawPost) || rawPost;
   const navigate = useNavigate();
-  const original = post.target_publication;
-  const targetUrl = original
-    ? `/publication/${original.id}`
-    : post.parent_publication_id
-    ? `/publication/${post.parent_publication_id}`
-    : '#';
+  const rawOriginal = post.target_publication;
+  const original = usePublicationModel(rawOriginal) || rawOriginal;
+  const targetUrl = original ? `/publication/${original.id}` : post.parent_publication_id ? `/publication/${post.parent_publication_id}` : '#';
 
   const cardHandlers = useCardClickGuard(() => {
     if (original) PublicationCacheService.primePublication(original);
@@ -54,6 +52,12 @@ export const SharedPublicationCard: React.FC<Props> = ({ post: rawPost, canDelet
             {original.content && <FormattedText text={original.content} className="mt-1.5 text-sm text-dark-text whitespace-pre-line leading-relaxed font-sans block" />}
             <MediaGrid images={original.images || []} />
             <LinkPreviewCard embeds={original.embeds} targetPublication={original.type === 'quote' ? original.target_publication : undefined} />
+            <PublicationActions
+              postId={original.id} initialUpvotes={Math.max(0, original.upvotes_count || 0, original.is_upvoted ? 1 : 0)} initialIsUpvoted={original.is_upvoted}
+              initialShares={Math.max(0, original.shares_count || 0)} initialIsShared={original.is_shared} initialIsQuoted={original.is_quoted}
+              quotesCount={Math.max(0, original.quotes_count || 0)} commentsCount={Math.max(0, original.comments_count || 0)}
+              onCommentClick={() => navigate(`/publication/${original.id}`)}
+            />
           </div>
         </div>
       ) : (
