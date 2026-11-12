@@ -21,7 +21,8 @@ describe('AdminUserQueryBuilder', () => {
     });
 
     expect(sql).toContain('FROM members WHERE');
-    expect(sql).toContain('username ILIKE $1 OR name ILIKE $1 OR email ILIKE $1');
+    expect(sql).toContain('username ILIKE $1 OR name ILIKE $1');
+    expect(sql).not.toContain('email');
     expect(sql).toContain('role = $2');
     expect(sql).toContain('status = $3');
     expect(sql).toContain('created_at >= $4::timestamptz');

@@ -23,6 +23,9 @@ export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
 
   const modalContent = (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Visor de imagen ampliada"
       data-no-card-nav="true"
       onMouseDown={(e) => e.stopPropagation()}
       onMouseUp={(e) => { e.stopPropagation(); stopDragging(); }}
@@ -33,19 +36,19 @@ export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
     >
       <div className="w-full flex justify-between items-center p-3 sm:p-4 z-20 bg-gradient-to-b from-black/90 to-transparent">
         <div className="flex items-center gap-2">
-          <button type="button" onClick={(e) => { e.stopPropagation(); handleZoom(0.3); }} className="p-2 bg-dark-card border border-dark-border text-white hover:text-brand-400 pixel-button" title="Acercar (Rueda hacia arriba)">
-            <ZoomIn className="w-5 h-5" />
+          <button type="button" onClick={(e) => { e.stopPropagation(); handleZoom(0.3); }} aria-label="Acercar imagen" className="p-2 bg-dark-card border border-dark-border text-white hover:text-brand-400 pixel-button" title="Acercar (Rueda hacia arriba)">
+            <ZoomIn className="w-5 h-5" aria-hidden="true" />
           </button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); handleZoom(-0.3); }} className="p-2 bg-dark-card border border-dark-border text-white hover:text-brand-400 pixel-button" title="Alejar (Rueda hacia abajo)">
-            <ZoomOut className="w-5 h-5" />
+          <button type="button" onClick={(e) => { e.stopPropagation(); handleZoom(-0.3); }} aria-label="Alejar imagen" className="p-2 bg-dark-card border border-dark-border text-white hover:text-brand-400 pixel-button" title="Alejar (Rueda hacia abajo)">
+            <ZoomOut className="w-5 h-5" aria-hidden="true" />
           </button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); resetZoom(); }} className="p-2 bg-dark-card border border-dark-border text-white hover:text-brand-400 pixel-button text-xs font-bold flex items-center gap-1.5" title="Restablecer">
-            <RotateCcw className="w-4 h-4" />
+          <button type="button" onClick={(e) => { e.stopPropagation(); resetZoom(); }} aria-label={`Restablecer zoom (${Math.round(scale * 100)}%)`} className="p-2 bg-dark-card border border-dark-border text-white hover:text-brand-400 pixel-button text-xs font-bold flex items-center gap-1.5" title="Restablecer">
+            <RotateCcw className="w-4 h-4" aria-hidden="true" />
             <span>{Math.round(scale * 100)}%</span>
           </button>
         </div>
-        <button type="button" onClick={stopAndClose} className="p-2 bg-dark-card border border-dark-border text-white hover:text-red-400 pixel-button" title="Cerrar (Esc)">
-          <X className="w-5 h-5" />
+        <button type="button" onClick={stopAndClose} aria-label="Cerrar vista ampliada" className="p-2 bg-dark-card border border-dark-border text-white hover:text-red-400 pixel-button" title="Cerrar (Esc)">
+          <X className="w-5 h-5" aria-hidden="true" />
         </button>
       </div>
 

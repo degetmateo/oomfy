@@ -32,6 +32,7 @@ export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSen
   }, [content, media.textareaRef]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
     if (e.key === 'Enter' && !isTouch && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
   };
@@ -58,26 +59,27 @@ export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSen
       <ChatReplyBanner replyingTo={replyingTo} onCancel={onCancelReply} />
       <ComposerAttachmentPreviews variant="compact" files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
       <form onSubmit={handleSubmit} className="p-2 sm:p-2.5 flex items-end gap-1.5 sm:gap-2 relative">
-        <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => { media.attachFiles(Array.from(e.target.files || [])); e.target.value = ''; }} className="hidden" />
+        <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => { media.attachFiles(Array.from(e.target.files || [])); e.target.value = ''; }} className="hidden" aria-label="Adjuntar imagen" />
         <div className="flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1 flex-shrink-0">
           <div className="flex items-center gap-0.5 sm:gap-1">
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={media.files.length + media.gifs.length >= 4} className="p-1.5 sm:p-2.5 text-dark-muted hover:text-brand-400 hover:bg-dark-card rounded transition-colors disabled:opacity-40" title="Adjuntar imagen">
-              <Image className="w-4 h-4 sm:w-5 sm:h-5" />
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={media.files.length + media.gifs.length >= 4} className="p-1.5 sm:p-2.5 text-dark-muted hover:text-brand-400 hover:bg-dark-card rounded transition-colors disabled:opacity-40" title="Adjuntar imagen" aria-label="Adjuntar imagen">
+              <Image className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
             </button>
-            <button type="button" onClick={() => setIsGifModalOpen(true)} disabled={media.gifs.length > 0} className="p-1.5 sm:p-2.5 text-dark-muted hover:text-brand-400 hover:bg-dark-card rounded transition-colors disabled:opacity-40" title="Buscar GIF">
-              <Film className="w-4 h-4 sm:w-5 sm:h-5" />
+            <button type="button" onClick={() => setIsGifModalOpen(true)} disabled={media.gifs.length > 0} className="p-1.5 sm:p-2.5 text-dark-muted hover:text-brand-400 hover:bg-dark-card rounded transition-colors disabled:opacity-40" title="Buscar GIF" aria-label="Buscar GIF">
+              <Film className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
             </button>
           </div>
           <div className="relative flex items-center justify-center">
-            <button ref={emojiBtnRef} type="button" onClick={() => setIsEmojiOpen((v) => !v)} className={`p-1.5 sm:p-2.5 rounded transition-colors ${isEmojiOpen ? 'text-brand-400 bg-dark-card' : 'text-dark-muted hover:text-brand-400 hover:bg-dark-card'}`} title="Emojis">
-              <Smile className="w-4 h-4 sm:w-5 sm:h-5" />
+            <button ref={emojiBtnRef} type="button" onClick={() => setIsEmojiOpen((v) => !v)} aria-expanded={isEmojiOpen} className={`p-1.5 sm:p-2.5 rounded transition-colors ${isEmojiOpen ? 'text-brand-400 bg-dark-card' : 'text-dark-muted hover:text-brand-400 hover:bg-dark-card'}`} title="Emojis" aria-label="Emojis">
+              <Smile className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
             </button>
             <EmojiPickerMenu isOpen={isEmojiOpen} anchorRef={emojiBtnRef} onClose={() => setIsEmojiOpen(false)} onSelectEmoji={(emoji) => media.insertEmoji(emoji, content, setContent)} position="top" />
           </div>
         </div>
-        <textarea ref={media.attachTextareaRef} rows={1} value={content} onChange={(e) => { setContent(e.target.value); onTyping(); }} onKeyDown={handleKeyDown} onPaste={media.handlePaste} placeholder="Escribe un mensaje..." className="flex-1 min-w-0 px-3 py-2.5 bg-dark-card border border-dark-border text-base text-white focus:outline-none focus:border-brand-500 font-sans resize-none max-h-28 overflow-y-auto leading-relaxed" />
-        <button type="submit" disabled={!hasPayload} className="px-3.5 sm:px-4 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-black font-bold text-xs pixel-button flex items-center justify-center font-mono flex-shrink-0">
-          <Send className="w-5 h-5" />
+        <label htmlFor="chat-message-input" className="sr-only">Escribe un mensaje</label>
+        <textarea id="chat-message-input" name="message" enterKeyHint="send" ref={media.attachTextareaRef} rows={1} value={content} onChange={(e) => { setContent(e.target.value); onTyping(); }} onKeyDown={handleKeyDown} onPaste={media.handlePaste} placeholder="Escribe un mensaje..." className="flex-1 min-w-0 px-3 py-2.5 bg-dark-card border border-dark-border text-base text-white focus:outline-none focus:border-brand-500 font-sans resize-none max-h-28 overflow-y-auto leading-relaxed" />
+        <button type="submit" disabled={!hasPayload} aria-label="Enviar mensaje" className="px-3.5 sm:px-4 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-black font-bold text-xs pixel-button flex items-center justify-center font-mono flex-shrink-0">
+          <Send className="w-5 h-5" aria-hidden="true" />
         </button>
       </form>
       <KlipyGifModal isOpen={isGifModalOpen} onClose={() => setIsGifModalOpen(false)} onSelect={(url) => { media.attachGifUrl(url); setIsGifModalOpen(false); }} />

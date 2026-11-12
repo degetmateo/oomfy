@@ -30,11 +30,11 @@ export const TermsAcceptanceModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm font-mono">
+    <div role="dialog" aria-modal="true" aria-labelledby="terms-modal-title" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm font-mono">
       <div className="w-full max-w-md bg-dark-bg border-2 border-brand-500 shadow-pixel overflow-hidden">
         <div className="flex items-center gap-2 p-3.5 border-b border-dark-border bg-dark-card/70">
-          <ShieldCheck className="w-5 h-5 text-brand-400 flex-shrink-0" />
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider">Términos y Política de Privacidad</h2>
+          <ShieldCheck className="w-5 h-5 text-brand-400 flex-shrink-0" aria-hidden="true" />
+          <h2 id="terms-modal-title" className="text-sm font-bold text-white uppercase tracking-wider">Términos y Política de Privacidad</h2>
         </div>
 
         <div className="p-4 text-xs text-dark-text font-sans leading-relaxed flex flex-col gap-3">

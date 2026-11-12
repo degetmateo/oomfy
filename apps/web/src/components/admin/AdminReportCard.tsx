@@ -31,8 +31,8 @@ export const AdminReportCard: React.FC<Props> = ({
         {report.target_type === 'user' ? (
           <div className="p-2.5 bg-dark-bg border border-dark-border flex items-center justify-between gap-2">
             <p className="text-xs text-white font-mono">Perfil de @{report.target_username || report.target_id}</p>
-            <Link to={`/${report.target_username || report.target_id}`} target="_blank" className="p-1 text-brand-400 hover:text-brand-300" title="Ver perfil">
-              <ExternalLink className="w-4 h-4" />
+            <Link to={`/${report.target_username || report.target_id}`} target="_blank" rel="noopener noreferrer" aria-label="Ver perfil reportado" className="p-1 text-brand-400 hover:text-brand-300" title="Ver perfil">
+              <ExternalLink className="w-4 h-4" aria-hidden="true" />
             </Link>
           </div>
         ) : (
@@ -44,8 +44,8 @@ export const AdminReportCard: React.FC<Props> = ({
               {report.target_content && <p className="italic text-xs text-white truncate max-w-md">"{report.target_content}"</p>}
             </div>
             {report.target_type === 'publication' && (
-              <Link to={`/publication/${report.target_id}`} target="_blank" className="p-1 text-brand-400 hover:text-brand-300" title="Ver publicación">
-                <ExternalLink className="w-4 h-4" />
+              <Link to={`/publication/${report.target_id}`} target="_blank" rel="noopener noreferrer" aria-label="Ver publicación reportada" className="p-1 text-brand-400 hover:text-brand-300" title="Ver publicación">
+                <ExternalLink className="w-4 h-4" aria-hidden="true" />
               </Link>
             )}
           </div>
@@ -59,7 +59,7 @@ export const AdminReportCard: React.FC<Props> = ({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-dark-muted pt-2 border-t border-dark-border/40">
-        <span>Reportado por @{report.reporter_username} · {new Date(report.created_at).toLocaleString()}</span>
+        <span>Reportado por @{report.reporter_username} · <time dateTime={report.created_at}>{new Date(report.created_at).toLocaleString()}</time></span>
         {report.status === 'pending' && (
           <div className="flex flex-wrap items-center gap-2">
             {report.target_type === 'publication' && (

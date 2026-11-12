@@ -2,7 +2,7 @@
 <html lang="es" class="dark" style="background-color:#141414;color:#eaeaea">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
     <meta name="color-scheme" content="dark" />
     <title>oomfy</title>
     <meta name="referrer" content="strict-origin-when-cross-origin" />
@@ -25,12 +25,12 @@
   </head>
   <body style="background-color:#141414;color:#eaeaea;margin:0" class="bg-dark-bg text-dark-text antialiased selection:bg-brand-500 selection:text-white">
     <div id="root">
-      <div id="oomfy-boot-loader">
+      <div id="oomfy-boot-loader" role="status" aria-label="Cargando oomfy">
         <div class="oomfy-boot-brand">
-          <img src="/assets/oomfy-logo-no-bg.png" alt="oomfy" width="40" height="40" />
+          <img src="/assets/oomfy-logo-no-bg.png" alt="oomfy" width="40" height="40" fetchpriority="high" />
           <span>oomfy</span>
         </div>
-        <div class="oomfy-boot-spin"></div>
+        <div class="oomfy-boot-spin" aria-hidden="true"></div>
         <p style="margin:0;font-size:12px;color:#8e8e8e">Cargando oomfy...</p>
       </div>
     </div>

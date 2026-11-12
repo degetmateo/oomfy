@@ -15,7 +15,6 @@ export const SystemSettingsUpdateSchema = z
 export const AdminUserUpdateSchema = z.object({
   name: z.string().trim().min(LIMITS.NAME_MIN).max(LIMITS.NAME_MAX).optional(),
   username: UsernameSchema.optional(),
-  email: z.string().trim().email().max(LIMITS.EMAIL_MAX).optional(),
   password: z.string().min(LIMITS.PASSWORD_MIN).max(LIMITS.PASSWORD_MAX).optional(),
   status: z.enum(['pending', 'active', 'suspended']).optional(),
   role: z.enum(['member', 'tester', 'mod', 'admin']).optional(),
@@ -35,7 +34,6 @@ export const AdminUserQuerySchema = z.object({
   query: z.preprocess(emptyToNull, z.string().trim().max(LIMITS.EMAIL_MAX).nullable().optional()),
   name: z.preprocess(emptyToNull, z.string().trim().max(LIMITS.NAME_MAX).nullable().optional()),
   username: z.preprocess(emptyToNull, z.string().trim().max(LIMITS.USERNAME_MAX).nullable().optional()),
-  email: z.preprocess(emptyToNull, z.string().trim().max(LIMITS.EMAIL_MAX).nullable().optional()),
   role: z.preprocess(emptyToNull, z.enum(['member', 'tester', 'mod', 'admin']).nullable().optional()),
   status: z.preprocess(emptyToNull, z.enum(['pending', 'active', 'suspended']).nullable().optional()),
   created_from: dateStr,

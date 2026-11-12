@@ -25,7 +25,7 @@ export const Navbar: React.FC = () => {
         </Link>
 
         {links.length > 0 && (
-          <nav className="flex flex-col gap-1.5">
+          <nav aria-label="Navegación principal" className="flex flex-col gap-1.5">
             {links.map(({ to, label, icon, badge }) => (
               <NavLink
                 key={to}
@@ -57,6 +57,7 @@ export const Navbar: React.FC = () => {
 
         {isAuthenticated && user && (
           <button
+            type="button"
             onClick={() => openPostModal()}
             className="w-full mt-2 py-2.5 px-4 bg-brand-500 hover:bg-brand-600 text-black font-bold text-center text-sm uppercase tracking-wider pixel-button block"
           >
@@ -74,8 +75,8 @@ export const Navbar: React.FC = () => {
               <p className="text-dark-muted truncate">@{user.username}</p>
             </div>
           </Link>
-          <button onClick={logout} title="Cerrar sesión" className="text-dark-muted hover:text-red-400 p-1 flex-shrink-0">
-            <LogOut className="w-4 h-4" />
+          <button type="button" onClick={logout} title="Cerrar sesión" aria-label="Cerrar sesión" className="text-dark-muted hover:text-red-400 p-1 flex-shrink-0">
+            <LogOut className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       ) : (

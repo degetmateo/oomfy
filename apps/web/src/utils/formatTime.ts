@@ -11,7 +11,7 @@ export function formatRelativeTime(dateInput: string | Date, nowMs: number = Dat
   if (diffSec < 60) return `${diffSec}s`;
 
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m`;
+  if (diffMin < 60) return `${diffMin}min`;
 
   const diffHours = Math.floor(diffMin / 60);
   if (diffHours < 24) return `${diffHours}h`;
@@ -21,7 +21,7 @@ export function formatRelativeTime(dateInput: string | Date, nowMs: number = Dat
 
   if (diffDays < 365) {
     const diffMonths = Math.max(1, Math.min(11, Math.floor(diffDays / 30)));
-    return `${diffMonths}mes`;
+    return `${diffMonths}m`;
   }
 
   return `${Math.floor(diffDays / 365)}a`;

@@ -59,7 +59,7 @@ export const ChatMessageItem: React.FC<Props> = ({
         </div>
       ) : (
         <div className="w-10 md:w-11 flex-shrink-0 text-right opacity-0 group-hover:opacity-100 transition-opacity select-none leading-none pt-0.5">
-          <span title={exactTimeStr} className="text-[10px] md:text-xs text-dark-muted font-mono">{timeStr}</span>
+          <time dateTime={message.created_at} title={exactTimeStr} className="text-[10px] md:text-xs text-dark-muted font-mono">{timeStr}</time>
         </div>
       )}
 
@@ -73,7 +73,7 @@ export const ChatMessageItem: React.FC<Props> = ({
                 <span className="text-xs md:text-sm text-dark-muted font-mono">@{senderUsername}</span>
               </Link>
             ) : <span className="font-bold text-sm md:text-base text-white">{senderName}</span>}
-            <span title={exactTimeStr} className="text-[10px] md:text-xs text-dark-muted font-mono">{timeStr}</span>
+            <time dateTime={message.created_at} title={exactTimeStr} className="text-[10px] md:text-xs text-dark-muted font-mono">{timeStr}</time>
           </div>
         )}
         {message.content && (

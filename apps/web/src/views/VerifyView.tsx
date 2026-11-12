@@ -31,27 +31,27 @@ export const VerifyView: React.FC = () => {
   }, [params, navigate, setAuth]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
+    <main className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
       {status === 'verifying' && (
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
-          <h2 className="text-xl font-bold text-white">Verificando tu cuenta...</h2>
+        <div role="status" className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+          <h1 className="text-xl font-bold text-white">Verificando tu cuenta...</h1>
         </div>
       )}
 
       {status === 'success' && (
-        <div className="p-6 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-400">
-          <h2 className="text-xl font-bold mb-2">¡Cuenta Activada con Éxito!</h2>
+        <div role="status" className="p-6 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-400">
+          <h1 className="text-xl font-bold mb-2">¡Cuenta Activada con Éxito!</h1>
           <p className="text-sm">Redirigiendo a tu feed de oomfy...</p>
         </div>
       )}
 
       {status === 'error' && (
-        <div className="p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400">
-          <h2 className="text-xl font-bold mb-2">Error de Verificación</h2>
+        <div role="alert" className="p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400">
+          <h1 className="text-xl font-bold mb-2">Error de Verificación</h1>
           <p className="text-sm">{errorMsg}</p>
         </div>
       )}
-    </div>
+    </main>
   );
 };

@@ -55,24 +55,24 @@ export const SigninView: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 font-mono">
+    <main className="flex flex-col items-center justify-center min-h-[80vh] px-4 font-mono">
       <div className="w-full max-w-md p-6 bg-dark-bg border-2 border-dark-border shadow-pixel relative">
         <div className="flex justify-center mb-4"><PixelLogo /></div>
-        <h2 className="text-xl font-bold text-center text-white mb-1">Iniciar sesión en oomfy</h2>
+        <h1 className="text-xl font-bold text-center text-white mb-1">Iniciar sesión en oomfy</h1>
         <p className="text-xs text-center text-dark-muted mb-6">Ingresa tus credenciales para acceder</p>
-        {error && <div className="p-3 mb-4 text-xs font-semibold bg-red-950/40 border border-red-500/40 text-red-400">{error}</div>}
+        {error && <div role="alert" className="p-3 mb-4 text-xs font-semibold bg-red-950/40 border border-red-500/40 text-red-400">{error}</div>}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-semibold text-dark-muted mb-1">Usuario o Correo</label>
-            <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-3 py-2 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans" />
+            <label htmlFor="signin-username" className="block text-xs font-semibold text-dark-muted mb-1">Usuario o Correo</label>
+            <input id="signin-username" name="username" type="text" autoComplete="username" spellCheck={false} autoCapitalize="none" autoCorrect="off" enterKeyHint="next" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-3 py-2 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-dark-muted mb-1">Contraseña</label>
+            <label htmlFor="signin-password" className="block text-xs font-semibold text-dark-muted mb-1">Contraseña</label>
             <div className="relative flex items-center">
-              <input type={showPassword ? 'text' : 'password'} required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 pr-9 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans" />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2.5 text-dark-muted hover:text-white p-0.5" title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}>
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <input id="signin-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" enterKeyHint="done" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 pr-9 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} aria-pressed={showPassword} aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'} className="absolute right-2.5 text-dark-muted hover:text-white p-0.5" title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}>
+                {showPassword ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
               </button>
             </div>
           </div>
@@ -95,6 +95,6 @@ export const SigninView: React.FC = () => {
         </div>
         <PasswordRecoveryModal mode={recoveryMode} onClose={() => setRecoveryMode('none')} />
       </div>
-    </div>
+    </main>
   );
 };

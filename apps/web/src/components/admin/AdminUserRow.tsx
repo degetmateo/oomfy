@@ -41,7 +41,7 @@ export const AdminUserRow: React.FC<AdminUserRowProps> = ({
           )}
         </div>
         <p className="text-[10px] text-dark-muted truncate mt-0.5">
-          {user.email} · {formattedDate && `Creado: ${formattedDate}`}
+          {formattedDate && <time dateTime={user.created_at}>Creado: {formattedDate}</time>}
         </p>
       </div>
 

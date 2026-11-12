@@ -35,12 +35,17 @@ export const Aside: React.FC = () => {
   const suggestedMembers = (suggestedData?.data || []).filter((m) => !currentUser || m.id !== currentUser.id);
 
   return (
-    <aside className="w-80 hidden lg:flex flex-col gap-4 p-4 sticky top-0 h-screen border-l border-dark-border font-mono overflow-y-auto">
+    <aside aria-label="Miembros y búsqueda" className="w-80 hidden lg:flex flex-col gap-4 p-4 sticky top-0 h-screen border-l border-dark-border font-mono overflow-y-auto">
       {isAuthenticated && (
-        <form onSubmit={handleSearchSubmit} className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-dark-muted" />
+        <form role="search" onSubmit={handleSearchSubmit} className="relative">
+          <label htmlFor="aside-search" className="sr-only">Buscar en oomfy</label>
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-dark-muted" aria-hidden="true" />
           <input
-            type="text"
+            id="aside-search"
+            name="q"
+            type="search"
+            enterKeyHint="search"
+            spellCheck={false}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar en oomfy..."

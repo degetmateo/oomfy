@@ -38,15 +38,15 @@ export const PublicationComposerToolbar: React.FC<Props> = ({
       <div className="flex items-center justify-between pt-2 border-t border-dark-border mt-2">
         <div className="flex items-center gap-2 text-dark-muted relative">
           <label className={`${pad} hover:text-brand-400 cursor-pointer transition-colors border border-transparent hover:border-dark-border`} title="Subir imagen/GIF">
-            <Image className="w-4 h-4" />
-            <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { media.attachFiles(Array.from(e.target.files || [])); e.target.value = ''; }} />
+            <Image className="w-4 h-4" aria-hidden="true" />
+            <input type="file" accept="image/*" multiple aria-label="Subir imagen o GIF" className="hidden" onChange={(e) => { media.attachFiles(Array.from(e.target.files || [])); e.target.value = ''; }} />
           </label>
-          <button type="button" onClick={() => setShowGifModal(true)} className={`${pad} hover:text-brand-400 transition-colors border border-transparent hover:border-dark-border`} title="Buscar GIF">
-            <Film className="w-4 h-4" />
+          <button type="button" onClick={() => setShowGifModal(true)} aria-label="Buscar GIF" className={`${pad} hover:text-brand-400 transition-colors border border-transparent hover:border-dark-border`} title="Buscar GIF">
+            <Film className="w-4 h-4" aria-hidden="true" />
           </button>
           <div className="relative">
-            <button ref={emojiBtnRef} type="button" onClick={() => setShowEmojiMenu((v) => !v)} className={`${pad} transition-colors border border-transparent hover:border-dark-border ${showEmojiMenu ? 'text-brand-400' : 'hover:text-brand-400'}`} title="Emojis">
-              <Smile className="w-4 h-4" />
+            <button ref={emojiBtnRef} type="button" onClick={() => setShowEmojiMenu((v) => !v)} aria-label="Emojis" aria-expanded={showEmojiMenu} className={`${pad} transition-colors border border-transparent hover:border-dark-border ${showEmojiMenu ? 'text-brand-400' : 'hover:text-brand-400'}`} title="Emojis">
+              <Smile className="w-4 h-4" aria-hidden="true" />
             </button>
             <EmojiPickerMenu isOpen={showEmojiMenu} anchorRef={emojiBtnRef} onClose={() => setShowEmojiMenu(false)} onSelectEmoji={(emoji) => media.insertEmoji(emoji, content, onChangeContent)} position="bottom" />
           </div>

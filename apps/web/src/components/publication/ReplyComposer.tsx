@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import { Link } from 'react-router-dom';
 import { LIMITS } from '@oomfy/shared';
 import { useAuthStore } from '../../stores/authStore.js';
@@ -13,6 +13,7 @@ interface Props {
 }
 
 export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmitting }) => {
+  const inputId = useId();
   const { isAuthenticated } = useAuthStore();
   const [content, setContent] = useState('');
   const media = useComposerMedia({ allowCrop: true, cropTitle: 'Recortar imagen de respuesta', maxGifs: 4, maxTotal: 4, maxLength: LIMITS.POST_CONTENT_MAX });
@@ -44,7 +45,10 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
 
   return (
     <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-b border-dark-border bg-dark-bg font-mono">
+      <label htmlFor={inputId} className="sr-only">Publicar tu respuesta</label>
       <textarea
+        id={inputId}
+        name="content"
         ref={media.attachTextareaRef}
         rows={2}
         value={content}

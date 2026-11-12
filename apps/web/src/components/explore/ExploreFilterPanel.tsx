@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 interface FilterValues {
   author: string;
@@ -14,12 +14,18 @@ interface Props {
 }
 
 export const ExploreFilterPanel: React.FC<Props> = ({ values, onChange, onReset }) => {
+  const baseId = useId();
   return (
     <div className="p-3 bg-dark-card/60 border-b border-dark-border grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
       <div>
-        <label className="text-dark-muted block mb-1">Usuario (@):</label>
+        <label htmlFor={`${baseId}-author`} className="text-dark-muted block mb-1">Usuario (@):</label>
         <input
+          id={`${baseId}-author`}
+          name="author"
           type="text"
+          spellCheck={false}
+          autoCapitalize="none"
+          autoCorrect="off"
           value={values.author}
           onChange={(e) => onChange({ ...values, author: e.target.value })}
           placeholder="Ej. buenardo_bro"
@@ -28,8 +34,10 @@ export const ExploreFilterPanel: React.FC<Props> = ({ values, onChange, onReset 
       </div>
 
       <div className="flex items-center gap-2 pt-4">
-        <label className="flex items-center gap-2 cursor-pointer text-white">
+        <label htmlFor={`${baseId}-media`} className="flex items-center gap-2 cursor-pointer text-white">
           <input
+            id={`${baseId}-media`}
+            name="hasMedia"
             type="checkbox"
             checked={values.hasMedia}
             onChange={(e) => onChange({ ...values, hasMedia: e.target.checked })}
@@ -40,8 +48,10 @@ export const ExploreFilterPanel: React.FC<Props> = ({ values, onChange, onReset 
       </div>
 
       <div>
-        <label className="text-dark-muted block mb-1">Desde fecha:</label>
+        <label htmlFor={`${baseId}-since`} className="text-dark-muted block mb-1">Desde fecha:</label>
         <input
+          id={`${baseId}-since`}
+          name="since"
           type="date"
           value={values.since}
           onChange={(e) => onChange({ ...values, since: e.target.value })}
@@ -50,8 +60,10 @@ export const ExploreFilterPanel: React.FC<Props> = ({ values, onChange, onReset 
       </div>
 
       <div>
-        <label className="text-dark-muted block mb-1">Hasta fecha:</label>
+        <label htmlFor={`${baseId}-until`} className="text-dark-muted block mb-1">Hasta fecha:</label>
         <input
+          id={`${baseId}-until`}
+          name="until"
           type="date"
           value={values.until}
           onChange={(e) => onChange({ ...values, until: e.target.value })}
@@ -60,10 +72,7 @@ export const ExploreFilterPanel: React.FC<Props> = ({ values, onChange, onReset 
       </div>
 
       <div className="col-span-full flex justify-end">
-        <button
-          onClick={onReset}
-          className="text-dark-muted hover:text-white underline text-[11px]"
-        >
+        <button type="button" onClick={onReset} className="text-dark-muted hover:text-white underline text-[11px]">
           Limpiar filtros
         </button>
       </div>

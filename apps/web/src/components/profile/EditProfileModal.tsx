@@ -32,6 +32,13 @@ export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpd
     }
   }, [user, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSave = async () => {
@@ -51,12 +58,12 @@ export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpd
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 font-mono">
-      <div className="w-full max-w-lg bg-[#1a1a1a] border-2 border-dark-border shadow-pixel flex flex-col max-h-[90vh] overflow-y-auto">
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="edit-profile-modal-title" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 font-mono">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-[#1a1a1a] border-2 border-dark-border shadow-pixel flex flex-col max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-3 border-b-2 border-dark-border bg-[#141414]">
-          <button onClick={onClose} className="p-1 hover:bg-dark-border border border-transparent hover:border-dark-muted"><X className="w-5 h-5 text-white" /></button>
-          <span className="font-bold text-white tracking-wider text-sm">Editar perfil</span>
-          <button onClick={handleSave} disabled={isSaving} className="px-4 py-1 text-xs font-bold text-brand-400 hover:text-white bg-dark-bg border border-brand-500 hover:bg-brand-600 transition-colors pixel-button disabled:opacity-50">
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="p-1 hover:bg-dark-border border border-transparent hover:border-dark-muted"><X className="w-5 h-5 text-white" aria-hidden="true" /></button>
+          <h2 id="edit-profile-modal-title" className="font-bold text-white tracking-wider text-sm">Editar perfil</h2>
+          <button type="button" onClick={handleSave} disabled={isSaving} className="px-4 py-1 text-xs font-bold text-brand-400 hover:text-white bg-dark-bg border border-brand-500 hover:bg-brand-600 transition-colors pixel-button disabled:opacity-50">
             {isSaving ? 'Guardando...' : 'Guardar'}
           </button>
         </div>

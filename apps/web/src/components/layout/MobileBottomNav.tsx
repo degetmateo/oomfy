@@ -15,11 +15,12 @@ export const MobileBottomNav: React.FC = () => {
   const links = buildNavItems(user, badges);
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#161616]/95 backdrop-blur border-t border-dark-border py-2 px-2 flex justify-around items-center font-mono">
-      {links.map(({ to, icon, badge }) => (
+    <nav aria-label="Navegación móvil" className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#161616]/95 backdrop-blur border-t border-dark-border py-2 px-2 flex justify-around items-center font-mono">
+      {links.map(({ to, label, icon, badge }) => (
         <NavLink
           key={to}
           to={to}
+          aria-label={badge && badge > 0 ? `${label} (${badge > 9 ? '9+' : badge})` : label}
           onClick={() => { if (location.pathname === to) window.scrollTo?.({ top: 0, behavior: 'smooth' }); }}
           className={({ isActive }) =>
             `p-2 transition-colors flex items-center justify-center relative ${

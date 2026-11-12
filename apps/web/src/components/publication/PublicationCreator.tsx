@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { LIMITS, Publication } from '@oomfy/shared';
 import { ApiClient } from '../../services/api.js';
@@ -19,6 +19,7 @@ interface Props {
 
 export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = false, quotedPublication, onRemoveQuoted }) => {
   const queryClient = useQueryClient();
+  const inputId = useId();
   const { isAuthenticated } = useAuthStore();
   const dialog = useDialogStore();
   const [content, setContent] = useState('');
@@ -57,7 +58,12 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
 
   return (
     <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-b border-dark-border bg-dark-bg font-mono">
+      <label htmlFor={inputId} className="sr-only">
+        {quotedPublication ? 'Añade un comentario' : '¿Qué estás pensando?'}
+      </label>
       <textarea
+        id={inputId}
+        name="content"
         ref={media.attachTextareaRef}
         autoFocus={autoFocus}
         value={content}

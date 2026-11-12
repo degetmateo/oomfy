@@ -14,7 +14,8 @@ export function useCardClickGuard(onNavigate: () => void) {
   const onClick = (e: React.MouseEvent) => {
     if (e.defaultPrevented) return;
     const target = e.target as HTMLElement | null;
-    if (target?.closest('a, button, input, textarea, [data-no-card-nav="true"]')) return;
+    const blocked = target?.closest('a, button, input, textarea, [data-no-card-nav="true"]');
+    if (blocked && blocked !== e.currentTarget) return;
 
     const selectedText = typeof window !== 'undefined' ? window.getSelection()?.toString() : '';
     if (selectedText && selectedText.length > 0) return;

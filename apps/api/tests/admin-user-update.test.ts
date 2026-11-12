@@ -28,14 +28,17 @@ describe('AdminUserUpdateService', () => {
     ).rejects.toThrow(BadRequestError);
   });
 
-  it('rejects invalid email formats', async () => {
-    vi.spyOn(PostgresPool, 'getInstance').mockReturnValue({
-      query: vi.fn().mockResolvedValue({ rowCount: 1, rows: [{ id: 'user-1', email: 'old@test.com' }] }),
-    } as any);
+  it('ignores email in update payload and never queries or exposes email columns', async () => {
+    const queryMock = vi.fn().mockResolvedValue({
+      rowCount: 1,
+      rows: [{ id: 'user-1', username: 'alice', name: 'Alice', role: 'member', status: 'active' }],
+    });
+    vi.spyOn(PostgresPool, 'getInstance').mockReturnValue({ query: queryMock } as any);
 
-    await expect(
-      AdminUserUpdateService.updateUser('user-1', 'admin-id', { email: 'not-an-email' })
-    ).rejects.toThrow(BadRequestError);
+    const res = await AdminUserUpdateService.updateUser('user-1', 'admin-id', { email: 'new@test.com' } as any);
+    expect(res.message).toBe('Sin cambios.');
+    expect(res.user).not.toHaveProperty('email');
+    expect(queryMock.mock.calls[0][0]).not.toContain('email');
   });
 
   it('rejects short passwords', async () => {

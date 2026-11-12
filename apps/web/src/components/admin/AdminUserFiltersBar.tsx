@@ -28,7 +28,7 @@ export const AdminUserFiltersBar: React.FC<Props> = ({ filters, onChange, onRese
           type="text"
           value={filters.search}
           onChange={(e) => onChange({ ...filters, search: e.target.value })}
-          placeholder="Filtrar por nombre, @username o email..."
+          placeholder="Filtrar por nombre o @username..."
           className="w-full pl-9 pr-3 py-2 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans"
         />
       </div>

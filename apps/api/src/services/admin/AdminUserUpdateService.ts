@@ -10,7 +10,6 @@ import { UserStatusEnforcementHelper } from './UserStatusEnforcementHelper.js';
 export interface AdminUserUpdateInput {
   name?: string;
   username?: string;
-  email?: string;
   password?: string;
   status?: 'active' | 'pending' | 'suspended';
   role?: Role;
@@ -21,7 +20,7 @@ const USERNAME_RE = new RegExp(`^[a-zA-Z0-9_]{${LIMITS.USERNAME_MIN},${LIMITS.US
 export class AdminUserUpdateService {
   public static async updateUser(userId: string, adminId: string, input: AdminUserUpdateInput) {
     const pool = PostgresPool.getInstance();
-    const currentRes = await pool.query('SELECT id, username, name, email, role, status FROM members WHERE id = $1', [userId]);
+    const currentRes = await pool.query('SELECT id, username, name, role, status FROM members WHERE id = $1', [userId]);
     if (currentRes.rowCount === 0) throw new NotFoundError('Usuario no encontrado.');
     const current = currentRes.rows[0];
     const updates: Record<string, any> = {};
@@ -38,13 +37,6 @@ export class AdminUserUpdateService {
       if (dup.rowCount && dup.rowCount > 0) throw new BadRequestError('El nombre de usuario ya está en uso.');
       updates.username = cleanUser;
       mongoUpdates.username = cleanUser;
-    }
-    if (input.email?.trim()) {
-      const cleanEmail = input.email.trim().toLowerCase();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) throw new BadRequestError('Correo electrónico inválido.');
-      const dup = await pool.query('SELECT 1 FROM members WHERE LOWER(email) = $1 AND id <> $2', [cleanEmail, userId]);
-      if (dup.rowCount && dup.rowCount > 0) throw new BadRequestError('El correo electrónico ya está en uso.');
-      updates.email = cleanEmail;
     }
     if (input.password && input.password.trim().length > 0) {
       if (input.password.length < LIMITS.PASSWORD_MIN || input.password.length > LIMITS.PASSWORD_MAX) {
@@ -69,7 +61,7 @@ export class AdminUserUpdateService {
     const keys = Object.keys(updates);
     const setSql = keys.map((k, i) => `${k} = $${i + 2}`).join(', ');
     const { rows } = await pool.query(
-      `UPDATE members SET ${setSql}, updated_at = NOW() WHERE id = $1 RETURNING id, username, name, email, role, status`,
+      `UPDATE members SET ${setSql}, updated_at = NOW() WHERE id = $1 RETURNING id, username, name, role, status`,
       [userId, ...keys.map((k) => updates[k])]
     );
 

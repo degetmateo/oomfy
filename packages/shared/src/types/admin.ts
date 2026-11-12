@@ -11,7 +11,6 @@ export interface AdminUserSummary {
   id: string;
   username: string;
   name: string;
-  email: string;
   role: Role;
   status: 'pending' | 'active' | 'suspended';
   created_at: string;

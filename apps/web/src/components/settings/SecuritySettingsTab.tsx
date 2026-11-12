@@ -42,31 +42,26 @@ export const SecuritySettingsTab: React.FC = () => {
   };
 
   const renderPasswordField = (
+    id: string,
     label: string,
     value: string,
     onChange: (val: string) => void,
     show: boolean,
     toggleShow: () => void,
+    autoComplete: string,
+    enterKeyHint: 'next' | 'done',
     minLength?: number
   ) => (
     <div>
-      <label className="block text-xs font-semibold text-dark-muted mb-1">{label}</label>
+      <label htmlFor={id} className="block text-xs font-semibold text-dark-muted mb-1">{label}</label>
       <div className="relative flex items-center">
         <input
-          type={show ? 'text' : 'password'}
-          required
-          minLength={minLength}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          id={id} name={id} type={show ? 'text' : 'password'} autoComplete={autoComplete} enterKeyHint={enterKeyHint}
+          required minLength={minLength} value={value} onChange={(e) => onChange(e.target.value)}
           className="w-full px-3 py-2 pr-9 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans"
         />
-        <button
-          type="button"
-          onClick={toggleShow}
-          className="absolute right-2.5 text-dark-muted hover:text-white p-0.5"
-          title={show ? 'Ocultar contraseña' : 'Ver contraseña'}
-        >
-          {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        <button type="button" onClick={toggleShow} aria-pressed={show} aria-label={show ? 'Ocultar contraseña' : 'Ver contraseña'} className="absolute right-2.5 text-dark-muted hover:text-white p-0.5" title={show ? 'Ocultar contraseña' : 'Ver contraseña'}>
+          {show ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
         </button>
       </div>
     </div>
@@ -81,9 +76,9 @@ export const SecuritySettingsTab: React.FC = () => {
         </p>
       </div>
 
-      {renderPasswordField('Contraseña Actual', currentPassword, setCurrentPassword, showCurrentPass, () => setShowCurrentPass(!showCurrentPass))}
-      {renderPasswordField('Nueva Contraseña', newPassword, setNewPassword, showNewPass, () => setShowNewPass(!showNewPass), 8)}
-      {renderPasswordField('Confirmar Nueva Contraseña', confirmPassword, setConfirmPassword, showConfirmPass, () => setShowConfirmPass(!showConfirmPass), 8)}
+      {renderPasswordField('current-password', 'Contraseña Actual', currentPassword, setCurrentPassword, showCurrentPass, () => setShowCurrentPass(!showCurrentPass), 'current-password', 'next')}
+      {renderPasswordField('new-password', 'Nueva Contraseña', newPassword, setNewPassword, showNewPass, () => setShowNewPass(!showNewPass), 'new-password', 'next', 8)}
+      {renderPasswordField('confirm-new-password', 'Confirmar Nueva Contraseña', confirmPassword, setConfirmPassword, showConfirmPass, () => setShowConfirmPass(!showConfirmPass), 'new-password', 'done', 8)}
 
       <button
         type="submit"

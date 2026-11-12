@@ -39,12 +39,12 @@ export const PasswordRecoveryModal: React.FC<Props> = ({ mode, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-dark-bg border-2 border-dark-border shadow-pixel p-5 relative font-mono">
-        <button onClick={onClose} className="absolute top-3 right-3 text-dark-muted hover:text-white p-1">
-          <X className="w-4 h-4" />
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="recovery-modal-title" className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm bg-dark-bg border-2 border-dark-border shadow-pixel p-5 relative font-mono">
+        <button type="button" onClick={onClose} aria-label="Cerrar ventana" className="absolute top-3 right-3 text-dark-muted hover:text-white p-1">
+          <X className="w-4 h-4" aria-hidden="true" />
         </button>
-        <h3 className="text-sm font-bold text-white mb-1">
+        <h3 id="recovery-modal-title" className="text-sm font-bold text-white mb-1">
           {mode === 'password' ? 'Recuperar Contraseña' : 'Recordar Nombre de Usuario'}
         </h3>
         <p className="text-xs text-dark-muted font-sans mb-4">
@@ -54,21 +54,29 @@ export const PasswordRecoveryModal: React.FC<Props> = ({ mode, onClose }) => {
         </p>
 
         {msg ? (
-          <div className="p-3 bg-brand-950/30 border border-brand-500/40 text-brand-400 text-xs leading-relaxed mb-4">
+          <div role="status" className="p-3 bg-brand-950/30 border border-brand-500/40 text-brand-400 text-xs leading-relaxed mb-4">
             {msg}
-            <button onClick={onClose} className="block mt-3 w-full py-2 bg-brand-500 text-black font-bold text-xs uppercase pixel-button">
+            <button type="button" onClick={onClose} className="block mt-3 w-full py-2 bg-brand-500 text-black font-bold text-xs uppercase pixel-button">
               Entendido
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            {error && <div className="p-2.5 text-xs bg-red-950/40 border border-red-500/40 text-red-400">{error}</div>}
+            {error && <div role="alert" className="p-2.5 text-xs bg-red-950/40 border border-red-500/40 text-red-400">{error}</div>}
             <div>
-              <label className="block text-xs text-dark-muted mb-1 font-semibold">
+              <label htmlFor="recovery-input" className="block text-xs text-dark-muted mb-1 font-semibold">
                 {mode === 'password' ? 'Nombre de Usuario' : 'Correo Electrónico'}
               </label>
               <input
+                id="recovery-input"
+                name={mode === 'password' ? 'username' : 'email'}
                 type={mode === 'password' ? 'text' : 'email'}
+                inputMode={mode === 'password' ? 'text' : 'email'}
+                autoComplete={mode === 'password' ? 'username' : 'email'}
+                spellCheck={false}
+                autoCapitalize="none"
+                autoCorrect="off"
+                enterKeyHint="send"
                 required
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

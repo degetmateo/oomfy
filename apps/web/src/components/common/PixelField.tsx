@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 
 interface Props {
   label: string;
@@ -18,6 +18,7 @@ export const PixelField: React.FC<Props> = ({
   placeholder = '',
 }) => {
   const [focused, setFocused] = useState(false);
+  const inputId = useId();
 
   return (
     <div
@@ -26,7 +27,7 @@ export const PixelField: React.FC<Props> = ({
       }`}
     >
       <div className="flex justify-between items-center text-xs text-dark-muted mb-1 select-none">
-        <span>{label}</span>
+        <label htmlFor={inputId}>{label}</label>
         {maxLength && (
           <span className={value.length >= maxLength ? 'text-red-400' : ''}>
             {value.length}/{maxLength}
@@ -36,6 +37,7 @@ export const PixelField: React.FC<Props> = ({
 
       {isTextarea ? (
         <textarea
+          id={inputId}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           maxLength={maxLength}
@@ -47,6 +49,7 @@ export const PixelField: React.FC<Props> = ({
         />
       ) : (
         <input
+          id={inputId}
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}

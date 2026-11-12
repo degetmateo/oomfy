@@ -5,7 +5,6 @@ export interface AdminUserFilters {
   query?: string;
   name?: string;
   username?: string;
-  email?: string;
   role?: Role;
   status?: UserStatus;
   created_from?: string;
@@ -27,11 +26,10 @@ export class AdminUserQueryBuilder {
     if (filters.query?.trim()) {
       params.push(`%${filters.query.trim()}%`);
       const idx = params.length;
-      conditions.push(`(username ILIKE $${idx} OR name ILIKE $${idx} OR email ILIKE $${idx})`);
+      conditions.push(`(username ILIKE $${idx} OR name ILIKE $${idx})`);
     }
     if (filters.name?.trim()) addCond('name ILIKE ?', `%${filters.name.trim()}%`);
     if (filters.username?.trim()) addCond('username ILIKE ?', `%${filters.username.trim()}%`);
-    if (filters.email?.trim()) addCond('email ILIKE ?', `%${filters.email.trim()}%`);
     if (filters.role) addCond('role = ?', filters.role);
     if (filters.status) addCond('status = ?', filters.status);
 
@@ -52,7 +50,7 @@ export class AdminUserQueryBuilder {
 
     params.push(limit, offset);
     const fromClause = whereClause ? `FROM members ${whereClause}` : 'FROM members';
-    const sql = `SELECT id, username, name, email, role, status, created_at ${fromClause} ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
+    const sql = `SELECT id, username, name, role, status, created_at ${fromClause} ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
     return { sql, params };
   }
 }

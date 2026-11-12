@@ -20,10 +20,7 @@ export const AccountLifecycleSection: React.FC = () => {
       const res = await ApiClient.get<{ success: boolean; data: any }>('/members/me/export');
       const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `oomfy-datos-${user?.username || 'cuenta'}.json`;
-      a.click();
+      Object.assign(document.createElement('a'), { href: url, download: `oomfy-datos-${user?.username || 'cuenta'}.json` }).click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
       dialog.alert(err.message || 'No se pudo exportar tu información.', 'Error');
@@ -84,7 +81,8 @@ export const AccountLifecycleSection: React.FC = () => {
         </div>
         {showDeleteForm && (
           <form onSubmit={handleDeleteAccount} className="mt-3 flex flex-col sm:flex-row gap-2">
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Confirma tu contraseña actual" className="flex-1 bg-dark-bg border border-dark-border p-2 text-xs text-white focus:border-red-500 focus:outline-none" />
+            <label htmlFor="delete-account-password" className="sr-only">Confirma tu contraseña actual</label>
+            <input id="delete-account-password" name="current_password" type="password" autoComplete="current-password" enterKeyHint="done" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Confirma tu contraseña actual" className="flex-1 bg-dark-bg border border-dark-border p-2 text-xs text-white focus:border-red-500 focus:outline-none" />
             <div className="flex gap-2">
               <button type="button" onClick={() => { setShowDeleteForm(false); setPassword(''); }} className="px-3 py-1.5 border border-dark-border text-xs text-dark-muted hover:text-white">Cancelar</button>
               <button type="submit" disabled={isDeleting || !password} className="px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-xs font-bold">

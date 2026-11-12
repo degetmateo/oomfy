@@ -34,14 +34,22 @@ export const AccountSettingsTab: React.FC = () => {
     <div className="flex flex-col">
     <form onSubmit={handleUpdateUsername} className="flex flex-col gap-4">
       <div>
-        <h3 className="text-sm font-bold text-white mb-1">Nombre de Usuario</h3>
-        <p className="text-xs text-dark-muted mb-4 font-sans leading-relaxed">
+        <label htmlFor="settings-username" className="block text-sm font-bold text-white mb-1">Nombre de Usuario</label>
+        <p id="settings-username-hint" className="text-xs text-dark-muted mb-4 font-sans leading-relaxed">
           Tu @ identifica tu cuenta y tus publicaciones en oomfy.
         </p>
         <div className="flex items-center bg-dark-card border border-dark-border px-3 py-2 text-xs">
-          <span className="text-brand-400 font-bold mr-1">@</span>
+          <span className="text-brand-400 font-bold mr-1" aria-hidden="true">@</span>
           <input
+            id="settings-username"
+            name="username"
             type="text"
+            autoComplete="username"
+            spellCheck={false}
+            autoCapitalize="none"
+            autoCorrect="off"
+            enterKeyHint="done"
+            aria-describedby="settings-username-hint"
             required
             value={newUsername}
             onChange={(e) => setNewUsername(e.target.value)}

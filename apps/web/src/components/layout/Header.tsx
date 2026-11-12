@@ -45,6 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-20 backdrop-blur-md bg-dark-bg/85 border-b border-dark-border px-4 sm:px-6 py-3.5 flex items-center gap-3 select-none">
       {shouldShowBack && (
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             navigate(-1);
@@ -53,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
           title="Volver"
           aria-label="Volver atrás"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5" aria-hidden="true" />
         </button>
       )}
       <div onClick={handleScrollTop} className="cursor-pointer group flex-1 min-w-0" title="Volver arriba">

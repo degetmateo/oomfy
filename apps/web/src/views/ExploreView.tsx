@@ -38,31 +38,32 @@ export const ExploreView: React.FC = () => {
     <div className="flex flex-col min-h-screen font-mono">
       <Header title="Explorar" />
       <div className="p-3 sm:p-4 border-b border-dark-border bg-dark-bg">
-        <div className="flex gap-2">
+        <form role="search" onSubmit={(e) => e.preventDefault()} className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-dark-muted" />
+            <label htmlFor="explore-search" className="sr-only">Buscar palabras, temas, frases</label>
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-dark-muted" aria-hidden="true" />
             <input
-              type="text"
+              id="explore-search" name="q" type="search" enterKeyHint="search" spellCheck={false}
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setSearchParams(e.target.value ? { q: e.target.value } : {}); }}
               placeholder="Buscar palabras, temas, frases..."
               className="w-full pl-9 pr-8 py-2 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500"
             />
             {searchTerm && (
-              <button onClick={() => { setSearchTerm(''); setSearchParams({}); }} className="absolute right-2.5 top-2.5 text-dark-muted hover:text-white">
-                <X className="w-4 h-4" />
+              <button type="button" onClick={() => { setSearchTerm(''); setSearchParams({}); }} aria-label="Limpiar búsqueda" className="absolute right-2.5 top-2.5 text-dark-muted hover:text-white">
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             )}
           </div>
           {activeTab === 'posts' && (
-            <button onClick={() => setShowFilters(!showFilters)} className={`p-2 border transition-colors ${showFilters ? 'bg-brand-500 text-black border-brand-500' : 'border-dark-border bg-dark-card text-dark-muted hover:text-white'}`}>
-              <SlidersHorizontal className="w-4 h-4" />
+            <button type="button" onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} aria-label="Filtros de búsqueda" className={`p-2 border transition-colors ${showFilters ? 'bg-brand-500 text-black border-brand-500' : 'border-dark-border bg-dark-card text-dark-muted hover:text-white'}`}>
+              <SlidersHorizontal className="w-4 h-4" aria-hidden="true" />
             </button>
           )}
-        </div>
+        </form>
         <div className="flex border-b border-dark-border mt-3 text-xs">
           {(['posts', 'users'] as const).map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-2 font-bold transition-colors border-b-2 ${activeTab === tab ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'}`}>
+            <button key={tab} type="button" aria-pressed={activeTab === tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-2 font-bold transition-colors border-b-2 ${activeTab === tab ? 'border-brand-500 text-brand-400' : 'border-transparent text-dark-muted hover:text-white'}`}>
               {tab === 'posts' ? 'Publicaciones' : 'Usuarios'}
             </button>
           ))}

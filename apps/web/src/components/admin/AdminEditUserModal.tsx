@@ -10,14 +10,13 @@ export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }
   const dialog = useDialogStore();
   const [name, setName] = useState(user?.name || '');
   const [username, setUsername] = useState(user?.username || '');
-  const [email, setEmail] = useState(user?.email || '');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<string>(user?.status || 'active');
   const [role, setRole] = useState<Role>(user?.role || 'member');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    setName(user?.name || ''); setUsername(user?.username || ''); setEmail(user?.email || '');
+    setName(user?.name || ''); setUsername(user?.username || '');
     setPassword(''); setStatus(user?.status || 'active'); setRole(user?.role || 'member');
   }, [user]);
 
@@ -27,7 +26,7 @@ export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const payload: any = { name, username, email, status, role };
+      const payload: any = { name, username, status, role };
       if (password.trim()) payload.password = password.trim();
       await ApiClient.put(`/admin/users/${user.id}`, payload);
       dialog.alert('Usuario actualizado correctamente.', 'Éxito');
@@ -53,19 +52,13 @@ export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }
             <label className="block text-[10px] uppercase text-dark-muted mb-1">Nombre</label>
             <input value={name} onChange={(e) => setName(e.target.value)} required className="w-full bg-dark-card border border-dark-border p-2 text-white font-sans text-xs" />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[10px] uppercase text-dark-muted mb-1">Usuario</label>
-              <input value={username} onChange={(e) => setUsername(e.target.value)} required className="w-full bg-dark-card border border-dark-border p-2 text-white text-xs" />
-            </div>
-            <div>
-              <label className="block text-[10px] uppercase text-dark-muted mb-1">Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full bg-dark-card border border-dark-border p-2 text-white text-xs" />
-            </div>
+          <div>
+            <label htmlFor="admin-edit-username" className="block text-[10px] uppercase text-dark-muted mb-1">Usuario</label>
+            <input id="admin-edit-username" name="username" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" spellCheck={false} autoCapitalize="none" autoCorrect="off" required className="w-full bg-dark-card border border-dark-border p-2 text-white text-xs" />
           </div>
           <div>
-            <label className="block text-[10px] uppercase text-dark-muted mb-1">Nueva Contraseña (opcional)</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Dejar en blanco para mantener" className="w-full bg-dark-card border border-dark-border p-2 text-white text-xs" />
+            <label htmlFor="admin-edit-password" className="block text-[10px] uppercase text-dark-muted mb-1">Nueva Contraseña (opcional)</label>
+            <input id="admin-edit-password" name="new_password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Dejar en blanco para mantener" className="w-full bg-dark-card border border-dark-border p-2 text-white text-xs" />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>

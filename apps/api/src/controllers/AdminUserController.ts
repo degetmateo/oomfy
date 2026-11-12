@@ -6,18 +6,6 @@ import { AdminSessionService } from '../services/admin/AdminSessionService.js';
 export class AdminUserController {
   public static async listUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const filters = {
-        query: req.query.query as string | undefined,
-        name: req.query.name as string | undefined,
-        username: req.query.username as string | undefined,
-        email: req.query.email as string | undefined,
-        role: req.query.role as any,
-        status: req.query.status as string | undefined,
-        created_from: req.query.created_from as string | undefined,
-        created_to: req.query.created_to as string | undefined,
-        limit: Number(req.query.limit) || 30,
-        offset: Number(req.query.offset) || 0,
-      };
       const users = await AdminUserService.listUsers(req.query as any);
       res.status(200).json({ success: true, data: users });
     } catch (err) {

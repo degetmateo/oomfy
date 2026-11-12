@@ -16,10 +16,10 @@ export const PixelDialogModal: React.FC = () => {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
+      if (!isOpen || e.isComposing || e.keyCode === 229) return;
       if (e.key === 'Escape') {
         handleCancel();
-      } else if (e.key === 'Enter') {
+      } else if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement)) {
         handleConfirm();
       }
     };
@@ -32,6 +32,10 @@ export const PixelDialogModal: React.FC = () => {
   return (
     <div
       onClick={handleCancel}
+      role={type === 'alert' || type === 'danger' ? 'alertdialog' : 'dialog'}
+      aria-modal="true"
+      aria-labelledby="pixel-dialog-title"
+      aria-describedby="pixel-dialog-message"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 font-mono animate-fade-in"
     >
       <div
@@ -41,24 +45,26 @@ export const PixelDialogModal: React.FC = () => {
         <div className="flex items-center justify-between p-3 border-b border-dark-border bg-dark-card/60">
           <div className="flex items-center gap-2">
             {type === 'danger' ? (
-              <AlertTriangle className="w-4 h-4 text-red-400" />
+              <AlertTriangle className="w-4 h-4 text-red-400" aria-hidden="true" />
             ) : (
-              <Info className="w-4 h-4 text-brand-400" />
+              <Info className="w-4 h-4 text-brand-400" aria-hidden="true" />
             )}
-            <span className="font-bold text-xs text-white uppercase tracking-wider">{title}</span>
+            <h2 id="pixel-dialog-title" className="font-bold text-xs text-white uppercase tracking-wider">{title}</h2>
           </div>
-          <button onClick={handleCancel} className="p-1 hover:bg-dark-border text-dark-muted hover:text-white transition-colors">
-            <X className="w-4 h-4" />
+          <button type="button" onClick={handleCancel} aria-label="Cerrar" className="p-1 hover:bg-dark-border text-dark-muted hover:text-white transition-colors">
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="p-4 text-xs text-dark-text whitespace-pre-line leading-relaxed font-sans">
+        <div id="pixel-dialog-message" className="p-4 text-xs text-dark-text whitespace-pre-line leading-relaxed font-sans">
           {message}
         </div>
 
         <div className="flex items-center justify-end gap-2 p-3 border-t border-dark-border bg-dark-card/30">
           {type !== 'alert' && (
             <button
+              type="button"
+              autoFocus={type === 'danger'}
               onClick={handleCancel}
               className="px-3 py-1.5 text-xs font-bold text-dark-text hover:text-white bg-dark-card border border-dark-border hover:border-dark-muted transition-colors pixel-button"
             >
@@ -66,6 +72,8 @@ export const PixelDialogModal: React.FC = () => {
             </button>
           )}
           <button
+            type="button"
+            autoFocus={type !== 'danger'}
             onClick={handleConfirm}
             className={`px-4 py-1.5 text-xs font-bold transition-colors pixel-button ${
               type === 'danger'
