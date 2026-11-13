@@ -56,5 +56,39 @@ describe('Mobile Viewport & Keyboard Layout Adaptation', () => {
     expect(btn).toBeTruthy();
     expect(btn?.classList.contains('mobile-keyboard-hide')).toBe(true);
   });
+
+  it('updates --keyboard-inset-bottom dynamically when visualViewport shrinks', () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true } as any);
+    window.innerHeight = 800;
+
+    let resizeCallback: (() => void) | null = null;
+    const mockViewport: any = {
+      height: 800,
+      offsetTop: 0,
+      addEventListener: vi.fn((event, cb) => {
+        if (event === 'resize') resizeCallback = cb;
+      }),
+      removeEventListener: vi.fn(),
+    };
+    (window as any).visualViewport = mockViewport;
+
+    const { unmount } = renderHook(() => useVirtualKeyboard());
+
+    act(() => {
+      mockViewport.height = 480; // 320px keyboard
+      resizeCallback?.();
+    });
+
+    expect(document.documentElement.style.getPropertyValue('--keyboard-inset-bottom')).toBe('320px');
+    expect(document.body.classList.contains('keyboard-open')).toBe(true);
+
+    act(() => {
+      mockViewport.height = 800; // keyboard closed
+      resizeCallback?.();
+    });
+
+    expect(document.documentElement.style.getPropertyValue('--keyboard-inset-bottom')).toBe('0px');
+    unmount();
+  });
 });
 

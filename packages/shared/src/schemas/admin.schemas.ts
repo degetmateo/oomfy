@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { LIMITS } from '../constants/limits.js';
-import { UsernameSchema } from './user.schemas.js';
+import { UsernameSchema, USERNAME_REGEX } from './user.schemas.js';
 import { emptyToNull } from './url.schemas.js';
 
 export const SystemSettingsUpdateSchema = z
@@ -48,6 +48,15 @@ export const AdminPushBroadcastSchema = z.object({
     (v) => v.startsWith('/') && !v.startsWith('//') && !v.startsWith('\\'),
     { error: 'La URL debe ser una ruta interna segura.' }
   ),
-  target_username: z.preprocess(emptyToNull, z.string().trim().max(LIMITS.USERNAME_MAX).nullable().optional()),
+  target_username: z.preprocess(
+    emptyToNull,
+    z
+      .string()
+      .trim()
+      .max(LIMITS.USERNAME_MAX)
+      .regex(USERNAME_REGEX, { error: 'Solo se permiten letras del alfabeto inglés, números y guiones bajos.' })
+      .nullable()
+      .optional()
+  ),
 });
 

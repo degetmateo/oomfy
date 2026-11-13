@@ -6,12 +6,20 @@ import { Header } from '../components/layout/Header.js';
 import { UserSearchCard } from '../components/profile/UserSearchCard.js';
 import { ApiClient } from '../services/api.js';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
+import { useTabSwipe } from '../hooks/useTabSwipe.js';
+
+const FOLLOW_TABS = ['followers', 'following'] as const;
 
 export const FollowListView: React.FC = () => {
   const { username } = useParams<{ username: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const activeTab: 'followers' | 'following' = location.pathname.endsWith('/followers') ? 'followers' : 'following';
+  const { touchHandlers } = useTabSwipe({
+    tabs: FOLLOW_TABS,
+    activeTab,
+    onTabChange: (tab) => navigate(`/${username}/${tab}`, { replace: true }),
+  });
 
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery<{ success: boolean; data: PublicUser[] }>({
     queryKey: ['user-follows', username, activeTab],
@@ -26,7 +34,7 @@ export const FollowListView: React.FC = () => {
   const allUsers = (data?.pages.flatMap((p) => p.data) || []).filter((u, idx, arr) => idx === arr.findIndex((x) => x.id === u.id));
 
   return (
-    <div className="flex flex-col min-h-screen font-mono">
+    <div {...touchHandlers} className="flex flex-col min-h-screen font-mono">
       <Header title={activeTab === 'followers' ? 'Seguidores' : 'Siguiendo'} subtitle={`@${username}`} />
       <div className="flex border-b border-dark-border text-center select-none bg-dark-bg/60">
         {(['followers', 'following'] as const).map((tab) => (

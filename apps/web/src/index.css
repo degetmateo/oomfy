@@ -131,4 +131,13 @@ dialog::backdrop {
   body.keyboard-open .mobile-keyboard-hide {
     display: none !important;
   }
+
+  .mobile-chat-container {
+    height: auto !important;
+    bottom: var(--keyboard-inset-bottom, 0px) !important;
+  }
+
+  body.keyboard-open .chat-input-bar-container {
+    padding-bottom: 0 !important;
+  }
 }

@@ -64,3 +64,27 @@ export function formatMessageTimestamp(
   return new Intl.DateTimeFormat(undefined, options).format(date);
 }
 
+/**
+ * Formatea la marca de tiempo de una notificación mostrando fecha, hora y tiempo relativo:
+ * "DD/MM/YYYY, HH:MM • hace Ns" o "hace Nmin".
+ */
+export function formatNotificationTime(
+  dateInput: string | Date,
+  nowMs: number = Date.now()
+): string {
+  const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  const timeMs = date.getTime();
+  if (Number.isNaN(timeMs)) return '';
+
+  const dateStr = date.toLocaleDateString();
+  const timeStr = new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(date);
+  const relStr = formatRelativeTime(date, nowMs);
+
+  return `${dateStr}, ${timeStr} • hace ${relStr}`;
+}
+
+

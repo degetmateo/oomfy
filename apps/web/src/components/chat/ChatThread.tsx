@@ -90,7 +90,7 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
           <span className="w-2 h-2 rounded-full bg-brand-400 animate-pulse" /><span>@{typingUser} está escribiendo...</span>
         </div>
       )}
-      <ChatInputBar replyingTo={replyingTo} onCancelReply={() => setReplyingTo(null)} onSendMessage={(p) => sendOptimisticMessage(p)} onTyping={handleInputTyping} />
+      <ChatInputBar replyingTo={replyingTo} onCancelReply={() => setReplyingTo(null)} onSendMessage={(p) => sendOptimisticMessage(p)} onTyping={handleInputTyping} onFocus={() => setTimeout(() => scrollToBottom('smooth'), 120)} />
       <ReportModal isOpen={Boolean(reportingMessage)} onClose={() => setReportingMessage(null)} targetType="message" targetId={reportingMessage?.id || ''} targetUsername={reportingMessage?.sender?.username} targetContent={reportingMessage?.content} />
       <ImageViewerModal imageUrl={activeImage} onClose={() => setActiveImage(null)} />
     </div>

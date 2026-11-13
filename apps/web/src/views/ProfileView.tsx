@@ -15,8 +15,10 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useCursorFeed } from '../hooks/useCursorFeed.js';
 import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
+import { ProfileTabs, ProfileTab } from '../components/profile/ProfileTabs.js';
+import { useTabSwipe } from '../hooks/useTabSwipe.js';
 
-type ProfileTab = 'posts' | 'replies' | 'likes';
+const PROFILE_TABS: readonly ProfileTab[] = ['posts', 'replies', 'likes'];
 
 export const ProfileView: React.FC = () => {
   const { username } = useParams<{ username: string }>();
@@ -28,6 +30,8 @@ export const ProfileView: React.FC = () => {
 
   const tabParam = searchParams.get('tab');
   const activeTab: ProfileTab = tabParam === 'replies' || tabParam === 'likes' ? tabParam : 'posts';
+  const handleTabChange = (tab: ProfileTab) => setSearchParams(tab === 'posts' ? {} : { tab }, { replace: true });
+  const { touchHandlers } = useTabSwipe({ tabs: PROFILE_TABS, activeTab, onTabChange: handleTabChange });
 
   const { data: profile, refetch: refetchProfile } = useQuery<{ success: boolean; data: PublicUser }>({
     queryKey: ['profile', username],
@@ -59,7 +63,7 @@ export const ProfileView: React.FC = () => {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div className="flex flex-col min-h-screen font-mono">
+      <div {...touchHandlers} className="flex flex-col min-h-screen font-mono">
         {user && (
           <SeoHead
             title={`${user.name} (@${user.username}) — Perfil y Publicaciones | Oomfy`}
@@ -73,13 +77,7 @@ export const ProfileView: React.FC = () => {
           {user?.banner_url && <img src={resolveMediaUrl(user.banner_url) || ''} alt="Banner" className="w-full h-full object-cover" />}
         </div>
         {user && <ProfileInfo user={user} isOwnProfile={isOwnProfile} onEditClick={() => setIsEditOpen(true)} onAvatarClick={setZoomedImage} />}
-        <div className="flex border-b border-dark-border text-center select-none bg-dark-bg/60">
-          {(['posts', 'replies', 'likes'] as const).map((tab) => (
-            <button key={tab} onClick={() => setSearchParams(tab === 'posts' ? {} : { tab }, { replace: true })} className={`flex-1 py-3 text-xs sm:text-sm font-bold tracking-wider transition-colors ${activeTab === tab ? 'text-brand-400 border-b-2 border-brand-400' : 'text-dark-muted hover:text-white border-b-2 border-transparent'}`}>
-              {tab === 'posts' ? 'Publicaciones' : tab === 'replies' ? 'Respuestas' : 'Me gusta'}
-            </button>
-          ))}
-        </div>
+        <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} />
         <div className="divide-y divide-dark-border">
           {loadingPosts ? <div className="p-8 text-center text-xs text-dark-muted">Cargando publicaciones...</div> : posts.length > 0 ? (
             <>

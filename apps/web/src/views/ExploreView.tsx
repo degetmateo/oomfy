@@ -6,6 +6,9 @@ import { PublicationCard } from '../components/publication/PublicationCard.js';
 import { ExploreFilterPanel } from '../components/explore/ExploreFilterPanel.js';
 import { ExploreUsersTab } from '../components/explore/ExploreUsersTab.js';
 import { useCursorFeed } from '../hooks/useCursorFeed.js';
+import { useTabSwipe } from '../hooks/useTabSwipe.js';
+
+const EXPLORE_TABS = ['posts', 'users'] as const;
 
 export const ExploreView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -14,6 +17,7 @@ export const ExploreView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'posts' | 'users'>('posts');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ author: '', since: '', until: '', hasMedia: false });
+  const { touchHandlers } = useTabSwipe({ tabs: EXPLORE_TABS, activeTab, onTabChange: setActiveTab });
 
   useEffect(() => {
     if (initialQ !== searchTerm) setSearchTerm(initialQ);
@@ -35,7 +39,7 @@ export const ExploreView: React.FC = () => {
   });
 
   return (
-    <div className="flex flex-col min-h-screen font-mono">
+    <div {...touchHandlers} className="flex flex-col min-h-screen font-mono">
       <Header title="Explorar" />
       <div className="p-3 sm:p-4 border-b border-dark-border bg-dark-bg">
         <form role="search" onSubmit={(e) => e.preventDefault()} className="flex gap-2">

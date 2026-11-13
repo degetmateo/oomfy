@@ -8,14 +8,18 @@ import { AdminSettingsTab } from '../components/admin/AdminSettingsTab.js';
 import { AdminUsersTab } from '../components/admin/AdminUsersTab.js';
 import { AdminModerationTab } from '../components/admin/AdminModerationTab.js';
 import { AdminPushTab } from '../components/admin/AdminPushTab.js';
+import { useTabSwipe } from '../hooks/useTabSwipe.js';
 
 type Tab = 'stats' | 'settings' | 'users' | 'moderation' | 'push';
+
+const ADMIN_TABS: readonly Tab[] = ['stats', 'settings', 'users', 'moderation', 'push'];
 
 const ADMIN_KEYS = new Set(['admin-stats', 'admin-settings', 'admin-users', 'staff-reports']);
 
 export const AdminView: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>('stats');
+  const { touchHandlers } = useTabSwipe({ tabs: ADMIN_TABS, activeTab, onTabChange: setActiveTab });
   const isFetching = useIsFetching({ predicate: (q) => ADMIN_KEYS.has(String(q.queryKey[0])) }) > 0;
 
   const handleRefresh = useCallback(() => {
@@ -38,7 +42,7 @@ export const AdminView: React.FC = () => {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div className="flex flex-col font-mono">
+      <div {...touchHandlers} className="flex flex-col font-mono">
         <Header title="Administración" subtitle="Gestión y moderación global" onRefresh={handleRefresh} isRefreshing={isFetching} />
         <div className="flex border-b border-dark-border bg-dark-bg text-xs overflow-x-auto">
           {tabs.map((t) => (

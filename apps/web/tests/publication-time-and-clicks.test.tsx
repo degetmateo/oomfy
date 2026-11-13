@@ -31,7 +31,7 @@ describe('Publication Time Formatting & Interaction Guards', () => {
 
   it('formats relative time strictly using completed floor units', () => {
     expect(formatRelativeTime(new Date(baseTime - 1500), baseTime)).toBe('1s');
-    expect(formatRelativeTime(new Date(baseTime - 245000), baseTime)).toBe('4m');
+    expect(formatRelativeTime(new Date(baseTime - 245000), baseTime)).toBe('4min');
     expect(formatRelativeTime(new Date(baseTime - 3600000), baseTime)).toBe('1h');
     expect(formatRelativeTime(new Date(baseTime - 24 * 3600000), baseTime)).toBe('1d');
     expect(formatRelativeTime(new Date(baseTime - 47 * 3600000), baseTime)).toBe('1d');

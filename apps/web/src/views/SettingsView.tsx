@@ -7,6 +7,7 @@ import { SecuritySettingsTab } from '../components/settings/SecuritySettingsTab.
 import { SessionsSettingsTab } from '../components/settings/SessionsSettingsTab.js';
 import { AppPwaSettingsTab } from '../components/settings/AppPwaSettingsTab.js';
 import { LogoutSection } from '../components/settings/LogoutSection.js';
+import { useTabSwipe } from '../hooks/useTabSwipe.js';
 
 type Tab = 'account' | 'security' | 'sessions' | 'app';
 
@@ -28,6 +29,7 @@ export const SettingsView: React.FC = () => {
     setActiveTab(tab);
     setSearchParams({ tab });
   };
+  const { touchHandlers } = useTabSwipe({ tabs: validTabs, activeTab, onTabChange: selectTab });
 
   const tabs = [
     { id: 'account' as const, label: 'Cuenta', icon: Shield },
@@ -37,7 +39,7 @@ export const SettingsView: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen font-mono">
+    <div {...touchHandlers} className="flex flex-col min-h-screen font-mono">
       <Header title="Configuración" />
 
       <div className="flex border-b border-dark-border bg-dark-bg text-xs overflow-x-auto">

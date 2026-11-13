@@ -32,7 +32,7 @@ export class AdminUserUpdateService {
     }
     if (input.username?.trim()) {
       const cleanUser = input.username.trim().toLowerCase();
-      if (!USERNAME_RE.test(cleanUser)) throw new BadRequestError(`El username debe tener ${LIMITS.USERNAME_MIN}-${LIMITS.USERNAME_MAX} caracteres alfanuméricos o guiones bajos.`);
+      if (!USERNAME_RE.test(cleanUser)) throw new BadRequestError(`El username debe tener ${LIMITS.USERNAME_MIN}-${LIMITS.USERNAME_MAX} caracteres (solo letras del alfabeto inglés, números y guiones bajos).`);
       const dup = await pool.query('SELECT 1 FROM members WHERE LOWER(username) = $1 AND id <> $2', [cleanUser, userId]);
       if (dup.rowCount && dup.rowCount > 0) throw new BadRequestError('El nombre de usuario ya está en uso.');
       updates.username = cleanUser;

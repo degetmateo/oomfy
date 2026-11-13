@@ -46,7 +46,7 @@ export const ChatsView: React.FC = () => {
         onOpenNewChat={() => setIsStartOpen(true)}
       />
 
-      <div className={`${!selectedChatId ? 'hidden md:flex' : 'fixed inset-0 z-50 md:relative md:inset-auto md:z-auto'} flex-1 flex flex-col h-full min-w-0 bg-dark-bg overflow-hidden`}>
+      <div className={`${!selectedChatId ? 'hidden md:flex' : 'fixed inset-0 z-50 md:relative md:inset-auto md:z-auto'} flex-1 flex flex-col h-full min-w-0 bg-dark-bg overflow-hidden mobile-chat-container`}>
         {selectedChat && other && user ? (
           <>
             <header className="sticky top-0 z-20 bg-dark-bg/95 border-b border-dark-border px-3 sm:px-4 py-2.5 flex items-center gap-3 select-none flex-shrink-0">

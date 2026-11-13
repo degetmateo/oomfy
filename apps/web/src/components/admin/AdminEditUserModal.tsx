@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, UserCheck } from 'lucide-react';
-import { AdminUserSummary, Role } from '@oomfy/shared';
+import { AdminUserSummary, Role, UsernameSchema } from '@oomfy/shared';
 import { ApiClient } from '../../services/api.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 
@@ -24,6 +24,13 @@ export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (username.trim()) {
+      const validation = UsernameSchema.safeParse(username.trim());
+      if (!validation.success) {
+        dialog.alert(validation.error.issues[0]?.message || 'Solo se permiten letras del alfabeto inglés, números y guiones bajos.', 'Error');
+        return;
+      }
+    }
     setIsSubmitting(true);
     try {
       const payload: any = { name, username, status, role };
@@ -54,7 +61,7 @@ export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }
           </div>
           <div>
             <label htmlFor="admin-edit-username" className="block text-[10px] uppercase text-dark-muted mb-1">Usuario</label>
-            <input id="admin-edit-username" name="username" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" spellCheck={false} autoCapitalize="none" autoCorrect="off" required className="w-full bg-dark-card border border-dark-border p-2 text-white text-xs" />
+            <input id="admin-edit-username" name="username" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" spellCheck={false} autoCapitalize="none" autoCorrect="off" pattern="^[a-zA-Z0-9_]+$" title="Solo se permiten letras del alfabeto inglés, números y guiones bajos." required className="w-full bg-dark-card border border-dark-border p-2 text-white text-xs" />
           </div>
           <div>
             <label htmlFor="admin-edit-password" className="block text-[10px] uppercase text-dark-muted mb-1">Nueva Contraseña (opcional)</label>

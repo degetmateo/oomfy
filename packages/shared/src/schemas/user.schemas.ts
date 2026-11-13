@@ -2,12 +2,14 @@ import { z } from 'zod';
 import { LIMITS } from '../constants/limits.js';
 import { emptyToNull, httpUrlSchema } from './url.schemas.js';
 
+export const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
+
 export const UsernameSchema = z
   .string({ error: 'El nombre de usuario es requerido.' })
   .trim()
   .min(LIMITS.USERNAME_MIN, { error: `Mínimo ${LIMITS.USERNAME_MIN} caracteres.` })
   .max(LIMITS.USERNAME_MAX, { error: `Máximo ${LIMITS.USERNAME_MAX} caracteres.` })
-  .regex(/^[a-zA-Z0-9_]+$/, { error: 'Solo se permiten letras, números y guiones bajos.' });
+  .regex(USERNAME_REGEX, { error: 'Solo se permiten letras del alfabeto inglés, números y guiones bajos.' });
 
 export const UpdateProfileSchema = z.object({
   name: z

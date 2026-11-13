@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { UsernameSchema } from '@oomfy/shared';
 import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { PixelLogo } from '../components/icons/PixelLogo.js';
@@ -21,6 +22,11 @@ export const SignupView: React.FC = () => {
     setError('');
     if (!acceptedTerms) {
       setError('Debes aceptar la Política de Privacidad y los Términos y Condiciones para registrarte.');
+      return;
+    }
+    const usernameValidation = UsernameSchema.safeParse(formData.username);
+    if (!usernameValidation.success) {
+      setError(usernameValidation.error.issues[0]?.message || 'Solo se permiten letras del alfabeto inglés, números y guiones bajos.');
       return;
     }
     setLoading(true);
@@ -54,7 +60,7 @@ export const SignupView: React.FC = () => {
             </div>
             <div>
               <label htmlFor="signup-username" className="block text-xs font-semibold text-dark-muted mb-1">Nombre de Usuario (@)</label>
-              <input id="signup-username" name="username" type="text" autoComplete="username" spellCheck={false} autoCapitalize="none" autoCorrect="off" enterKeyHint="next" required value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} className="w-full px-3 py-2 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans" />
+              <input id="signup-username" name="username" type="text" autoComplete="username" spellCheck={false} autoCapitalize="none" autoCorrect="off" enterKeyHint="next" required pattern="^[a-zA-Z0-9_]+$" title="Solo se permiten letras del alfabeto inglés, números y guiones bajos." value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} className="w-full px-3 py-2 bg-dark-card border border-dark-border text-xs text-white focus:outline-none focus:border-brand-500 font-sans" />
             </div>
             <div>
               <label htmlFor="signup-email" className="block text-xs font-semibold text-dark-muted mb-1">Correo Electrónico</label>

@@ -1,9 +1,15 @@
 import { z } from 'zod';
 import { LIMITS } from '../constants/limits.js';
 import { emptyToNull, httpUrlSchema, safeEntityIdSchema } from './url.schemas.js';
+import { USERNAME_REGEX } from './user.schemas.js';
 
 export const CreateChatSchema = z.object({
-  target_username: z.string().trim().min(1).max(LIMITS.USERNAME_MAX),
+  target_username: z
+    .string()
+    .trim()
+    .min(1)
+    .max(LIMITS.USERNAME_MAX)
+    .regex(USERNAME_REGEX, { error: 'Solo se permiten letras del alfabeto inglés, números y guiones bajos.' }),
 });
 
 export const SendMessageSchema = z.object({

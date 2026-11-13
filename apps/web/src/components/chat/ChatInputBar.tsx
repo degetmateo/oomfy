@@ -15,10 +15,11 @@ interface Props {
   onCancelReply: () => void;
   onSendMessage: (payload: OutgoingChatPayload) => Promise<void> | void;
   onTyping: () => void;
+  onFocus?: () => void;
   isSending?: boolean;
 }
 
-export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSendMessage, onTyping }) => {
+export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSendMessage, onTyping, onFocus }) => {
   const [content, setContent] = useState('');
   const [isGifModalOpen, setIsGifModalOpen] = useState(false);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
@@ -55,7 +56,7 @@ export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSen
   };
 
   return (
-    <div className="border-t border-dark-border bg-dark-bg flex flex-col flex-shrink-0 font-mono relative pb-[env(safe-area-inset-bottom)]">
+    <div className="chat-input-bar-container border-t border-dark-border bg-dark-bg flex flex-col flex-shrink-0 font-mono relative pb-[env(safe-area-inset-bottom)]">
       <ChatReplyBanner replyingTo={replyingTo} onCancel={onCancelReply} />
       <ComposerAttachmentPreviews variant="compact" files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
       <form onSubmit={handleSubmit} className="p-2 sm:p-2.5 flex items-end gap-1.5 sm:gap-2 relative">
@@ -77,7 +78,7 @@ export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSen
           </div>
         </div>
         <label htmlFor="chat-message-input" className="sr-only">Escribe un mensaje</label>
-        <textarea id="chat-message-input" name="message" enterKeyHint="send" ref={media.attachTextareaRef} rows={1} value={content} onChange={(e) => { setContent(e.target.value); onTyping(); }} onKeyDown={handleKeyDown} onPaste={media.handlePaste} placeholder="Escribe un mensaje..." className="flex-1 min-w-0 px-3 py-2.5 bg-dark-card border border-dark-border text-base text-white focus:outline-none focus:border-brand-500 font-sans resize-none max-h-28 overflow-y-auto leading-relaxed" />
+        <textarea id="chat-message-input" name="message" enterKeyHint="send" ref={media.attachTextareaRef} rows={1} value={content} onChange={(e) => { setContent(e.target.value); onTyping(); }} onKeyDown={handleKeyDown} onPaste={media.handlePaste} onFocus={() => { onFocus?.(); setTimeout(() => media.textareaRef.current?.scrollIntoView({ block: 'nearest' }), 100); }} placeholder="Escribe un mensaje..." className="flex-1 min-w-0 px-3 py-2.5 bg-dark-card border border-dark-border text-base text-white focus:outline-none focus:border-brand-500 font-sans resize-none max-h-28 overflow-y-auto leading-relaxed" />
         <button type="submit" disabled={!hasPayload} aria-label="Enviar mensaje" className="px-3.5 sm:px-4 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-black font-bold text-xs pixel-button flex items-center justify-center font-mono flex-shrink-0">
           <Send className="w-5 h-5" aria-hidden="true" />
         </button>

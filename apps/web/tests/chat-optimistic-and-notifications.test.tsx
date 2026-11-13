@@ -84,4 +84,18 @@ describe('Chat Optimistic UI, Media Alignment & Notification Highlight', () => {
     rerender(<MemoryRouter><NotificationItem notif={{ ...notif, status: 'seen' }} isUnread={false} /></MemoryRouter>);
     expect(screen.queryByText('NUEVO')).toBeNull();
   });
+
+  it('renders date, time and relative time in NotificationItem', () => {
+    const fixedNow = new Date('2026-11-12T15:30:00Z').getTime();
+    vi.spyOn(Date, 'now').mockReturnValue(fixedNow);
+    const createdAt = new Date(fixedNow - 65 * 1000).toISOString(); // 65 seconds ago -> 1min
+    const notif: any = {
+      id: 'n2', type: 'follow', status: 'seen', created_at: createdAt,
+      sender: { id: 'u3', username: 'carol', name: 'Carol', icon_url: null },
+    };
+
+    render(<MemoryRouter><NotificationItem notif={notif} isUnread={false} /></MemoryRouter>);
+    expect(screen.getByText(/hace 1min/i)).toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
 });

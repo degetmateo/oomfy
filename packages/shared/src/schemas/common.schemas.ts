@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { LIMITS } from '../constants/limits.js';
 import { emptyToNull, safeEntityIdSchema } from './url.schemas.js';
+import { USERNAME_REGEX } from './user.schemas.js';
 
 export const PaginationQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(LIMITS.PAGINATION_LIMIT_MAX).default(LIMITS.PAGINATION_LIMIT_DEFAULT),
@@ -26,5 +27,5 @@ export const PublicationIdParamSchema = z.object({
 });
 
 export const UsernameParamSchema = z.object({
-  username: z.string().trim().min(1).max(64).regex(/^[a-zA-Z0-9_]+$/, { error: 'Nombre de usuario inválido.' }),
+  username: z.string().trim().min(1).max(64).regex(USERNAME_REGEX, { error: 'Solo se permiten letras del alfabeto inglés, números y guiones bajos.' }),
 });

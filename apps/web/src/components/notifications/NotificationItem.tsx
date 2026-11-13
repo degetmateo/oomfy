@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Heart, UserPlus, Repeat, MessageSquare, Quote } from 'lucide-react';
 import { Notification } from '@oomfy/shared';
 import { PixelAvatar } from '../common/PixelAvatar.js';
+import { formatNotificationTime, formatExactDateTime } from '../../utils/formatTime.js';
 
 interface Props {
   notif: Notification;
@@ -59,8 +60,8 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
             </p>
             {isUnread && <span className="px-1.5 py-0.5 text-[10px] font-bold bg-brand-500 text-black font-mono flex-shrink-0">NUEVO</span>}
           </div>
-          <time dateTime={notif.created_at} className="text-[10px] text-dark-muted mt-1 block font-mono">
-            {new Date(notif.created_at).toLocaleDateString()}
+          <time dateTime={notif.created_at} title={formatExactDateTime(notif.created_at)} className="text-[10px] text-dark-muted mt-1 block font-mono">
+            {formatNotificationTime(notif.created_at)}
           </time>
         </div>
       </div>

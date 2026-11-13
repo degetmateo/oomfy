@@ -23,7 +23,7 @@ export class SettingsService {
 
     const cleanUsername = newUsername.trim().toLowerCase();
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(cleanUsername)) {
-      throw new BadRequestError('El nombre de usuario debe tener entre 3 y 20 caracteres (solo letras, números y guiones bajos).');
+      throw new BadRequestError('El nombre de usuario debe tener entre 3 y 20 caracteres (solo letras del alfabeto inglés, números y guiones bajos).');
     }
 
     const pool = PostgresPool.getInstance();
