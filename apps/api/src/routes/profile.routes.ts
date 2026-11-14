@@ -3,6 +3,7 @@ import multer from 'multer';
 import { UpdateProfileSchema, DeleteAccountSchema, UsernameParamSchema } from '@oomfy/shared';
 import { ProfileController } from '../controllers/ProfileController.js';
 import { PublicationPinController } from '../controllers/PublicationPinController.js';
+import { BlockController } from '../controllers/BlockController.js';
 import { AuthGuard } from '../middlewares/AuthGuard.js';
 import { ValidateRequest } from '../middlewares/ValidateRequest.js';
 import { imageFileFilter, validateUploadedImages } from '../middlewares/FileUploadGuard.js';
@@ -20,6 +21,8 @@ router.post('/me/pin', AuthGuard.requireAuth, PublicationPinController.pin);
 router.delete('/me/pin', AuthGuard.requireAuth, PublicationPinController.unpin);
 router.get('/:username/icon', ValidateRequest.params(UsernameParamSchema), ProfileController.getUserIcon);
 router.get('/:username/banner', ValidateRequest.params(UsernameParamSchema), ProfileController.getUserBanner);
+router.post('/:username/block', AuthGuard.requireAuth, lifecycleLimiter, ValidateRequest.params(UsernameParamSchema), BlockController.block);
+router.delete('/:username/block', AuthGuard.requireAuth, lifecycleLimiter, ValidateRequest.params(UsernameParamSchema), BlockController.unblock);
 router.get('/:username', AuthGuard.optionalAuth, ValidateRequest.params(UsernameParamSchema), ProfileController.getProfile);
 router.put(
   '/me',

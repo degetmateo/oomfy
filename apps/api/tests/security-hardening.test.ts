@@ -42,6 +42,7 @@ describe('API Security Hardening (CORS, SSRF, IDOR, Uploads, RateLimit, ReDoS)',
     await expect(MessageService.markAsRead('chat-1', 'intruder-1')).rejects.toThrow('No tienes permisos');
 
     vi.spyOn(MongoChatRepository, 'isParticipant').mockResolvedValue(true);
+    vi.spyOn(MongoChatRepository, 'getChatParticipants').mockResolvedValue([]);
     vi.spyOn(MongoMemberRepository, 'findById').mockResolvedValue(null);
     vi.spyOn(MongoMessageRepository, 'findByIdInChat').mockResolvedValue(null);
     await expect(

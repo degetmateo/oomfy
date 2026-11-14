@@ -45,8 +45,12 @@ export const ProfileInfo: React.FC<Props> = ({ user: rawUser, isOwnProfile = fal
             isHovering={actions.isHovering}
             isLoadingFollow={actions.isLoadingFollow}
             isStartingChat={actions.isStartingChat}
+            isBlocked={actions.isBlocked}
+            hasBlockedViewer={actions.hasBlockedViewer}
+            isLoadingBlock={actions.isLoadingBlock}
             onEditClick={onEditClick}
             onReportClick={() => actions.setIsReportOpen(true)}
+            onBlockToggle={actions.handleBlockToggle}
             onStartChat={actions.handleStartChat}
             onFollowToggle={actions.handleFollowToggle}
             onMouseEnter={() => actions.setIsHovering(true)}

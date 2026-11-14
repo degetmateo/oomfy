@@ -2,8 +2,9 @@ import { v7 as uuidv7 } from 'uuid';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
+import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
 import { NotificationDispatcher } from '../notifications/NotificationDispatcher.js';
-import { NotFoundError } from '../../errors/AppError.js';
+import { ForbiddenError, NotFoundError } from '../../errors/AppError.js';
 
 export class UpvoteService {
   private static getCollection() {
@@ -16,6 +17,9 @@ export class UpvoteService {
   ): Promise<{ upvoted: boolean; upvotes_count: number }> {
     const pub = await MongoPublicationRepository.findById(pubId);
     if (!pub) throw new NotFoundError('Publicación no encontrada.');
+    if (pub.author?.id && pub.author.id !== user.id && (await MongoBlockRepository.isBlockedEitherWay(user.id, pub.author.id))) {
+      throw new ForbiddenError('No puedes interactuar con las publicaciones de este usuario.');
+    }
 
     const col = this.getCollection();
     const userVariants = MongoIdHelper.idVariants(user.id);

@@ -22,22 +22,24 @@ export function useImageCropQueue(onComplete: (files: File[]) => void) {
 
   const handleCrop = (cropped: File) => {
     const updated = [...croppedResults, cropped];
-    setCroppedResults(updated);
-
     if (queue.length > 0) {
+      setCroppedResults(updated);
       setCurrentFile(queue[0]);
       setQueue((q) => q.slice(1));
     } else {
       setCurrentFile(null);
+      setCroppedResults([]);
       onComplete(updated);
     }
   };
 
   const handleClose = () => {
+    const pending = croppedResults;
     setCurrentFile(null);
     setQueue([]);
-    if (croppedResults.length > 0) {
-      onComplete(croppedResults);
+    setCroppedResults([]);
+    if (pending.length > 0) {
+      onComplete(pending);
     }
   };
 

@@ -15,6 +15,7 @@ export const SystemSettingsUpdateSchema = z
 export const AdminUserUpdateSchema = z.object({
   name: z.string().trim().min(LIMITS.NAME_MIN).max(LIMITS.NAME_MAX).optional(),
   username: UsernameSchema.optional(),
+  email: z.string().trim().email({ error: 'Formato de correo inválido.' }).max(LIMITS.EMAIL_MAX).optional(),
   password: z.string().min(LIMITS.PASSWORD_MIN).max(LIMITS.PASSWORD_MAX).optional(),
   status: z.enum(['pending', 'active', 'suspended']).optional(),
   role: z.enum(['member', 'tester', 'mod', 'admin']).optional(),

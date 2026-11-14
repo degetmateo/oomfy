@@ -49,6 +49,8 @@ export interface PublicUser {
   terms_accepted_at?: string | null;
   is_following?: boolean;
   follows_you?: boolean;
+  is_blocked?: boolean;
+  has_blocked_viewer?: boolean;
   pinned_publication_id?: string | null;
   pinned_publication?: Publication | null;
 }

@@ -51,6 +51,17 @@ export const UpdatePasswordSchema = z.object({
     .max(LIMITS.PASSWORD_MAX, { error: `Máximo ${LIMITS.PASSWORD_MAX} caracteres.` }),
 });
 
+export const RequestEmailChangeSchema = z.object({
+  new_email: z.string().trim().email({ error: 'Formato de correo electrónico inválido.' }).max(LIMITS.EMAIL_MAX),
+  current_password: z.string().min(1, { error: 'Debes ingresar tu contraseña actual.' }).max(LIMITS.PASSWORD_MAX),
+});
+
+export const ConfirmEmailChangeSchema = z.object({
+  token: z.string().trim().min(1, { error: 'Token de verificación requerido.' }),
+});
+
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 export type UpdateUsernameInput = z.infer<typeof UpdateUsernameSchema>;
 export type UpdatePasswordInput = z.infer<typeof UpdatePasswordSchema>;
+export type RequestEmailChangeInput = z.infer<typeof RequestEmailChangeSchema>;
+export type ConfirmEmailChangeInput = z.infer<typeof ConfirmEmailChangeSchema>;

@@ -3,6 +3,7 @@ import { PostgresPool } from '../../infrastructure/database/postgres/PostgresPoo
 import { PostgresUserRepository } from '../../infrastructure/repositories/postgres/PostgresUserRepository.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MongoFollowRepository } from '../../infrastructure/repositories/mongo/MongoFollowRepository.js';
+import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 import { isHttpUrl } from '../../utils/UrlSecurityHelper.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors/AppError.js';
@@ -16,12 +17,15 @@ export class ProfileService {
     if (!profile) throw new NotFoundError(`Usuario @${username} no encontrado.`);
 
     if (viewerId && viewerId !== profile.id) {
-      const [isFollowing, followsYou] = await Promise.all([
+      const [isFollowing, followsYou, blockStatus] = await Promise.all([
         MongoFollowRepository.isFollowing(viewerId, profile.id),
         MongoFollowRepository.isFollowing(profile.id, viewerId),
+        MongoBlockRepository.getBlockStatus(viewerId, profile.id),
       ]);
       profile.is_following = isFollowing;
       profile.follows_you = followsYou;
+      profile.is_blocked = blockStatus.isBlocked;
+      profile.has_blocked_viewer = blockStatus.hasBlockedViewer;
     }
 
     if (profile.pinned_publication_id) {

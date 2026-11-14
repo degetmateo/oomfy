@@ -15,6 +15,7 @@ interface Props {
   submittingLabel: string;
   cropTitle: string;
   compact?: boolean;
+  onGifModalChange?: (open: boolean) => void;
 }
 
 export const PublicationComposerToolbar: React.FC<Props> = ({
@@ -27,11 +28,13 @@ export const PublicationComposerToolbar: React.FC<Props> = ({
   submittingLabel,
   cropTitle,
   compact = false,
+  onGifModalChange,
 }) => {
   const [showGifModal, setShowGifModal] = useState(false);
   const [showEmojiMenu, setShowEmojiMenu] = useState(false);
   const emojiBtnRef = useRef<HTMLButtonElement>(null);
   const pad = compact ? 'p-1' : 'p-1.5';
+  const toggleGifModal = (open: boolean) => { setShowGifModal(open); onGifModalChange?.(open); };
 
   return (
     <>
@@ -39,9 +42,9 @@ export const PublicationComposerToolbar: React.FC<Props> = ({
         <div className="flex items-center gap-2 text-dark-muted relative">
           <label className={`${pad} hover:text-brand-400 cursor-pointer transition-colors border border-transparent hover:border-dark-border`} title="Subir imagen/GIF">
             <Image className="w-4 h-4" aria-hidden="true" />
-            <input type="file" accept="image/*" multiple aria-label="Subir imagen o GIF" className="hidden" onChange={(e) => { media.attachFiles(Array.from(e.target.files || [])); e.target.value = ''; }} />
+            <input type="file" accept="image/*" multiple aria-label="Subir imagen o GIF" className="hidden" onChange={(e) => { media.attachFiles(Array.from(e.target.files || [])); e.target.value = ''; e.target.blur(); }} />
           </label>
-          <button type="button" onClick={() => setShowGifModal(true)} aria-label="Buscar GIF" className={`${pad} hover:text-brand-400 transition-colors border border-transparent hover:border-dark-border`} title="Buscar GIF">
+          <button type="button" onClick={() => toggleGifModal(true)} aria-label="Buscar GIF" className={`${pad} hover:text-brand-400 transition-colors border border-transparent hover:border-dark-border`} title="Buscar GIF">
             <Film className="w-4 h-4" aria-hidden="true" />
           </button>
           <div className="relative">
@@ -53,12 +56,12 @@ export const PublicationComposerToolbar: React.FC<Props> = ({
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[11px] text-dark-muted">{content.length}/{LIMITS.POST_CONTENT_MAX}</span>
-          <button type="submit" disabled={isSubmitting || !hasContent} className="px-4 py-1.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-black font-bold text-xs uppercase tracking-wider pixel-button transition-colors">
+          <button type="submit" disabled={isSubmitting || !hasContent || showGifModal || media.cropQueue.isCropping} className="px-4 py-1.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-black font-bold text-xs uppercase tracking-wider pixel-button transition-colors">
             {isSubmitting ? submittingLabel : submitLabel}
           </button>
         </div>
       </div>
-      <KlipyGifModal isOpen={showGifModal} onClose={() => setShowGifModal(false)} onSelect={(url: string) => { media.attachGifUrl(url); setShowGifModal(false); }} />
+      <KlipyGifModal isOpen={showGifModal} onClose={() => toggleGifModal(false)} onSelect={(url: string) => { media.attachGifUrl(url); toggleGifModal(false); }} />
       <ImageCropperModal file={media.cropQueue.currentFile} isOpen={media.cropQueue.isCropping} aspectRatio={media.cropQueue.options.aspectRatio ?? 'free'} title={media.cropQueue.options.title ?? cropTitle} allowAspectChange={media.cropQueue.options.allowAspectChange ?? true} onCrop={media.cropQueue.handleCrop} onClose={media.cropQueue.handleClose} />
     </>
   );

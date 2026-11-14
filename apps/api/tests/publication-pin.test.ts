@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import { Server } from '../src/Server.js';
 import { MongoDatabase } from '../src/infrastructure/database/mongo/MongoDatabase.js';
+import { MongoIdHelper } from '../src/infrastructure/repositories/mongo/MongoIdHelper.js';
 import { TokenService } from '../src/infrastructure/adapters/TokenService.js';
 import { AuthSessionValidator } from '../src/services/auth/AuthSessionValidator.js';
 import { MongoMemberRepository } from '../src/infrastructure/repositories/mongo/MongoMemberRepository.js';
@@ -19,6 +20,10 @@ describe('Publication Pin Endpoints', () => {
 
   afterAll(async () => {
     vi.restoreAllMocks();
+    const db = MongoDatabase.getDb();
+    const uVars = MongoIdHelper.idVariants(user.id);
+    await db.collection('publications').deleteMany({ $or: [{ 'author.id': { $in: uVars } }, { 'author.username': user.username }] });
+    await db.collection('members').deleteMany({ $or: [{ id: { $in: uVars } }, { username: user.username }] });
     await MongoDatabase.close();
   });
 

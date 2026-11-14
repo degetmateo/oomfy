@@ -1,10 +1,11 @@
 import { v7 as uuidv7 } from 'uuid';
 import { FollowRelation, PublicUser } from '@oomfy/shared';
 import { MongoFollowRepository } from '../../infrastructure/repositories/mongo/MongoFollowRepository.js';
+import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { NotificationDispatcher } from '../notifications/NotificationDispatcher.js';
 import { FollowDecoratorHelper } from './FollowDecoratorHelper.js';
-import { NotFoundError, BadRequestError } from '../../errors/AppError.js';
+import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors/AppError.js';
 
 export class FollowService {
   private static async resolveTargetUser(param: string): Promise<PublicUser> {
@@ -20,6 +21,9 @@ export class FollowService {
   ): Promise<{ message: string }> {
     const followed = await this.resolveTargetUser(targetParam);
     if (follower.id === followed.id) throw new BadRequestError('No puedes seguirte a ti mismo.');
+    if (await MongoBlockRepository.isBlockedEitherWay(follower.id, followed.id)) {
+      throw new ForbiddenError('No puedes seguir a este usuario.');
+    }
     if (await MongoFollowRepository.isFollowing(follower.id, followed.id)) {
       return { message: `Ya sigues a @${followed.username}.` };
     }

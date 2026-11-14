@@ -1,4 +1,4 @@
-import React, { useState, useId } from 'react';
+import React, { useState, useId, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { LIMITS } from '@oomfy/shared';
 import { useAuthStore } from '../../stores/authStore.js';
@@ -16,7 +16,13 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
   const inputId = useId();
   const { isAuthenticated } = useAuthStore();
   const [content, setContent] = useState('');
+  const [isGifOpen, setIsGifOpen] = useState(false);
+  const submittingRef = useRef(false);
   const media = useComposerMedia({ allowCrop: true, cropTitle: 'Recortar imagen de respuesta', maxGifs: 4, maxTotal: 4, maxLength: LIMITS.POST_CONTENT_MAX });
+
+  useEffect(() => {
+    if (!isSubmitting) submittingRef.current = false;
+  }, [isSubmitting]);
 
   if (!isAuthenticated) {
     return (
@@ -31,7 +37,8 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hasContent) return;
+    if (!hasContent || isSubmitting || submittingRef.current || media.cropQueue.isCropping || isGifOpen) return;
+    submittingRef.current = true;
     const formData = new FormData();
     formData.append('type', 'reply');
     formData.append('target_id', targetId);
@@ -47,28 +54,16 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
     <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-b border-dark-border bg-dark-bg font-mono">
       <label htmlFor={inputId} className="sr-only">Publicar tu respuesta</label>
       <textarea
-        id={inputId}
-        name="content"
-        ref={media.attachTextareaRef}
-        rows={2}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        onPaste={media.handlePaste}
-        placeholder="Publicar tu respuesta..."
-        maxLength={LIMITS.POST_CONTENT_MAX}
+        id={inputId} name="content" ref={media.attachTextareaRef} rows={2} value={content}
+        onChange={(e) => setContent(e.target.value)} onPaste={media.handlePaste}
+        placeholder="Publicar tu respuesta..." maxLength={LIMITS.POST_CONTENT_MAX}
         className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans"
       />
       <ComposerAttachmentPreviews files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
       <PublicationComposerToolbar
-        content={content}
-        onChangeContent={setContent}
-        media={media}
-        isSubmitting={isSubmitting}
-        hasContent={hasContent}
-        submitLabel="Responder"
-        submittingLabel="Respondiendo..."
-        cropTitle="Recortar imagen de respuesta"
-        compact
+        content={content} onChangeContent={setContent} media={media} isSubmitting={isSubmitting}
+        hasContent={hasContent} submitLabel="Responder" submittingLabel="Respondiendo..."
+        cropTitle="Recortar imagen de respuesta" compact onGifModalChange={setIsGifOpen}
       />
     </form>
   );

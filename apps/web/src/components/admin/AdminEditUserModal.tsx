@@ -10,6 +10,7 @@ export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }
   const dialog = useDialogStore();
   const [name, setName] = useState(user?.name || '');
   const [username, setUsername] = useState(user?.username || '');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<string>(user?.status || 'active');
   const [role, setRole] = useState<Role>(user?.role || 'member');
@@ -17,7 +18,7 @@ export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }
 
   useEffect(() => {
     setName(user?.name || ''); setUsername(user?.username || '');
-    setPassword(''); setStatus(user?.status || 'active'); setRole(user?.role || 'member');
+    setEmail(''); setPassword(''); setStatus(user?.status || 'active'); setRole(user?.role || 'member');
   }, [user]);
 
   if (!user) return null;
@@ -33,7 +34,8 @@ export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }
     }
     setIsSubmitting(true);
     try {
-      const payload: any = { name, username, status, role };
+      const payload: Record<string, any> = { name, username, status, role };
+      if (email.trim()) payload.email = email.trim();
       if (password.trim()) payload.password = password.trim();
       await ApiClient.put(`/admin/users/${user.id}`, payload);
       dialog.alert('Usuario actualizado correctamente.', 'Éxito');
@@ -64,6 +66,10 @@ export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }
             <input id="admin-edit-username" name="username" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" spellCheck={false} autoCapitalize="none" autoCorrect="off" pattern="^[a-zA-Z0-9_]+$" title="Solo se permiten letras del alfabeto inglés, números y guiones bajos." required className="w-full bg-dark-card border border-dark-border p-2 text-white text-xs" />
           </div>
           <div>
+            <label htmlFor="admin-edit-email" className="block text-[10px] uppercase text-dark-muted mb-1">Reemplazar Correo Electrónico (opcional)</label>
+            <input id="admin-edit-email" name="email" type="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Dejar en blanco para mantener" className="w-full bg-dark-card border border-dark-border p-2 text-white text-xs" />
+          </div>
+          <div>
             <label htmlFor="admin-edit-password" className="block text-[10px] uppercase text-dark-muted mb-1">Nueva Contraseña (opcional)</label>
             <input id="admin-edit-password" name="new_password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Dejar en blanco para mantener" className="w-full bg-dark-card border border-dark-border p-2 text-white text-xs" />
           </div>
@@ -83,9 +89,7 @@ export const AdminEditUserModal: React.FC<Props> = ({ user, onClose, onSuccess }
           </div>
           <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-dark-border">
             <button type="button" onClick={onClose} className="px-3 py-1.5 border border-dark-border text-dark-muted hover:text-white">Cancelar</button>
-            <button type="submit" disabled={isSubmitting} className="px-4 py-1.5 bg-brand-500 text-black font-bold hover:bg-brand-400 disabled:opacity-50">
-              {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
-            </button>
+            <button type="submit" disabled={isSubmitting} className="px-4 py-1.5 bg-brand-500 text-black font-bold hover:bg-brand-400 disabled:opacity-50">{isSubmitting ? 'Guardando...' : 'Guardar Cambios'}</button>
           </div>
         </form>
       </div>

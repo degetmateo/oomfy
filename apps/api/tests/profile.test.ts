@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { Server } from '../src/Server.js';
 import { MongoDatabase } from '../src/infrastructure/database/mongo/MongoDatabase.js';
@@ -16,6 +16,11 @@ describe('Profile Media Dynamic Redirection', () => {
       icon_url: 'https://i.ibb.co/test-icon.png',
       banner_url: 'https://i.ibb.co/test-banner.png',
     });
+  });
+
+  afterAll(async () => {
+    await MongoDatabase.getDb().collection('members').deleteMany({ username: 'test_media_user' });
+    await MongoDatabase.close();
   });
 
   it('should redirect GET /members/:username/icon to avatar URL with 302', async () => {

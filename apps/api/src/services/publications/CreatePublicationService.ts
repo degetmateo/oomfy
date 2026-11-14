@@ -10,6 +10,7 @@ import { NotificationDispatcher } from '../notifications/NotificationDispatcher.
 import { BadRequestError, ForbiddenError } from '../../errors/AppError.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
+import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
 
 export class CreatePublicationService {
   public static async execute(
@@ -50,6 +51,11 @@ export class CreatePublicationService {
     if (input.target_id) {
       targetPublication = await MongoPublicationRepository.findById(input.target_id);
       if (!targetPublication) throw new BadRequestError('Publicación destino no encontrada.');
+    }
+    if (targetPublication?.author?.id && targetPublication.author.id !== user.id && (await MongoBlockRepository.isBlockedEitherWay(user.id, targetPublication.author.id))) {
+      throw new ForbiddenError('No puedes interactuar con las publicaciones de este usuario.');
+    }
+    if (targetPublication && input.target_id) {
       if (pubType === 'quote') {
         await MongoPublicationRepository.incrementCounters(targetPublication.id, { quotes_count: 1 });
       } else {

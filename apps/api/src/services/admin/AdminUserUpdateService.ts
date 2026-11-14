@@ -10,12 +10,14 @@ import { UserStatusEnforcementHelper } from './UserStatusEnforcementHelper.js';
 export interface AdminUserUpdateInput {
   name?: string;
   username?: string;
+  email?: string;
   password?: string;
   status?: 'active' | 'pending' | 'suspended';
   role?: Role;
 }
 
 const USERNAME_RE = new RegExp(`^[a-zA-Z0-9_]{${LIMITS.USERNAME_MIN},${LIMITS.USERNAME_MAX}}$`);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export class AdminUserUpdateService {
   public static async updateUser(userId: string, adminId: string, input: AdminUserUpdateInput) {
@@ -37,6 +39,13 @@ export class AdminUserUpdateService {
       if (dup.rowCount && dup.rowCount > 0) throw new BadRequestError('El nombre de usuario ya está en uso.');
       updates.username = cleanUser;
       mongoUpdates.username = cleanUser;
+    }
+    if (input.email?.trim()) {
+      const cleanEmail = input.email.trim().toLowerCase();
+      if (!EMAIL_RE.test(cleanEmail)) throw new BadRequestError('El formato del correo electrónico no es válido.');
+      const dupEmail = await pool.query('SELECT 1 FROM members WHERE LOWER(email) = $1 AND id <> $2', [cleanEmail, userId]);
+      if (dupEmail.rowCount && dupEmail.rowCount > 0) throw new BadRequestError('El correo electrónico ya está en uso.');
+      updates.email = cleanEmail;
     }
     if (input.password && input.password.trim().length > 0) {
       if (input.password.length < LIMITS.PASSWORD_MIN || input.password.length > LIMITS.PASSWORD_MAX) {
@@ -65,14 +74,16 @@ export class AdminUserUpdateService {
       [userId, ...keys.map((k) => updates[k])]
     );
 
-    await MongoDatabase.getDb().collection('members').updateOne(
-      { $or: [{ id: userId }, ...MongoIdHelper.idFilter(userId).$or] },
-      { $set: { ...mongoUpdates, updated_at: new Date() } }
-    );
+    if (Object.keys(mongoUpdates).length > 0) {
+      await MongoDatabase.getDb().collection('members').updateOne(
+        { $or: [{ id: userId }, ...MongoIdHelper.idFilter(userId).$or] },
+        { $set: { ...mongoUpdates, updated_at: new Date() } }
+      );
+    }
 
     const updatedUser = rows[0];
     await UserStatusEnforcementHelper.onStatusUpdated(userId, updates.status);
-    if (updates.password || (updates.role && updates.role !== current.role)) {
+    if (updates.password || updates.email || updates.username || (updates.role && updates.role !== current.role)) {
       await UserStatusEnforcementHelper.revokeForSecurityChange(userId);
     }
     if (updates.username && updates.username !== current.username) UserSyncService.enqueueUsernameSync(userId, current.username, updates.username);

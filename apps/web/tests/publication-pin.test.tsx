@@ -68,7 +68,7 @@ describe('Pinned Publication Frontend Flow', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText('fijado por Pinner Name')).toBeInTheDocument();
+    expect(screen.getByText(/fijado por Pinner Name/i)).toBeInTheDocument();
     expect(screen.getByText('Post to pin')).toBeInTheDocument();
     expect(screen.getByText('Regular post')).toBeInTheDocument();
     expect(screen.getAllByText('Post to pin')).toHaveLength(1);
@@ -81,6 +81,6 @@ describe('Pinned Publication Frontend Flow', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.queryByText('fijado por Pinner Name')).not.toBeInTheDocument();
+    expect(screen.queryByText(/fijado por Pinner Name/i)).not.toBeInTheDocument();
   });
 });

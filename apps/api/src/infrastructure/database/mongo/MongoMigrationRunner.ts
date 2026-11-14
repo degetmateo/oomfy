@@ -38,6 +38,10 @@ export class MongoMigrationRunner {
     const notifications = db.collection('notifications');
     await this.safeCreateIndex(notifications, { recipient_id: 1, created_at: -1 });
     await this.safeCreateIndex(notifications, { recipient_id: 1, status: 1 });
+
+    const blocks = db.collection('blocks');
+    await this.safeCreateIndex(blocks, { blocker_id: 1, blocked_id: 1 }, { unique: true });
+    await this.safeCreateIndex(blocks, { blocked_id: 1 });
   }
 
   public static async run(): Promise<void> {

@@ -21,14 +21,14 @@ describe('Admin Panel User Email Privacy', () => {
 
   afterAll(() => vi.restoreAllMocks());
 
-  it('strips email from shared admin Zod schemas', () => {
+  it('strips email from AdminUserQuerySchema while allowing optional replacement in AdminUserUpdateSchema', () => {
     const queryParsed = AdminUserQuerySchema.parse({ query: 'mateo', email: 'secret@oomfy.online' } as any);
-    const updateParsed = AdminUserUpdateSchema.parse({ name: 'Mateo', email: 'secret@oomfy.online' } as any);
+    const updateParsed = AdminUserUpdateSchema.parse({ name: 'Mateo', email: 'secret@oomfy.online' });
     expect(queryParsed).not.toHaveProperty('email');
-    expect(updateParsed).not.toHaveProperty('email');
+    expect(updateParsed.email).toBe('secret@oomfy.online');
   });
 
-  it('never selects, searches, or updates email in GET /admin/users and PUT /admin/users/:id', async () => {
+  it('never exposes email in GET /admin/users or PUT /admin/users/:id responses while allowing email replacement', async () => {
     vi.spyOn(PostgresPool, 'getInstance').mockReturnValue({
       query: vi.fn().mockImplementation(async (sql: string, params?: any[]) => {
         if (sql.includes('FROM session')) return { rows: [{ id: params?.[0], status: 'active', role: 'admin' }] };
@@ -36,12 +36,13 @@ describe('Admin Panel User Email Privacy', () => {
           expect(sql).not.toContain('email');
           return { rowCount: 1, rows: [{ id: targetId, username: 'target', name: 'Target', role: 'member', status: 'active' }] };
         }
+        if (sql.includes('LOWER(email)')) return { rowCount: 0, rows: [] };
         if (sql.includes('FROM members')) {
           expect(sql).not.toContain('email');
           return { rows: [{ id: targetId, username: 'target', name: 'Target', role: 'member', status: 'active', created_at: '2026-01-01T00:00:00Z' }] };
         }
         if (sql.startsWith('UPDATE members')) {
-          expect(sql).not.toContain('email');
+          expect(sql).not.toContain('RETURNING id, username, name, email');
           return { rowCount: 1, rows: [{ id: targetId, username: 'target', name: 'Updated Name', role: 'member', status: 'active' }] };
         }
         return { rows: [] };

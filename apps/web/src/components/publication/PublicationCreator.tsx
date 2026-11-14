@@ -1,4 +1,4 @@
-import React, { useState, useId } from 'react';
+import React, { useState, useId, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { LIMITS, Publication } from '@oomfy/shared';
 import { ApiClient } from '../../services/api.js';
@@ -24,6 +24,8 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
   const dialog = useDialogStore();
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGifOpen, setIsGifOpen] = useState(false);
+  const submittingRef = useRef(false);
   const media = useComposerMedia({ allowCrop: true, cropTitle: 'Recortar imagen', maxGifs: 4, maxTotal: 4, maxLength: LIMITS.POST_CONTENT_MAX });
 
   if (!isAuthenticated) return null;
@@ -32,7 +34,8 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hasContent) return;
+    if (!hasContent || isSubmitting || submittingRef.current || media.cropQueue.isCropping || isGifOpen) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
     try {
       const formData = new FormData();
@@ -52,6 +55,7 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
     } catch (err) {
       dialog.alert((err as Error).message, 'Error al publicar');
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -77,14 +81,9 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
       {quotedPublication && <PublicationQuotedPreview quotedPublication={quotedPublication} onRemove={onRemoveQuoted} />}
       <ComposerAttachmentPreviews files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
       <PublicationComposerToolbar
-        content={content}
-        onChangeContent={setContent}
-        media={media}
-        isSubmitting={isSubmitting}
-        hasContent={hasContent}
-        submitLabel="Publicar"
-        submittingLabel="Publicando..."
-        cropTitle="Recortar imagen"
+        content={content} onChangeContent={setContent} media={media} isSubmitting={isSubmitting}
+        hasContent={hasContent} submitLabel="Publicar" submittingLabel="Publicando..." cropTitle="Recortar imagen"
+        onGifModalChange={setIsGifOpen}
       />
     </form>
   );

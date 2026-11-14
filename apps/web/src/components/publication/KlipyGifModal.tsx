@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { X, Search } from 'lucide-react';
 import { ApiClient } from '../../services/api.js';
@@ -27,8 +28,14 @@ export const KlipyGifModal: React.FC<Props> = ({ isOpen, onClose, onSelect }) =>
 
   if (!isOpen) return null;
 
-  return (
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="klipy-gif-modal-title" className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 font-mono">
+  const modal = (
+    <div
+      onClick={(e) => { e.stopPropagation(); onClose(); }}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
+      onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      role="dialog" aria-modal="true" aria-labelledby="klipy-gif-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 font-mono"
+    >
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-[#1a1a1a] border-2 border-dark-border shadow-pixel flex flex-col max-h-[85vh] overflow-hidden">
         <div className="flex items-center justify-between p-3 border-b-2 border-dark-border bg-[#141414]">
           <h2 id="klipy-gif-modal-title" className="font-bold text-white text-xs tracking-wider uppercase">Seleccionar GIF (Klipy)</h2>
@@ -45,6 +52,7 @@ export const KlipyGifModal: React.FC<Props> = ({ isOpen, onClose, onSelect }) =>
               id="klipy-gif-search" name="gifSearch" type="search" enterKeyHint="search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); } }}
               placeholder="Buscar GIFs..."
               className="w-full pl-9 pr-3 py-1.5 bg-dark-input border border-dark-border text-xs text-white outline-none focus:border-brand-500"
             />
@@ -63,13 +71,7 @@ export const KlipyGifModal: React.FC<Props> = ({ isOpen, onClose, onSelect }) =>
                 onClick={() => { onSelect(gif.url); onClose(); }}
                 className="h-28 bg-dark-bg border border-dark-border overflow-hidden cursor-pointer hover:border-brand-500 group p-0"
               >
-                <img
-                  src={gif.preview_url || gif.url}
-                  alt={gif.title || 'GIF'}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                  loading="lazy"
-                  decoding="async"
-                />
+                <img src={gif.preview_url || gif.url} alt={gif.title || 'GIF'} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" decoding="async" />
               </button>
             ))
           ) : (
@@ -79,5 +81,7 @@ export const KlipyGifModal: React.FC<Props> = ({ isOpen, onClose, onSelect }) =>
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modal, document.body) : modal;
 };
 

@@ -154,6 +154,7 @@ Tras una auditoría minuciosa del repositorio existente, se han identificado las
   - Rate limiting en endpoints públicos críticos (registro, login, envío de correos).
 - **RNF-06 (Integridad y Migraciones de Bases de Datos):** Cualquier cambio estructural en PostgreSQL o colecciones en MongoDB debe contar con scripts de migración reversibles (`up` y `down`).
 - **RNF-07 (Rendimiento y Paginación Eficiente):** Uso de claves temporales UUID v7 que permiten ordenación por índice B-Tree sin colisiones y sin degradación de rendimiento por escaneo de tablas (`OFFSET` elevado).
+- **RNF-08 (Limpieza Integral de Rastros de Pruebas):** Toda prueba automatizada o manual (unitaria, de integración o exploratoria) que inserte registros en MongoDB o PostgreSQL (usuarios de prueba, publicaciones, interacciones, seguimientos, bloqueos, chats, mensajes, notificaciones o tokens) DEBE eliminar completamente todos los rastros generados al finalizar su ejecución (`afterAll`/`afterEach`), manteniendo las bases de datos libres de datos residuales.
 
 ---
 
@@ -782,6 +783,26 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
   - *Cumplimiento de Estándares:*
     - Todos los archivos modificados o creados respetan RNF-01 (`< 100 LOC`) y RNF-02 (TypeScript estricto sin `any`).
     - Cobertura completa de pruebas en backend (`apps/api/tests/publication-pin.test.ts`) y frontend (`apps/web/tests/publication-pin.test.tsx`).
+
+- **Hito 54: Limpieza de Pruebas (RNF-08), Corrección del Compositor Multimedia, Cambio de Correo Verificado, Bloqueo de Usuarios y Reemplazo de Correo por Admin:**
+  - *Regla de Limpieza de Rastros de Pruebas (`RNF-08`):*
+    - Se formaliza **RNF-08** en `REQUIREMENTS.md`, se purgan de MongoDB los registros residuales previos de pruebas (`interaction_tester`, `pin_tester`, `test_media_user` y sus publicaciones/upvotes/notificaciones) y se añaden bloques `afterAll` de limpieza integral en `publication-interactions.test.ts`, `publication-pin.test.ts`, `profile.test.ts` y `user-blocking.test.ts`.
+  - *Corrección de Doble Envío y Borrado de Texto en Compositor (`PublicationCreator`, `ReplyComposer`, `PublicationComposerToolbar`, `KlipyGifModal`, `ImageCropperModal`, `useImageCropQueue`, `canvasCropHelper`):*
+    - Se aíslan `KlipyGifModal` e `ImageCropperModal` fuera del árbol DOM del `<form>` padre mediante `createPortal(..., document.body)` y bloqueo de propagación de eventos `onSubmit`, `onClick` y tecla `Enter` en `#klipy-gif-search`.
+    - Se añade desenfoque automático del `<input type="file">`, reseteo completo de `useImageCropQueue` (eliminando el doble cierre tras `onCrop`) y guardia síncrona `submittingRef` junto a `showGifModal` / `media.cropQueue.isCropping`, impidiendo que el contenido escrito se pierda o se envíen dos publicaciones.
+    - Se refactoriza `ImageCropperModal` extrayendo `canvasCropHelper.ts` para cumplir RNF-01 (`< 100 LOC`).
+  - *Actualización de Correo Electrónico en Configuración de Cuenta (`006_email_change_tokens.sql`, `EmailChangeService`, `SettingsController`, `settings.routes`, `EmailSettingsSection`, `AccountSettingsTab`, `VerifyView`):*
+    - Nuevo formulario en la pestaña de Cuenta solicitando `new_email` y `current_password` validados con `RequestEmailChangeSchema` (`packages/shared`).
+    - Pre-comprobaciones en `EmailChangeService`: verificación de contraseña actual, formato válido de correo, diferencia respecto al correo actual, disponibilidad única en PostgreSQL y envío de token criptográfico hasheado de un solo uso (expiración 1 hora) vía `ResendMailerAdapter`.
+    - Post-comprobaciones en `/settings/email/confirm` (`ConfirmEmailChangeSchema` + `VerifyView` con `?email_token=`): consumo atómico de token no expirado, nueva verificación de unicidad en PostgreSQL y actualización de `members.email`.
+  - *Bloqueo de Usuarios (`MongoBlockRepository`, `BlockService`, `BlockController`, `FollowService`, `UpvoteService`, `ShareService`, `CreatePublicationService`, `ChatService`, `MessageService`, `ProfileService`, `useProfileActions`, `ProfileHeaderActions`, `ProfileInfo`):*
+    - Nueva colección `blocks` en MongoDB con índice único `{ blocker_id: 1, blocked_id: 1 }`.
+    - Endpoints `POST/DELETE /members/:username/block` (y `/follows/:username/block`): al bloquear, rompe automáticamente cualquier relación de seguimiento mutua y actualiza contadores.
+    - Bloqueo estricto bidireccional en todas las interacciones: prohíbe seguir (`FollowService`), dar me gusta (`UpvoteService`), compartir (`ShareService`), responder o citar publicaciones (`CreatePublicationService`), e iniciar chats o enviar mensajes directos (`ChatService`, `MessageService`).
+    - Exposición de `is_blocked` y `has_blocked_viewer` en `PublicUser` / `ProfileService`, con botón de bloqueo/desbloqueo, confirmación y ocultamiento de acciones de seguimiento/chat en `ProfileHeaderActions`.
+  - *Reemplazo de Correo Electrónico en Panel de Administradores (`AdminUserUpdateSchema`, `AdminUserUpdateService`, `AdminEditUserModal`):*
+    - Los administradores siguen sin poder consultar ni buscar correos en `GET /admin/users`, pero `AdminEditUserModal` añade el campo opcional para reemplazar el correo del usuario en `PUT /admin/users/:id`.
+    - `AdminUserUpdateService` valida formato, unicidad en PostgreSQL, actualiza `members.email` sin exponerlo en la respuesta y revoca las sesiones activas por seguridad.
 
 
 

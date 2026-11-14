@@ -3,6 +3,7 @@ import { ChatMessage } from '@oomfy/shared';
 import { MongoMessageRepository } from '../../infrastructure/repositories/mongo/MongoMessageRepository.js';
 import { MongoChatRepository } from '../../infrastructure/repositories/mongo/MongoChatRepository.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
+import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
 import { WebPushService } from '../notifications/WebPushService.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
 import { NotFoundError, ForbiddenError } from '../../errors/AppError.js';
@@ -23,6 +24,12 @@ export class MessageService {
 
   public static async sendMessage(chatId: string, sender: { id: string; username: string; name: string; role?: string }, payload: SendMessagePayload | string): Promise<ChatMessage> {
     await this.requireParticipant(chatId, sender.id);
+    const participants = await MongoChatRepository.getChatParticipants(chatId);
+    for (const p of participants) {
+      if (p !== sender.id && (await MongoBlockRepository.isBlockedEitherWay(sender.id, p))) {
+        throw new ForbiddenError('No puedes enviar mensajes a este usuario.');
+      }
+    }
     const data: SendMessagePayload = typeof payload === 'string' ? { content: payload } : payload;
     const content = data.content?.trim() || '';
     const messageId = uuidv7();
@@ -46,7 +53,7 @@ export class MessageService {
     const snippet = content || (data.gif_url ? 'GIF' : data.media_urls?.length ? 'Imagen' : 'Mensaje');
     await MongoChatRepository.updateLastMessage(chatId, { id: messageId, content: snippet, sender_id: sender.id, created_at: (message as any).created_at });
     SocketGateway.broadcastChatMessage(chatId, message);
-    for (const p of await MongoChatRepository.getChatParticipants(chatId)) {
+    for (const p of participants) {
       SocketGateway.sendToUser(p, 'new_chat_message', message);
       if (p !== sender.id) {
         WebPushService.sendPushToUser(p, { title: `${sender.name} te envió un mensaje`, body: snippet, url: '/chats' }, 'messages').catch(() => {});

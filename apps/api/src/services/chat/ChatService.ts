@@ -2,7 +2,8 @@ import { v7 as uuidv7 } from 'uuid';
 import { PostgresUserRepository } from '../../infrastructure/repositories/postgres/PostgresUserRepository.js';
 import { MongoChatRepository } from '../../infrastructure/repositories/mongo/MongoChatRepository.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
-import { BadRequestError, NotFoundError } from '../../errors/AppError.js';
+import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
+import { BadRequestError, ForbiddenError, NotFoundError } from '../../errors/AppError.js';
 
 export class ChatService {
   public static async getOrCreatePrivateChat(requester: { id: string; username: string; name: string }, targetUsername: string) {
@@ -14,6 +15,9 @@ export class ChatService {
 
     if (targetUser.id === requester.id) {
       throw new BadRequestError('No puedes iniciar un chat contigo mismo.');
+    }
+    if (await MongoBlockRepository.isBlockedEitherWay(requester.id, targetUser.id)) {
+      throw new ForbiddenError('No puedes enviar mensajes a este usuario.');
     }
 
     const existingChatId = await MongoChatRepository.findPrivateChat(requester.id, targetUser.id);
