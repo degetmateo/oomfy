@@ -5,8 +5,9 @@ import { PublicUser, SITE_URL } from '@oomfy/shared';
 import { Header } from '../components/layout/Header.js';
 import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { SeoHead } from '../components/common/SeoHead.js';
-import { PublicationCard } from '../components/publication/PublicationCard.js';
 import { ProfileInfo } from '../components/profile/ProfileInfo.js';
+import { ProfileTabs, ProfileTab } from '../components/profile/ProfileTabs.js';
+import { ProfileFeed } from '../components/profile/ProfileFeed.js';
 import { EditProfileModal } from '../components/profile/EditProfileModal.js';
 import { ImageViewerModal } from '../components/common/ImageViewerModal.js';
 import { resolveMediaUrl } from '../utils/mediaUrl.js';
@@ -15,7 +16,6 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useCursorFeed } from '../hooks/useCursorFeed.js';
 import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
-import { ProfileTabs, ProfileTab } from '../components/profile/ProfileTabs.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
 
 const PROFILE_TABS: readonly ProfileTab[] = ['posts', 'replies', 'likes'];
@@ -78,14 +78,15 @@ export const ProfileView: React.FC = () => {
         </div>
         {user && <ProfileInfo user={user} isOwnProfile={isOwnProfile} onEditClick={() => setIsEditOpen(true)} onAvatarClick={setZoomedImage} />}
         <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} />
-        <div className="divide-y divide-dark-border">
-          {loadingPosts ? <div className="p-8 text-center text-xs text-dark-muted">Cargando publicaciones...</div> : posts.length > 0 ? (
-            <>
-              {posts.map((post) => <PublicationCard key={post.id} post={post} />)}
-              <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">{isFetchingNextPage && <span>Cargando más publicaciones...</span>}</div>
-            </>
-          ) : <div className="p-8 text-center text-xs text-dark-muted">{activeTab === 'posts' ? 'No hay publicaciones todavía.' : activeTab === 'replies' ? 'No hay respuestas todavía.' : 'No hay publicaciones que le gusten todavía.'}</div>}
-        </div>
+        <ProfileFeed
+          activeTab={activeTab}
+          posts={posts}
+          pinnedPublication={user?.pinned_publication}
+          pinnedByName={user?.name}
+          loadingPosts={loadingPosts}
+          isFetchingNextPage={isFetchingNextPage}
+          loadMoreRef={loadMoreRef}
+        />
         {isOwnProfile && isEditOpen && user && (
           <EditProfileModal key={user.id} user={user} isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} onUpdated={() => { queryClient.invalidateQueries({ queryKey: ['profile'] }); PublicationCacheService.invalidatePublicationLists(queryClient); }} />
         )}

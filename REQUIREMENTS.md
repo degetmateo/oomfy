@@ -765,5 +765,24 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Tipado TypeScript estricto sin `any` (RNF-02).
     - Cobertura completa de pruebas unitarias e integración en backend (`apps/api/tests/publication-interactions.test.ts`) y frontend (`apps/web/tests/publication-interactions.test.tsx`).
 
+- **Hito 53: Publicaciones Fijadas en Perfil de Usuario (`pinned_publication`, `usePinPublication`, `PinnedPublicationItem`, `ProfileFeed`, `PublicationPinService`, `PublicationPinController`):**
+  - *Opción "Fijar en tu perfil" / "Desfijar de tu perfil" con Modal de Confirmación (`PublicationMenu`, `usePinPublication`, `useDialogStore`):*
+    - Se añade la opción dinámica en el menú contextual de cada publicación (`PublicationMenu`), permitiendo al usuario autenticado fijar cualquier publicación (propia o ajena) en su perfil. Si ya está fijada por ese usuario, la opción conmuta a "Desfijar de tu perfil".
+    - Al seleccionarla, se despliega un modal retro interactivo mediante `useDialogStore.getState().confirm` preguntando: *"¿Estás seguro de que deseas fijar esta publicación en tu perfil?"*. Si confirma, se ejecuta la petición al servidor y se actualiza reactivamente el estado en `useAuthStore` e invalidación en React Query.
+  - *Visualización Destacada en la Pestaña por Defecto del Perfil (`ProfileFeed`, `PinnedPublicationItem`, `ProfileView`):*
+    - En el perfil del usuario, exclusivamente en su pestaña de publicaciones por defecto (`activeTab === 'posts'`), la publicación fijada se posiciona en primer lugar con el distintivo superior retro: `"fijado por [nombre]"` acompañado del icono `Pin` en color de marca.
+    - Debajo de la publicación fijada continúa apareciendo el timeline habitual (publicaciones y compartidos), deduplicando de forma limpia la publicación fijada para evitar duplicidad visual si pertenecía originalmente a su feed.
+    - Al fijar una nueva publicación, reemplaza automáticamente a la publicación fijada previamente.
+  - *Modelo de Datos y Endpoints en Backend (`PublicationPinService`, `PublicationPinController`, `MongoMemberRepository`, `ProfileService`, `publication.routes`, `profile.routes`):*
+    - Se añade `pinned_publication_id` en el modelo `PublicUser` y esquema de persistencia MongoDB `members`.
+    - `ProfileService.getProfile` resuelve y puebla defensivamente `profile.pinned_publication` mediante `MongoPublicationRepository.findById` (gestionando publicaciones eliminadas sin romper la vista).
+    - Endpoints protegidos con autenticación y rate limiter:
+      - `POST /publications/:id/pin` (y `POST /members/me/pin`): fija la publicación para el usuario autenticado.
+      - `DELETE /publications/:id/pin` (y `DELETE /members/me/pin`): desfija la publicación.
+  - *Cumplimiento de Estándares:*
+    - Todos los archivos modificados o creados respetan RNF-01 (`< 100 LOC`) y RNF-02 (TypeScript estricto sin `any`).
+    - Cobertura completa de pruebas en backend (`apps/api/tests/publication-pin.test.ts`) y frontend (`apps/web/tests/publication-pin.test.tsx`).
+
+
 
 

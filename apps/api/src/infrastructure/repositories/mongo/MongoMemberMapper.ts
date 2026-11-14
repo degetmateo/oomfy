@@ -19,6 +19,8 @@ export class MongoMemberMapper {
       publication_count: Math.max(0, doc.publication_count || 0),
       terms_accepted: doc.terms_accepted === true,
       terms_accepted_at: doc.terms_accepted_at || null,
+      pinned_publication_id: doc.pinned_publication_id ? String(doc.pinned_publication_id) : null,
+      pinned_publication: null,
     };
   }
 
@@ -28,7 +30,7 @@ export class MongoMemberMapper {
       id: user.id,
       username: user.username,
     };
-    for (const key of ['name', 'role', 'bio', 'location', 'link', 'created_at', 'terms_accepted', 'terms_accepted_at'] as const) {
+    for (const key of ['name', 'role', 'bio', 'location', 'link', 'created_at', 'terms_accepted', 'terms_accepted_at', 'pinned_publication_id'] as const) {
       if (user[key] !== undefined) setFields[key] = user[key];
     }
     if (user.icon_url !== undefined) {
@@ -49,4 +51,3 @@ export class MongoMemberMapper {
     return { $set: setFields, $setOnInsert: onInsertFields };
   }
 }
-

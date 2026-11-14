@@ -15,6 +15,10 @@ export class MongoMemberRepository {
     await this.getCollection().updateOne(MongoIdHelper.idFilter(user.id), MongoMemberMapper.buildUpsertOps(user), { upsert: true });
   }
 
+  public static async setPinnedPublication(id: string, publicationId: string | null): Promise<void> {
+    await this.getCollection().updateOne(MongoIdHelper.idFilter(id), { $set: { pinned_publication_id: publicationId } });
+  }
+
   public static async acceptTerms(userId: string): Promise<PublicUser | null> {
     await this.getCollection().updateOne(
       MongoIdHelper.idFilter(userId),
@@ -56,24 +60,19 @@ export class MongoMemberRepository {
     const safeLimit = Math.min(Math.max(1, limit || 20), 50);
     const docs = await this.getCollection()
       .find({ $and: [ACTIVE_MEMBER_FILTER, { $or: [{ username: regex }, { name: regex }, { bio: regex }] }] })
-      .limit(safeLimit)
-      .toArray();
+      .limit(safeLimit).toArray();
     return docs.map(MongoMemberMapper.toDomain);
   }
 
   public static async findSuggested(limit: number = 5, currentUserId?: string): Promise<PublicUser[]> {
     const query: any = { ...ACTIVE_MEMBER_FILTER };
     if (currentUserId) {
-      const excludeIds: any[] = [currentUserId];
-      const mongoId = MongoIdHelper.toMongoId(currentUserId);
-      if (mongoId) excludeIds.push(mongoId);
+      const excludeIds: any[] = [currentUserId, MongoIdHelper.toMongoId(currentUserId)].filter(Boolean);
       for (const fid of await MongoFollowRepository.getFollowedUserIds(currentUserId)) {
-        excludeIds.push(fid);
-        const fMongoId = MongoIdHelper.toMongoId(fid);
-        if (fMongoId) excludeIds.push(fMongoId);
+        excludeIds.push(fid, MongoIdHelper.toMongoId(fid));
       }
-      query._id = { $nin: excludeIds };
-      query.id = { $nin: excludeIds.map(String) };
+      query._id = { $nin: excludeIds.filter(Boolean) };
+      query.id = { $nin: excludeIds.filter(Boolean).map(String) };
     }
     const safeLimit = Math.min(Math.max(1, limit || 5), 30);
     const docs = await this.getCollection().find(query).sort({ follower_count: -1, publication_count: -1 }).limit(safeLimit).toArray();

@@ -1,3 +1,5 @@
+import type { Publication } from './publication.js';
+
 export type Role = 'member' | 'tester' | 'mod' | 'admin';
 
 export type UserStatus = 'pending' | 'active' | 'suspended';
@@ -26,6 +28,7 @@ export interface User {
   banner_url?: string | null;
   terms_accepted?: boolean;
   terms_accepted_at?: string | null;
+  pinned_publication_id?: string | null;
 }
 
 export interface PublicUser {
@@ -46,5 +49,6 @@ export interface PublicUser {
   terms_accepted_at?: string | null;
   is_following?: boolean;
   follows_you?: boolean;
+  pinned_publication_id?: string | null;
+  pinned_publication?: Publication | null;
 }
-

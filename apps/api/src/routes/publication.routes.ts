@@ -3,6 +3,7 @@ import multer from 'multer';
 import { CreatePublicationFormSchema, QueryPublicationSchema, EntityIdParamSchema, PaginationQuerySchema } from '@oomfy/shared';
 import { PublicationController } from '../controllers/PublicationController.js';
 import { PublicationInteractionsController } from '../controllers/PublicationInteractionsController.js';
+import { PublicationPinController } from '../controllers/PublicationPinController.js';
 import { AuthGuard } from '../middlewares/AuthGuard.js';
 import { ValidateRequest } from '../middlewares/ValidateRequest.js';
 import { imageFileFilter, validateUploadedImages } from '../middlewares/FileUploadGuard.js';
@@ -19,6 +20,8 @@ router.get('/:id/interactions/likes', AuthGuard.optionalAuth, ValidateRequest.pa
 router.get('/:id/interactions/upvotes', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), ValidateRequest.query(PaginationQuerySchema), PublicationInteractionsController.getLikes);
 router.get('/:id/ancestors', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), PublicationController.getAncestors);
 router.get('/:id', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), PublicationController.getById);
+router.post('/:id/pin', AuthGuard.requireAuth, writeLimiter, ValidateRequest.params(EntityIdParamSchema), PublicationPinController.pin);
+router.delete('/:id/pin', AuthGuard.requireAuth, writeLimiter, ValidateRequest.params(EntityIdParamSchema), PublicationPinController.unpin);
 router.post('/', AuthGuard.requireAuth, writeLimiter, upload.array('images', 4), validateUploadedImages, ValidateRequest.body(CreatePublicationFormSchema), PublicationController.create);
 router.delete('/:id', AuthGuard.requireAuth, writeLimiter, ValidateRequest.params(EntityIdParamSchema), PublicationController.delete);
 

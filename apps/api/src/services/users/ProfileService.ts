@@ -3,6 +3,7 @@ import { PostgresPool } from '../../infrastructure/database/postgres/PostgresPoo
 import { PostgresUserRepository } from '../../infrastructure/repositories/postgres/PostgresUserRepository.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MongoFollowRepository } from '../../infrastructure/repositories/mongo/MongoFollowRepository.js';
+import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 import { isHttpUrl } from '../../utils/UrlSecurityHelper.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors/AppError.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
@@ -22,6 +23,12 @@ export class ProfileService {
       profile.is_following = isFollowing;
       profile.follows_you = followsYou;
     }
+
+    if (profile.pinned_publication_id) {
+      profile.pinned_publication = await MongoPublicationRepository.findById(profile.pinned_publication_id, viewerId);
+      if (!profile.pinned_publication) profile.pinned_publication_id = null;
+    }
+
     return profile;
   }
 
@@ -38,9 +45,7 @@ export class ProfileService {
       throw new ForbiddenError('La edición de perfiles está desactivada temporalmente por mantenimiento.');
     }
 
-    if (input.link && !isHttpUrl(input.link)) {
-      throw new BadRequestError('El enlace debe comenzar por http:// o https://.');
-    }
+    if (input.link && !isHttpUrl(input.link)) throw new BadRequestError('El enlace debe comenzar por http:// o https://.');
 
     const [iconUrl, bannerUrl] = await Promise.all([
       ProfileMediaService.applyMediaUpdate('icon', userId, input.icon_action, files.icon),
@@ -76,10 +81,7 @@ export class ProfileService {
   }
 
   public static async acceptTerms(userId: string): Promise<PublicUser> {
-    await PostgresPool.getInstance().query(
-      `UPDATE members SET terms_accepted = TRUE, terms_accepted_at = COALESCE(terms_accepted_at, NOW()) WHERE id = $1`,
-      [userId]
-    );
+    await PostgresPool.getInstance().query(`UPDATE members SET terms_accepted = TRUE, terms_accepted_at = COALESCE(terms_accepted_at, NOW()) WHERE id = $1`, [userId]);
     const updated = await MongoMemberRepository.acceptTerms(userId);
     if (!updated) throw new NotFoundError('Usuario no encontrado.');
     return updated;

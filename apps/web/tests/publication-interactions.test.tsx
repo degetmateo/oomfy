@@ -18,9 +18,11 @@ describe('Publication Interactions UI and Navigation', () => {
 
   it('renders "Interacciones" in PublicationMenu and navigates on click', () => {
     render(
-      <MemoryRouter>
-        <PublicationMenu postId="post-123" authorId="auth-1" authorUsername="tester" canDelete={false} />
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <PublicationMenu postId="post-123" authorId="auth-1" authorUsername="tester" canDelete={false} />
+        </MemoryRouter>
+      </QueryClientProvider>
     );
 
     const trigger = screen.getByTitle('Opciones de publicación');
@@ -66,4 +68,3 @@ describe('Publication Interactions UI and Navigation', () => {
     expect(screen.getByText('Compartidos')).toBeInTheDocument();
   });
 });
-
