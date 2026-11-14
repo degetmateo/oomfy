@@ -741,4 +741,29 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - En `SignupView`, el formulario de registro valida `UsernameSchema` de forma síncrona en cliente antes del envío y añade restricción declarativa HTML5 `pattern="^[a-zA-Z0-9_]+$"`.
     - En `AccountSettingsTab` (Ajustes de cuenta) y `AdminEditUserModal` (Panel de Administración), se valida `UsernameSchema` impidiendo llamadas innecesarias al servidor ante nombres inválidos y se documenta la restricción en la descripción de campo accesible.
 
+- **Hito 52: Vista de Interacciones de Publicación (Citados, Compartidos, Me gusta), Menú de Publicación, Paginación y Gestos Táctiles Swipe (`PublicationMenu`, `PublicationInteractionsView`, `PublicationInteractionsTabs`, `PublicationInteractionsQuotesTab`, `PublicationInteractionsUsersTab`, `InteractionQueryService`, `PublicationInteractionsController`, `publication.routes`):**
+  - *Nueva Opción "Interacciones" en Menú de Publicación (`PublicationMenu`):*
+    - Se añade la opción "Interacciones" accesible para todos los usuarios (autores, no autores, autenticados e invitados) en el menú contextual de cada publicación (`PublicationMenu`), navegando a `/publication/:id/interactions`.
+    - Se refactoriza `PublicationMenu` para mantenerse estrictamente bajo 100 LOC (RNF-01).
+  - *Nueva Vista de Interacciones con 3 Pestañas (`PublicationInteractionsView`, `PublicationInteractionsTabs`):*
+    - Ruta pública `/publication/:id/interactions` con cabecera retro accesible (`Header`), subtítulo dinámico con el autor original y botón de retroceso.
+    - Barra de navegación con tres pestañas: "Citados", "Compartidos", "Me gusta", sincronizadas con el parámetro de búsqueda `?tab=quotes|shares|likes`.
+  - *Gestos Táctiles Swipe Móvil (`useTabSwipe`):*
+    - Integración de `useTabSwipe` en el contenedor principal de la vista de interacciones, permitiendo desplazarse entre las pestañas "Citados" <-> "Compartidos" <-> "Me gusta" mediante gestos táctiles horizontales en dispositivos móviles.
+  - *Listas con Paginación Eficiente y Carga Incremental (`PublicationInteractionsQuotesTab`, `PublicationInteractionsUsersTab`, `useCursorFeed`, `useInfiniteQuery`, `useInfiniteScroll`):*
+    - "Citados": Lista paginada por cursor (`older_id`, `limit=20`) de publicaciones que citan a la publicación de destino (`type === 'quote'`), renderizando `<PublicationCard />` y estado vacío "No hay citas todavía.".
+    - "Compartidos": Lista paginada por offset/límite (`offset`, `limit=20`) de usuarios que compartieron la publicación (`type === 'shared'`), renderizando `<UserSearchCard />` con acciones de seguimiento y estado vacío "Nadie compartió esta publicación todavía.".
+    - "Me gusta": Lista paginada por offset/límite (`offset`, `limit=20`) de usuarios que dieron upvote/me gusta a la publicación (`upvotes`), renderizando `<UserSearchCard />` con estado vacío "No hay me gusta todavía.".
+  - *Capa de Servicios y Rutas en Backend (`InteractionQueryService`, `PublicationInteractionsController`, `publication.routes.ts`):*
+    - Endpoints públicos con autenticación opcional (`AuthGuard.optionalAuth`):
+      - `GET /publications/:id/interactions/quotes` (`limit`, `offset`, `older_id`)
+      - `GET /publications/:id/interactions/shares` (`limit`, `offset`)
+      - `GET /publications/:id/interactions/likes` (y alias `/upvotes`) (`limit`, `offset`)
+    - Decoración de grafos (`is_following`, `is_upvoted`, `is_shared`) para el espectador y verificación de existencia de la publicación (retorna `404 Not Found` ante identificadores inexistentes).
+  - *Cumplimiento de Arquitectura y Lineamientos:*
+    - Todos los archivos nuevos y modificados se mantienen estrictamente bajo 100 líneas de código (RNF-01).
+    - Tipado TypeScript estricto sin `any` (RNF-02).
+    - Cobertura completa de pruebas unitarias e integración en backend (`apps/api/tests/publication-interactions.test.ts`) y frontend (`apps/web/tests/publication-interactions.test.tsx`).
+
+
 

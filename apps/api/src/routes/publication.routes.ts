@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { CreatePublicationFormSchema, QueryPublicationSchema, EntityIdParamSchema } from '@oomfy/shared';
+import { CreatePublicationFormSchema, QueryPublicationSchema, EntityIdParamSchema, PaginationQuerySchema } from '@oomfy/shared';
 import { PublicationController } from '../controllers/PublicationController.js';
+import { PublicationInteractionsController } from '../controllers/PublicationInteractionsController.js';
 import { AuthGuard } from '../middlewares/AuthGuard.js';
 import { ValidateRequest } from '../middlewares/ValidateRequest.js';
 import { imageFileFilter, validateUploadedImages } from '../middlewares/FileUploadGuard.js';
@@ -12,6 +13,10 @@ const router = Router();
 const writeLimiter = createRateLimiter({ windowMs: 60_000, max: 25, prefix: 'pub-write' });
 
 router.get('/', AuthGuard.optionalAuth, ValidateRequest.query(QueryPublicationSchema), PublicationController.getFeed);
+router.get('/:id/interactions/quotes', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), ValidateRequest.query(PaginationQuerySchema), PublicationInteractionsController.getQuotes);
+router.get('/:id/interactions/shares', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), ValidateRequest.query(PaginationQuerySchema), PublicationInteractionsController.getShares);
+router.get('/:id/interactions/likes', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), ValidateRequest.query(PaginationQuerySchema), PublicationInteractionsController.getLikes);
+router.get('/:id/interactions/upvotes', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), ValidateRequest.query(PaginationQuerySchema), PublicationInteractionsController.getLikes);
 router.get('/:id/ancestors', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), PublicationController.getAncestors);
 router.get('/:id', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), PublicationController.getById);
 router.post('/', AuthGuard.requireAuth, writeLimiter, upload.array('images', 4), validateUploadedImages, ValidateRequest.body(CreatePublicationFormSchema), PublicationController.create);

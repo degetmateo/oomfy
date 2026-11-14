@@ -13,6 +13,7 @@ import { ModerationView } from './views/ModerationView.js';
 import { ProfileView } from './views/ProfileView.js';
 import { FollowListView } from './views/FollowListView.js';
 import { PublicationDetailView } from './views/PublicationDetailView.js';
+import { PublicationInteractionsView } from './views/PublicationInteractionsView.js';
 import { ExternalWarningView } from './views/ExternalWarningView.js';
 import { SigninView } from './views/SigninView.js';
 import { SignupView } from './views/SignupView.js';
@@ -60,6 +61,7 @@ export const App: React.FC = () => {
                 <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminView /></ProtectedRoute>} />
                 <Route path="/moderation" element={<ProtectedRoute requiredRole={['admin', 'mod']}><ModerationView /></ProtectedRoute>} />
                 <Route path="/publication/:id" element={<PublicationDetailView />} />
+                <Route path="/publication/:id/interactions" element={<PublicationInteractionsView />} />
                 <Route path="/external" element={<ExternalWarningView />} />
                 <Route path="/privacy" element={<PrivacyPolicyView />} />
                 <Route path="/terms" element={<TermsAndConditionsView />} />
