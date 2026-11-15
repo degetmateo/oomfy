@@ -1,12 +1,11 @@
 import { v7 as uuidv7 } from 'uuid';
-import { CreatePublicationInput, Publication } from '@oomfy/shared';
+import { CreatePublicationInput, LIMITS, Publication } from '@oomfy/shared';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 import { PublicationMapper } from '../../infrastructure/repositories/mongo/PublicationMapper.js';
 import { UrlPreviewAdapter } from '../../infrastructure/adapters/UrlPreviewAdapter.js';
 import { AuthorProfileResolver } from './AuthorProfileResolver.js';
 import { PublicationMediaHelper } from './PublicationMediaHelper.js';
-import { PublicationSnippetHelper } from './PublicationSnippetHelper.js';
-import { NotificationDispatcher } from '../notifications/NotificationDispatcher.js';
+import { MentionNotificationHelper } from './MentionNotificationHelper.js';
 import { BadRequestError, ForbiddenError } from '../../errors/AppError.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
@@ -24,6 +23,9 @@ export class CreatePublicationService {
     }
 
     const content = input.content?.trim() || '';
+    if (user.role !== 'admin' && content.length > LIMITS.POST_CONTENT_MAX) {
+      throw new BadRequestError(`El contenido no puede superar los ${LIMITS.POST_CONTENT_MAX} caracteres.`);
+    }
     const tenorList = PublicationMediaHelper.parseTenorList(input.tenor);
     if (!content && imageFiles.length === 0 && tenorList.length === 0) {
       throw new BadRequestError('La publicación no puede estar vacía.');
@@ -78,18 +80,7 @@ export class CreatePublicationService {
 
     await MongoPublicationRepository.create(newPublication);
     await MongoMemberRepository.incrementCounters(user.id, { publication_count: 1 });
-
-    if (targetPublication) {
-      await NotificationDispatcher.dispatch({
-        recipientId: targetPublication.author.id, sender: newPublication.author,
-        type: pubType === 'quote' ? 'quote' : 'comment', targetPublicationId: newPublication.id,
-        push: {
-          title: pubType === 'quote' ? `${user.name} te citó` : `${user.name} te respondió`,
-          body: PublicationSnippetHelper.extractSnippet(newPublication),
-          url: `/publication/${newPublication.id}`, category: pubType === 'quote' ? 'quotes' : 'replies',
-        },
-      });
-    }
+    await MentionNotificationHelper.notifyPublicationCreated(newPublication, targetPublication, pubType, user);
     return {
       ...newPublication,
       images: PublicationMapper.sanitizeImages(newPublication.images),

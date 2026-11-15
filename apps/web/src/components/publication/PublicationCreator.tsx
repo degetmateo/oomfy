@@ -20,13 +20,14 @@ interface Props {
 export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = false, quotedPublication, onRemoveQuoted }) => {
   const queryClient = useQueryClient();
   const inputId = useId();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const dialog = useDialogStore();
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGifOpen, setIsGifOpen] = useState(false);
   const submittingRef = useRef(false);
-  const media = useComposerMedia({ allowCrop: true, cropTitle: 'Recortar imagen', maxGifs: 4, maxTotal: 4, maxLength: LIMITS.POST_CONTENT_MAX });
+  const maxLen = user?.role === 'admin' ? undefined : LIMITS.POST_CONTENT_MAX;
+  const media = useComposerMedia({ allowCrop: true, cropTitle: 'Recortar imagen', maxGifs: 4, maxTotal: 4, maxLength: maxLen });
 
   if (!isAuthenticated) return null;
 
@@ -75,7 +76,7 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
         onPaste={media.handlePaste}
         placeholder={quotedPublication ? 'Añade un comentario...' : '¿Qué estás pensando?'}
         rows={3}
-        maxLength={LIMITS.POST_CONTENT_MAX}
+        maxLength={maxLen}
         className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans"
       />
       {quotedPublication && <PublicationQuotedPreview quotedPublication={quotedPublication} onRemove={onRemoveQuoted} />}

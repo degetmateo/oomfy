@@ -77,7 +77,7 @@ export function useComposerMedia(options: Options = {}) {
   };
 
   return {
-    files, setFiles, gifs, setGifs, textareaRef, attachTextareaRef, cropQueue, attachFiles, attachGifUrl,
+    files, setFiles, gifs, setGifs, textareaRef, textareaEl, attachTextareaRef, cropQueue, attachFiles, attachGifUrl,
     removeFile: (i: number) => setFiles((p) => p.filter((_, idx) => idx !== i)),
     removeGif: (i: number) => setGifs((p) => p.filter((_, idx) => idx !== i)),
     handlePaste, insertEmoji, clearMedia: () => { setFiles([]); setGifs([]); },

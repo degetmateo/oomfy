@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { CreatePublicationFormSchema, QueryPublicationSchema, EntityIdParamSchema, PaginationQuerySchema } from '@oomfy/shared';
+import {
+  CreatePublicationFormSchema, CreatePublicationAdminFormSchema, QueryPublicationSchema, EntityIdParamSchema, PaginationQuerySchema,
+} from '@oomfy/shared';
 import { PublicationController } from '../controllers/PublicationController.js';
 import { PublicationInteractionsController } from '../controllers/PublicationInteractionsController.js';
 import { PublicationPinController } from '../controllers/PublicationPinController.js';
@@ -22,7 +24,7 @@ router.get('/:id/ancestors', AuthGuard.optionalAuth, ValidateRequest.params(Enti
 router.get('/:id', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), PublicationController.getById);
 router.post('/:id/pin', AuthGuard.requireAuth, writeLimiter, ValidateRequest.params(EntityIdParamSchema), PublicationPinController.pin);
 router.delete('/:id/pin', AuthGuard.requireAuth, writeLimiter, ValidateRequest.params(EntityIdParamSchema), PublicationPinController.unpin);
-router.post('/', AuthGuard.requireAuth, writeLimiter, upload.array('images', 4), validateUploadedImages, ValidateRequest.body(CreatePublicationFormSchema), PublicationController.create);
+router.post('/', AuthGuard.requireAuth, writeLimiter, upload.array('images', 4), validateUploadedImages, ValidateRequest.bodyForUserOrAdmin(CreatePublicationFormSchema, CreatePublicationAdminFormSchema), PublicationController.create);
 router.delete('/:id', AuthGuard.requireAuth, writeLimiter, ValidateRequest.params(EntityIdParamSchema), PublicationController.delete);
 
 export default router;

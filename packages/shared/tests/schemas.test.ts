@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { SignupSchema, CreatePublicationSchema, UsernameSchema } from '../src/index.js';
+import {
+  SignupSchema, CreatePublicationSchema, CreatePublicationAdminFormSchema,
+  SendMessageSchema, SendMessageAdminSchema, UsernameSchema, LIMITS,
+} from '../src/index.js';
 
 describe('Shared Schemas Validation', () => {
   it('should validate correct signup payload with accepted_terms', () => {
@@ -38,10 +41,14 @@ describe('Shared Schemas Validation', () => {
     expect(result.success).toBe(false);
   });
 
-  it('should reject publication exceeding content limit', () => {
-    const longContent = 'a'.repeat(501);
-    const result = CreatePublicationSchema.safeParse({ content: longContent });
-    expect(result.success).toBe(false);
+  it('should enforce 1024 char limit for standard users and unlimited for admins', () => {
+    expect(LIMITS.EMOTE_MAX_PER_USER).toBe(12);
+    expect(CreatePublicationSchema.safeParse({ content: 'a'.repeat(1024) }).success).toBe(true);
+    expect(CreatePublicationSchema.safeParse({ content: 'a'.repeat(1025) }).success).toBe(false);
+    expect(CreatePublicationAdminFormSchema.safeParse({ content: 'a'.repeat(2500) }).success).toBe(true);
+    expect(SendMessageSchema.safeParse({ chat_id: 'chat-1', content: 'a'.repeat(1024) }).success).toBe(true);
+    expect(SendMessageSchema.safeParse({ chat_id: 'chat-1', content: 'a'.repeat(1025) }).success).toBe(false);
+    expect(SendMessageAdminSchema.safeParse({ chat_id: 'chat-1', content: 'a'.repeat(2500) }).success).toBe(true);
   });
 
   it('should only allow English letters, numbers and underscores in UsernameSchema', () => {

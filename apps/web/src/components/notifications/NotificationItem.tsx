@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Heart, UserPlus, Repeat, MessageSquare, Quote } from 'lucide-react';
+import { Bell, Heart, UserPlus, Repeat, MessageSquare, Quote, AtSign } from 'lucide-react';
 import { Notification } from '@oomfy/shared';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { formatNotificationTime, formatExactDateTime } from '../../utils/formatTime.js';
@@ -17,6 +17,7 @@ const renderIcon = (type: string) => {
     case 'comment': return <MessageSquare className="w-5 h-5 text-sky-400 mt-0.5 flex-shrink-0" aria-hidden="true" />;
     case 'quote': return <Quote className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" aria-hidden="true" />;
     case 'follow': return <UserPlus className="w-5 h-5 text-brand-400 mt-0.5 flex-shrink-0" aria-hidden="true" />;
+    case 'mention': return <AtSign className="w-5 h-5 text-brand-400 mt-0.5 flex-shrink-0" aria-hidden="true" />;
     default: return <Bell className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" aria-hidden="true" />;
   }
 };
@@ -26,6 +27,7 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
 
   const handleClick = () => {
     if (notif.target_publication_id) navigate(`/publication/${notif.target_publication_id}`);
+    else if (notif.type === 'mention') navigate('/chats');
     else navigate(`/${notif.sender.username}`);
   };
 
@@ -56,6 +58,7 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
                 {notif.type === 'comment' && 'respondió a tu publicación.'}
                 {notif.type === 'quote' && 'citó tu publicación.'}
                 {notif.type === 'follow' && 'comenzó a seguirte.'}
+                {notif.type === 'mention' && (notif.target_publication_id ? 'te mencionó en una publicación.' : 'te mencionó en un mensaje.')}
               </span>
             </p>
             {isUnread && <span className="px-1.5 py-0.5 text-[10px] font-bold bg-brand-500 text-black font-mono flex-shrink-0">NUEVO</span>}

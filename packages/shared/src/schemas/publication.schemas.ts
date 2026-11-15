@@ -38,6 +38,10 @@ export const CreatePublicationFormSchema = CreatePublicationSchema.extend({
   ),
 });
 
+export const CreatePublicationAdminFormSchema = CreatePublicationFormSchema.extend({
+  content: z.string().nullable().optional(),
+});
+
 export const QueryPublicationSchema = z.object({
   older_id: z.preprocess(emptyToNull, safeEntityIdSchema.nullable().optional()),
   author_username: z.preprocess(emptyToNull, z.string().trim().max(60).nullable().optional()),

@@ -33,5 +33,9 @@ export const SendMessageSchema = z.object({
   ),
 });
 
+export const SendMessageAdminSchema = SendMessageSchema.extend({
+  content: z.string().optional().default(''),
+});
+
 export type CreateChatInput = z.infer<typeof CreateChatSchema>;
 export type SendMessageInput = z.infer<typeof SendMessageSchema>;

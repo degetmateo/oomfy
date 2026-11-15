@@ -1,6 +1,6 @@
 import { AuthorSnapshot } from './publication.js';
 
-export type NotificationType = 'upvote' | 'comment' | 'follow' | 'quote' | 'share';
+export type NotificationType = 'upvote' | 'comment' | 'follow' | 'quote' | 'share' | 'mention';
 export type NotificationStatus = 'pending' | 'seen';
 
 export interface Notification {
@@ -20,6 +20,7 @@ export interface PushPreferences {
   upvotes: boolean;
   shares: boolean;
   follows: boolean;
+  mentions: boolean;
 }
 
 export const DEFAULT_PUSH_PREFERENCES: PushPreferences = {
@@ -29,5 +30,6 @@ export const DEFAULT_PUSH_PREFERENCES: PushPreferences = {
   upvotes: true,
   shares: true,
   follows: true,
+  mentions: true,
 };
 

@@ -21,6 +21,13 @@ export class ValidateRequest {
     };
   }
 
+  public static bodyForUserOrAdmin<T, A>(userSchema: ZodType<T>, adminSchema: ZodType<A>) {
+    return (req: Request, res: Response, next: NextFunction): void => {
+      const schema = req.user?.role === 'admin' ? adminSchema : userSchema;
+      ValidateRequest.body(schema as ZodType<T | A>)(req, res, next);
+    };
+  }
+
   public static query<T>(schema: ZodType<T>) {
     return (req: Request, _res: Response, next: NextFunction): void => {
       try {

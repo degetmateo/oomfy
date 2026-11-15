@@ -1,9 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { Image, Film, Smile } from 'lucide-react';
 import { LIMITS } from '@oomfy/shared';
+import { useAuthStore } from '../../stores/authStore.js';
 import { KlipyGifModal } from './KlipyGifModal.js';
 import { EmojiPickerMenu } from '../common/EmojiPickerMenu.js';
 import { ImageCropperModal } from '../common/ImageCropperModal.js';
+import { ComposerAutocompleteMenu } from '../common/ComposerAutocompleteMenu.js';
+import { useComposerAutocomplete } from '../../hooks/useComposerAutocomplete.js';
 
 interface Props {
   content: string;
@@ -33,6 +36,8 @@ export const PublicationComposerToolbar: React.FC<Props> = ({
   const [showGifModal, setShowGifModal] = useState(false);
   const [showEmojiMenu, setShowEmojiMenu] = useState(false);
   const emojiBtnRef = useRef<HTMLButtonElement>(null);
+  const isAdmin = useAuthStore((s) => s.user?.role === 'admin');
+  const ac = useComposerAutocomplete(content, onChangeContent, media.textareaRef, media.textareaEl, isAdmin ? undefined : LIMITS.POST_CONTENT_MAX);
   const pad = compact ? 'p-1' : 'p-1.5';
   const toggleGifModal = (open: boolean) => { setShowGifModal(open); onGifModalChange?.(open); };
 
@@ -55,7 +60,7 @@ export const PublicationComposerToolbar: React.FC<Props> = ({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-dark-muted">{content.length}/{LIMITS.POST_CONTENT_MAX}</span>
+          <span className="text-[11px] text-dark-muted">{isAdmin ? `${content.length}/∞` : `${content.length}/${LIMITS.POST_CONTENT_MAX}`}</span>
           <button type="submit" disabled={isSubmitting || !hasContent || showGifModal || media.cropQueue.isCropping} className="px-4 py-1.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-black font-bold text-xs uppercase tracking-wider pixel-button transition-colors">
             {isSubmitting ? submittingLabel : submitLabel}
           </button>
@@ -63,6 +68,7 @@ export const PublicationComposerToolbar: React.FC<Props> = ({
       </div>
       <KlipyGifModal isOpen={showGifModal} onClose={() => toggleGifModal(false)} onSelect={(url: string) => { media.attachGifUrl(url); toggleGifModal(false); }} />
       <ImageCropperModal file={media.cropQueue.currentFile} isOpen={media.cropQueue.isCropping} aspectRatio={media.cropQueue.options.aspectRatio ?? 'free'} title={media.cropQueue.options.title ?? cropTitle} allowAspectChange={media.cropQueue.options.allowAspectChange ?? true} onCrop={media.cropQueue.handleCrop} onClose={media.cropQueue.handleClose} />
+      <ComposerAutocompleteMenu isOpen={ac.isOpen} mode={ac.mode} items={ac.items} activeIndex={ac.activeIndex} isSearching={ac.isSearching} anchorRef={media.textareaRef} preferredPosition="bottom" onSelect={ac.selectItem} onHoverIndex={ac.setActiveIndex} />
     </>
   );
 };

@@ -1,4 +1,5 @@
 import { Socket } from 'socket.io';
+import { LIMITS } from '@oomfy/shared';
 import { MongoChatRepository } from '../infrastructure/repositories/mongo/MongoChatRepository.js';
 import { MessageService } from '../services/chat/MessageService.js';
 
@@ -41,7 +42,7 @@ export function registerSocketHandlers(socket: Socket, userSockets: Map<string, 
     try {
       if (!isWithinSocketQuota(socket) || typeof d?.chatId !== 'string' || typeof d?.content !== 'string') return;
       const content = d.content.trim();
-      if (!content || content.length > 512) return;
+      if (!content || (user.role !== 'admin' && content.length > LIMITS.MESSAGE_CONTENT_MAX)) return;
       await MessageService.sendMessage(d.chatId, user, content);
     } catch (err) {
       socket.emit('error', { message: (err as Error).message });

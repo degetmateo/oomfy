@@ -42,6 +42,11 @@ export class MongoMigrationRunner {
     const blocks = db.collection('blocks');
     await this.safeCreateIndex(blocks, { blocker_id: 1, blocked_id: 1 }, { unique: true });
     await this.safeCreateIndex(blocks, { blocked_id: 1 });
+
+    const emotes = db.collection('emotes');
+    await this.safeCreateIndex(emotes, { name_lower: 1 }, { unique: true });
+    await this.safeCreateIndex(emotes, { creator_id: 1 });
+    await this.safeCreateIndex(emotes, { created_at: -1 });
   }
 
   public static async run(): Promise<void> {

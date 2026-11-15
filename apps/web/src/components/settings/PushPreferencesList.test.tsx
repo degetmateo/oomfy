@@ -14,6 +14,7 @@ describe('PushPreferencesList Component', () => {
         upvotes: true,
         shares: true,
         follows: true,
+        mentions: true,
       },
       is_active: true,
       status: 'active',
@@ -25,6 +26,7 @@ describe('PushPreferencesList Component', () => {
       upvotes: true,
       shares: true,
       follows: true,
+      mentions: true,
     });
   });
 
@@ -35,10 +37,11 @@ describe('PushPreferencesList Component', () => {
       expect(screen.getByText('Notificaciones de mensajes')).toBeInTheDocument();
       expect(screen.getByText('Notificaciones de respuestas')).toBeInTheDocument();
       expect(screen.getByText('Notificaciones de citas')).toBeInTheDocument();
+      expect(screen.getByText('Notificaciones de menciones')).toBeInTheDocument();
     });
 
     const activeButtons = screen.getAllByRole('button', { name: /Activado/i });
-    expect(activeButtons.length).toBe(6);
+    expect(activeButtons.length).toBe(7);
 
     fireEvent.click(activeButtons[0]);
 

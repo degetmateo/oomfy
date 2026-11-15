@@ -14,11 +14,12 @@ interface Props {
 
 export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmitting }) => {
   const inputId = useId();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [content, setContent] = useState('');
   const [isGifOpen, setIsGifOpen] = useState(false);
   const submittingRef = useRef(false);
-  const media = useComposerMedia({ allowCrop: true, cropTitle: 'Recortar imagen de respuesta', maxGifs: 4, maxTotal: 4, maxLength: LIMITS.POST_CONTENT_MAX });
+  const maxLen = user?.role === 'admin' ? undefined : LIMITS.POST_CONTENT_MAX;
+  const media = useComposerMedia({ allowCrop: true, cropTitle: 'Recortar imagen de respuesta', maxGifs: 4, maxTotal: 4, maxLength: maxLen });
 
   useEffect(() => {
     if (!isSubmitting) submittingRef.current = false;
@@ -56,7 +57,7 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
       <textarea
         id={inputId} name="content" ref={media.attachTextareaRef} rows={2} value={content}
         onChange={(e) => setContent(e.target.value)} onPaste={media.handlePaste}
-        placeholder="Publicar tu respuesta..." maxLength={LIMITS.POST_CONTENT_MAX}
+        placeholder="Publicar tu respuesta..." maxLength={maxLen}
         className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans"
       />
       <ComposerAttachmentPreviews files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />

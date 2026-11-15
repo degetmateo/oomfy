@@ -7,7 +7,7 @@ import { WebPushService } from './WebPushService.js';
 export interface DispatchNotificationInput {
   recipientId: string;
   sender: { id: string; username: string; name: string; role: any; icon_url?: string | null };
-  type: 'upvote' | 'share' | 'comment' | 'quote' | 'follow';
+  type: 'upvote' | 'share' | 'comment' | 'quote' | 'follow' | 'mention';
   targetPublicationId?: string | null;
   push: {
     title: string;

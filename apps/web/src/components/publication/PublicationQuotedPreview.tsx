@@ -2,6 +2,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import { Publication } from '@oomfy/shared';
 import { formatRelativeTime, formatExactDateTime } from '../../utils/formatTime.js';
+import { FormattedText } from '../common/FormattedText.js';
 
 interface Props {
   quotedPublication: Publication;
@@ -28,7 +29,7 @@ export const PublicationQuotedPreview: React.FC<Props> = ({ quotedPublication, o
         </span>
       </div>
       {quotedPublication.content && (
-        <p className="text-dark-text whitespace-pre-line leading-relaxed font-sans">{quotedPublication.content}</p>
+        <FormattedText text={quotedPublication.content} className="text-dark-text whitespace-pre-line leading-relaxed font-sans block" />
       )}
       {quotedPublication.images && quotedPublication.images.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2">

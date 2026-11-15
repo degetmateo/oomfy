@@ -5,6 +5,7 @@ import { SpotifyPlayer } from './SpotifyPlayer.js';
 import { MediaGrid } from './MediaGrid.js';
 import { PixelBadge } from '../icons/PixelBadge.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
+import { FormattedText } from '../common/FormattedText.js';
 import { UrlHelper } from '../../utils/UrlHelper.js';
 import { formatRelativeTime, formatExactDateTime } from '../../utils/formatTime.js';
 import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
@@ -50,7 +51,7 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
             )}
           </div>
           {targetPublication.content && (
-            <p className="text-xs text-dark-text whitespace-pre-line leading-relaxed font-sans">{targetPublication.content}</p>
+            <FormattedText text={targetPublication.content} className="text-xs text-dark-text whitespace-pre-line leading-relaxed font-sans block" />
           )}
           {targetPublication.images?.length > 0 && (
             <div className="mt-2"><MediaGrid images={targetPublication.images} /></div>

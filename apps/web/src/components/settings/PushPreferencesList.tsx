@@ -16,6 +16,7 @@ const PREF_ITEMS: { key: keyof PushPreferences; label: string; desc: string }[] 
   { key: 'upvotes', label: 'Notificaciones de me gusta', desc: 'Likes recibidos en tus publicaciones.' },
   { key: 'shares', label: 'Notificaciones de compartidos', desc: 'Usuarios que comparten tu publicación.' },
   { key: 'follows', label: 'Notificaciones de seguidores', desc: 'Nuevos usuarios que te siguen.' },
+  { key: 'mentions', label: 'Notificaciones de menciones', desc: 'Cuando alguien te menciona con @usuario.' },
 ];
 
 export const PushPreferencesList: React.FC<Props> = ({ endpoint }) => {

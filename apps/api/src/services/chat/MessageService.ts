@@ -1,12 +1,13 @@
 import { v7 as uuidv7 } from 'uuid';
-import { ChatMessage } from '@oomfy/shared';
+import { ChatMessage, LIMITS } from '@oomfy/shared';
 import { MongoMessageRepository } from '../../infrastructure/repositories/mongo/MongoMessageRepository.js';
 import { MongoChatRepository } from '../../infrastructure/repositories/mongo/MongoChatRepository.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
 import { WebPushService } from '../notifications/WebPushService.js';
+import { MentionNotificationHelper } from '../publications/MentionNotificationHelper.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
-import { NotFoundError, ForbiddenError } from '../../errors/AppError.js';
+import { BadRequestError, NotFoundError, ForbiddenError } from '../../errors/AppError.js';
 
 export interface SendMessagePayload {
   content?: string;
@@ -38,6 +39,9 @@ export class MessageService {
       id: sender.id, username: sender.username, name: senderMember?.name || sender.name || sender.username,
       role: sender.role || senderMember?.role || 'member', icon_url: senderMember?.icon_url || null, banner_url: null,
     };
+    if (senderObj.role !== 'admin' && content.length > LIMITS.MESSAGE_CONTENT_MAX) {
+      throw new BadRequestError(`El mensaje no puede superar los ${LIMITS.MESSAGE_CONTENT_MAX} caracteres.`);
+    }
 
     let replyTo: any = null;
     if (data.reply_to_id) {
@@ -59,6 +63,7 @@ export class MessageService {
         WebPushService.sendPushToUser(p, { title: `${sender.name} te envió un mensaje`, body: snippet, url: '/chats' }, 'messages').catch(() => {});
       }
     }
+    await MentionNotificationHelper.notifyChatMentions(message, participants, senderObj);
     return message;
   }
 

@@ -90,7 +90,7 @@ Tras una auditoría minuciosa del repositorio existente, se han identificado las
 - **RF-03.3 (Actualización de Credenciales):** Modificación de nombre de usuario (previa verificación de unicidad) y actualización de contraseña (validando la contraseña actual).
 
 ### RF-04: Publicaciones (Timeline y Microblogging)
-- **RF-04.1 (Creación de Publicaciones):** Creación de posts con contenido de texto (hasta 500 caracteres), hasta 4 imágenes adjuntas, GIFs animados (vía API de Tenor) y previsualización de música/podcasts (vía Spotify oEmbed).
+- **RF-04.1 (Creación de Publicaciones):** Creación de posts con contenido de texto (hasta 1024 caracteres para usuarios estándar y sin límite para administradores autenticados), hasta 4 imágenes adjuntas, GIFs animados (vía API de Tenor) y previsualización de música/podcasts (vía Spotify oEmbed).
 - **RF-04.2 (Tipos de Publicación):**
   - *Default:* Publicación estándar en el timeline.
   - *Reply:* Respuesta a una publicación existente, manteniendo trazabilidad del `parent_publication_id`, `root_publication_id` y array de `thread_ids`.
@@ -803,6 +803,31 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
   - *Reemplazo de Correo Electrónico en Panel de Administradores (`AdminUserUpdateSchema`, `AdminUserUpdateService`, `AdminEditUserModal`):*
     - Los administradores siguen sin poder consultar ni buscar correos en `GET /admin/users`, pero `AdminEditUserModal` añade el campo opcional para reemplazar el correo del usuario en `PUT /admin/users/:id`.
     - `AdminUserUpdateService` valida formato, unicidad en PostgreSQL, actualiza `members.email` sin exponerlo en la respuesta y revoca las sesiones activas por seguridad.
+
+- **Hito 55: Subvista "Personalización" con Emotes Personalizados, Rework Markdown + `:emotes:` en Publicaciones y Mensajes, Autocompletado de `:emotes:` y `@menciones`, y Notificaciones de Mención:**
+  - *Subvista "Personalización" y Gestión de Emotes Personalizados (`SettingsView`, `CustomizationSettingsTab`, `EmoteListSection`, `useEmoteStore`, `EmoteService`, `EmoteController`, `MongoEmoteRepository`, `EmoteImageValidator`):*
+    - Nueva pestaña "Personalización" en la vista de Configuración (`?tab=customization`), integrada también con navegación swipe móvil (`useTabSwipe`).
+    - Permite subir emotes personalizados pequeños (máx. 256 KB, dimensiones ligeras estilo Discord hasta 256x256 px, validados por firma mágica binaria e integridad EXIF) con nombre único `:nombre_del_emote:` (`^[a-zA-Z0-9_]{2,32}$`) y eliminar emotes propios (o de usuarios para staff).
+    - Colección `emotes` en MongoDB con índice único case-insensitive (`name_lower`), endpoints `GET /aux/emotes`, `POST /settings/emotes` y `DELETE /settings/emotes/:id`, y registro cacheado en cliente (`useEmoteStore`).
+  - *Rework de Contenido Markdown + `:emotes:` en Publicaciones y Mensajes (`markdownParser`, `FormattedText`, `ChatMessageItem`, `PublicationQuotedPreview`, `LinkPreviewCard`):*
+    - Parser seguro sin HTML crudo que soporta en publicaciones y chats: títulos y subtítulos (`# `, `## `, `### `), citas (`> `), énfasis negrita/cursiva (`**texto**`, `*texto*`, `_texto_`, `***texto***`), subrayado (`__texto__`, `++texto++`), tachado (`~~texto~~`), código inline (`` `código` ``), enlaces seguros, menciones `@usuario`, hashtags `#tema` y emotes `:nombre_del_emote:` renderizados en línea como imágenes pequeñas (`w-5 h-5`).
+  - *Menú Desplegable de Autocompletado para `:emotes:` y `@usuarios` (`useComposerAutocomplete`, `ComposerAutocompleteMenu`, `PublicationComposerToolbar`, `ChatInputBar`):*
+    - En compositores de publicaciones, respuestas/citas y chats, escribir `:` o `@` seguido de al menos una letra despliega un menú portal flotante (`ArrowUp`/`ArrowDown`/`Enter`/`Tab`/`Escape` o clic/toque) para autocompletar emotes personalizados o usuarios sugeridos (`/aux/search-users`).
+  - *Notificaciones de Mención In-App y Push (`MentionNotificationHelper`, `NotificationDispatcher`, `CreatePublicationService`, `MessageService`, `NotificationItem`, `PushPreferencesList`):*
+    - Al mencionar `@usuario` en una publicación o mensaje de chat, se despachan notificaciones de tipo `'mention'` en MongoDB/Socket.IO y Web Push bajo la nueva categoría configurable `'mentions'` (respetando bloqueos bidireccionales y omitiendo auto-menciones).
+    - Cobertura de pruebas en backend (`apps/api/tests/emotes-and-mentions.test.ts`) y frontend (`FormattedText.test.tsx`, `customization-and-autocomplete.test.tsx`) con limpieza integral de rastros bajo **RNF-08**.
+
+- **Hito 56: Límite de 12 Emotes por Usuario y Límite de 1024 Caracteres en Publicaciones y Mensajes (Sin Límite para Administradores Autenticados):**
+  - *Cupo de 12 Emotes Personalizados por Usuario (`LIMITS.EMOTE_MAX_PER_USER`, `MongoMigrationRunner`, `MongoEmoteRepository`, `EmoteService`, `CustomizationSettingsTab`):*
+    - Se agrega el índice `{ creator_id: 1 }` en la colección `emotes` y el método `MongoEmoteRepository.countByCreatorId`.
+    - `EmoteService.createEmote` rechaza con `400 Bad Request` cualquier intento de superar los `12` emotes personalizados por usuario.
+    - La subvista "Personalización" muestra el contador dinámico `Mis emotes: X/12` y deshabilita el formulario cuando el usuario alcanza el cupo.
+  - *Límite de 1024 Caracteres en Publicaciones y Mensajes / Sin Límite para Administradores (`LIMITS`, `CreatePublicationAdminFormSchema`, `SendMessageAdminSchema`, `ValidateRequest.bodyForUserOrAdmin`, `CreatePublicationService`, `MessageService`, `SocketHandlers`, `PublicationCreator`, `ReplyComposer`, `PublicationComposerToolbar`, `ChatInputBar`):*
+    - Se amplían `POST_CONTENT_MAX` y `MESSAGE_CONTENT_MAX` de `500`/`512` a `1024` caracteres en `@oomfy/shared`.
+    - Los esquemas HTTP y los servicios (`CreatePublicationService`, `MessageService`, `SocketHandlers`) aplican el máximo de `1024` caracteres para usuarios estándar (`member`/`mod`), pero omiten el límite de longitud únicamente cuando `req.user.role` / `socket.user.role` corresponde a un administrador autenticado y validado contra su sesión y rol en PostgreSQL (`AuthGuard.requireAuth` -> `AuthSessionValidator.validate`).
+    - Los compositores web adaptan dinámicamente `maxLength` y el contador (`X/1024` vs `X/∞`) según el rol del usuario autenticado.
+    - Cobertura de pruebas en `packages/shared/tests/schemas.test.ts`, `apps/api/tests/limits-and-admin-content.test.ts` y `apps/web/tests/customization-and-autocomplete.test.tsx` con limpieza total bajo **RNF-08**.
+
 
 
 

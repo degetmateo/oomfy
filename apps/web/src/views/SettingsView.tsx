@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Shield, Key, Laptop, Smartphone } from 'lucide-react';
+import { Shield, Key, Laptop, Smartphone, Sparkles } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
 import { AccountSettingsTab } from '../components/settings/AccountSettingsTab.js';
+import { CustomizationSettingsTab } from '../components/settings/CustomizationSettingsTab.js';
 import { SecuritySettingsTab } from '../components/settings/SecuritySettingsTab.js';
 import { SessionsSettingsTab } from '../components/settings/SessionsSettingsTab.js';
 import { AppPwaSettingsTab } from '../components/settings/AppPwaSettingsTab.js';
 import { LogoutSection } from '../components/settings/LogoutSection.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
 
-type Tab = 'account' | 'security' | 'sessions' | 'app';
+type Tab = 'account' | 'customization' | 'security' | 'sessions' | 'app';
 
 export const SettingsView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs: Tab[] = ['account', 'security', 'sessions', 'app'];
+  const validTabs: Tab[] = ['account', 'customization', 'security', 'sessions', 'app'];
   const tabParam = searchParams.get('tab') as Tab | null;
   const [activeTab, setActiveTab] = useState<Tab>(
     tabParam && validTabs.includes(tabParam) ? tabParam : 'account'
@@ -33,6 +34,7 @@ export const SettingsView: React.FC = () => {
 
   const tabs = [
     { id: 'account' as const, label: 'Cuenta', icon: Shield },
+    { id: 'customization' as const, label: 'Personalización', icon: Sparkles },
     { id: 'security' as const, label: 'Seguridad', icon: Key },
     { id: 'sessions' as const, label: 'Sesiones', icon: Laptop },
     { id: 'app' as const, label: 'App', icon: Smartphone },
@@ -62,6 +64,7 @@ export const SettingsView: React.FC = () => {
 
       <div className="p-4 sm:p-6 max-w-xl">
         {activeTab === 'account' && <AccountSettingsTab />}
+        {activeTab === 'customization' && <CustomizationSettingsTab />}
         {activeTab === 'security' && <SecuritySettingsTab />}
         {activeTab === 'sessions' && <SessionsSettingsTab />}
         {activeTab === 'app' && <AppPwaSettingsTab />}

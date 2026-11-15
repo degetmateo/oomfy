@@ -2,7 +2,7 @@ import type { PushPreferences } from '@oomfy/shared';
 import { ApiClient } from './api.js';
 
 export const DEFAULT_PUSH_PREFERENCES: PushPreferences = {
-  messages: true, replies: true, quotes: true, upvotes: true, shares: true, follows: true,
+  messages: true, replies: true, quotes: true, upvotes: true, shares: true, follows: true, mentions: true,
 };
 
 export class PushPreferencesApi {
