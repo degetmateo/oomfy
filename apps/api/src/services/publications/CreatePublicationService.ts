@@ -22,7 +22,7 @@ export class CreatePublicationService {
       throw new ForbiddenError('La creación de publicaciones está desactivada temporalmente por mantenimiento.');
     }
 
-    const content = input.content?.trim() || '';
+    const content = input.content?.replace(/\r\n?/g, '\n').trim() || '';
     if (user.role !== 'admin' && content.length > LIMITS.POST_CONTENT_MAX) {
       throw new BadRequestError(`El contenido no puede superar los ${LIMITS.POST_CONTENT_MAX} caracteres.`);
     }

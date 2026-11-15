@@ -12,14 +12,13 @@ interface Props {
 export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
   const navigate = useNavigate();
   const { emoteMap, isLoaded, isLoading, fetchEmotes } = useEmoteStore();
-
   const hasEmoteSyntax = useMemo(() => Boolean(text && /:([a-zA-Z0-9_]{2,32}):/.test(text)), [text]);
+
   useEffect(() => {
     if (hasEmoteSyntax && !isLoaded && !isLoading) void fetchEmotes();
   }, [hasEmoteSyntax, isLoaded, isLoading, fetchEmotes]);
 
   if (!text) return null;
-
   const blocks = parseMarkdownBlocks(text);
   const hasBlockElements = blocks.some((b) => b.type !== 'line');
 
@@ -34,6 +33,15 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
     if (window.getSelection()?.toString()) e.preventDefault();
   };
 
+  const renderAnchor = (key: string, url: string, label: string) => {
+    const isInternal = UrlHelper.isInternalUrl(url);
+    return (
+      <a key={key} href={url} target={isInternal ? undefined : '_blank'} rel={isInternal ? undefined : 'ugc nofollow noopener noreferrer'} onClick={(e) => handleLinkClick(e, url)} title={`Ir a ${url}`} className="text-brand-400 font-bold hover:underline cursor-pointer break-all">
+        {label}
+      </a>
+    );
+  };
+
   const renderInline = (tokens: InlineToken[], prefix: string): React.ReactNode[] =>
     tokens.map((tok, i) => {
       const key = `${prefix}-${i}`;
@@ -41,18 +49,15 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
         case 'text': return <React.Fragment key={key}>{tok.text}</React.Fragment>;
         case 'code': return <code key={key} className="px-1 py-0.5 bg-dark-card border border-dark-border rounded font-mono text-[0.9em] text-brand-300">{tok.content}</code>;
         case 'bold_italic': return <strong key={key} className="font-bold italic text-white">{renderInline(tok.children, key)}</strong>;
+        case 'underline_italic': return <u key={key} className="underline italic underline-offset-2">{renderInline(tok.children, key)}</u>;
         case 'bold': return <strong key={key} className="font-bold text-white">{renderInline(tok.children, key)}</strong>;
         case 'italic': return <em key={key} className="italic">{renderInline(tok.children, key)}</em>;
         case 'underline': return <u key={key} className="underline underline-offset-2">{renderInline(tok.children, key)}</u>;
         case 'strike': return <del key={key} className="line-through opacity-75">{renderInline(tok.children, key)}</del>;
-        case 'url': {
-          const isInternal = UrlHelper.isInternalUrl(tok.url);
-          return <a key={key} href={tok.url} target={isInternal ? undefined : '_blank'} rel={isInternal ? undefined : 'ugc nofollow noopener noreferrer'} onClick={(e) => handleLinkClick(e, tok.url)} title={`Ir a ${tok.url}`} className="text-brand-400 font-bold hover:underline cursor-pointer break-all">{tok.url}</a>;
-        }
-        case 'mention':
-          return <Link key={key} to={`/${tok.username.slice(1)}`} onClick={handleTokenNav} title={`Ver perfil de ${tok.username}`} className="text-brand-400 font-bold hover:underline cursor-pointer">{tok.username}</Link>;
-        case 'hashtag':
-          return <Link key={key} to={`/t/${encodeURIComponent(tok.tag.slice(1).toLowerCase())}`} onClick={handleTokenNav} title={`Explorar ${tok.tag}`} className="text-brand-400 hover:underline cursor-pointer">{tok.tag}</Link>;
+        case 'md_link': return renderAnchor(key, tok.url, tok.label);
+        case 'url': return renderAnchor(key, tok.url, tok.url);
+        case 'mention': return <Link key={key} to={`/${tok.username.slice(1)}`} onClick={handleTokenNav} title={`Ver perfil de ${tok.username}`} className="text-brand-400 font-bold hover:underline cursor-pointer">{tok.username}</Link>;
+        case 'hashtag': return <Link key={key} to={`/t/${encodeURIComponent(tok.tag.slice(1).toLowerCase())}`} onClick={handleTokenNav} title={`Explorar ${tok.tag}`} className="text-brand-400 hover:underline cursor-pointer">{tok.tag}</Link>;
         case 'emote': {
           const emote = emoteMap[tok.name.toLowerCase()];
           if (!emote) return <React.Fragment key={key}>:{tok.name}:</React.Fragment>;
@@ -64,12 +69,7 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
   if (!hasBlockElements) {
     return (
       <span className={className}>
-        {blocks.map((block, idx) => (
-          <React.Fragment key={idx}>
-            {idx > 0 && '\n'}
-            {renderInline(block.children, `l${idx}`)}
-          </React.Fragment>
-        ))}
+        {blocks.map((b, idx) => b.type === 'line' && <React.Fragment key={idx}>{idx > 0 && '\n'}{renderInline(b.children, `l${idx}`)}</React.Fragment>)}
       </span>
     );
   }
@@ -77,15 +77,20 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
   return (
     <div className={className}>
       {blocks.map((block, idx) => {
+        if (block.type === 'codeblock') return <pre key={idx} className="my-1.5 p-2.5 bg-dark-card border border-dark-border rounded font-mono text-xs text-brand-300 overflow-x-auto whitespace-pre">{block.code}</pre>;
+        if (block.type === 'hr') return <hr key={idx} className="my-2 border-dark-border" />;
+        if (block.type === 'list') {
+          const ListTag = block.ordered ? 'ol' : 'ul';
+          const listCls = block.ordered ? 'list-decimal pl-5 my-1 space-y-0.5' : 'list-disc pl-5 my-1 space-y-0.5';
+          return <ListTag key={idx} className={listCls}>{block.items.map((item, j) => <li key={j}>{renderInline(item, `b${idx}-${j}`)}</li>)}</ListTag>;
+        }
         const children = renderInline(block.children, `b${idx}`);
         if (block.type === 'heading') {
-          if (block.level === 1) return <h1 key={idx} className="text-lg font-bold text-white leading-snug my-0.5">{children}</h1>;
-          if (block.level === 2) return <h2 key={idx} className="text-base font-bold text-white leading-snug my-0.5">{children}</h2>;
-          return <h3 key={idx} className="text-sm font-bold text-brand-300 leading-snug my-0.5">{children}</h3>;
+          if (block.level === 1) return <h1 key={idx} className="text-xl sm:text-2xl font-bold text-white leading-tight my-1">{children}</h1>;
+          if (block.level === 2) return <h2 key={idx} className="text-lg sm:text-xl font-bold text-white leading-snug my-1">{children}</h2>;
+          return <h3 key={idx} className="text-base sm:text-lg font-bold text-brand-300 leading-snug my-0.5">{children}</h3>;
         }
-        if (block.type === 'blockquote') {
-          return <blockquote key={idx} className="border-l-2 border-brand-500/70 pl-2.5 italic text-dark-muted my-0.5">{children}</blockquote>;
-        }
+        if (block.type === 'blockquote') return <blockquote key={idx} className="border-l-2 border-brand-500/70 pl-2.5 italic text-dark-muted my-0.5">{children}</blockquote>;
         return <div key={idx} className="min-h-[1.2em]">{children}</div>;
       })}
     </div>

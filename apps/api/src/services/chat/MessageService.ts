@@ -32,7 +32,7 @@ export class MessageService {
       }
     }
     const data: SendMessagePayload = typeof payload === 'string' ? { content: payload } : payload;
-    const content = data.content?.trim() || '';
+    const content = data.content?.replace(/\r\n?/g, '\n').trim() || '';
     const messageId = uuidv7();
     const senderMember = await MongoMemberRepository.findById(sender.id);
     const senderObj = {

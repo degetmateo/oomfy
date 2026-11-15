@@ -44,18 +44,26 @@ describe('FormattedText Component', () => {
     expect(hashtag.className).toContain('text-brand-400');
   });
 
-  it('renders markdown headings, blockquotes, emphasis, underline, strike, and code', () => {
-    const md = '# Título Principal\n## Subtítulo\n> Cita destacada\n**negrita** *cursiva* __subrayado__ ~~tachado~~ `codigo`';
-    render(<MemoryRouter><FormattedText text={md} /></MemoryRouter>);
+  it('renders CRLF markdown headings, lists, blockquotes, codeblocks, nested emphasis, links and emotes', () => {
+    const md = [
+      '# Título Principal', '##Subtítulo Pegado', '> Cita destacada',
+      '- elemento uno', '1. primer paso', '```', 'const x = 1;', '```',
+      '**negrita con *cursiva* y __subrayado__** __sub con @buenardo_bro y :pepe_ok:__ [link](https://example.com) ~~tachado~~ `inline`',
+    ].join('\r\n');
+    const { container } = render(<MemoryRouter><FormattedText text={md} /></MemoryRouter>);
 
     expect(screen.getByRole('heading', { level: 1, name: 'Título Principal' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Subtítulo' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Subtítulo Pegado' })).toBeInTheDocument();
     expect(screen.getByText('Cita destacada').tagName.toLowerCase()).toBe('blockquote');
-    expect(screen.getByText('negrita').tagName.toLowerCase()).toBe('strong');
+    expect(screen.getByText('elemento uno').closest('ul')).toBeInTheDocument();
+    expect(screen.getByText('primer paso').closest('ol')).toBeInTheDocument();
+    expect(container.querySelector('pre')?.textContent).toBe('const x = 1;');
     expect(screen.getByText('cursiva').tagName.toLowerCase()).toBe('em');
     expect(screen.getByText('subrayado').tagName.toLowerCase()).toBe('u');
+    expect(screen.getByText('@buenardo_bro').closest('u')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'link' })).toHaveAttribute('href', 'https://example.com');
     expect(screen.getByText('tachado').tagName.toLowerCase()).toBe('del');
-    expect(screen.getByText('codigo').tagName.toLowerCase()).toBe('code');
+    expect(screen.getByText('inline').tagName.toLowerCase()).toBe('code');
   });
 
   it('renders known custom emotes as inline images and leaves unknown tokens as text', () => {
