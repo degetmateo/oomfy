@@ -42,5 +42,19 @@ export class SettingsController {
       next(err);
     }
   }
+
+  public static async updateOnlineStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { show_online_status } = req.body;
+      const result = await SettingsService.updateOnlineStatus(req.user!.id, show_online_status);
+      res.status(200).json({
+        success: true,
+        message: result.show_online_status ? 'Ahora apareces en línea.' : 'Modo invisible activado. No aparecerás en línea.',
+        data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 

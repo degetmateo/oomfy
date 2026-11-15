@@ -21,6 +21,7 @@ export class MongoMemberMapper {
       terms_accepted_at: doc.terms_accepted_at || null,
       pinned_publication_id: doc.pinned_publication_id ? String(doc.pinned_publication_id) : null,
       pinned_publication: null,
+      show_online_status: doc.show_online_status !== false,
     };
   }
 
@@ -30,7 +31,7 @@ export class MongoMemberMapper {
       id: user.id,
       username: user.username,
     };
-    for (const key of ['name', 'role', 'bio', 'location', 'link', 'created_at', 'terms_accepted', 'terms_accepted_at', 'pinned_publication_id'] as const) {
+    for (const key of ['name', 'role', 'bio', 'location', 'link', 'created_at', 'terms_accepted', 'terms_accepted_at', 'pinned_publication_id', 'show_online_status'] as const) {
       if (user[key] !== undefined) setFields[key] = user[key];
     }
     if (user.icon_url !== undefined) {
@@ -47,6 +48,7 @@ export class MongoMemberMapper {
     if (setFields.role === undefined) onInsertFields.role = user.role || 'member';
     if (setFields.created_at === undefined) onInsertFields.created_at = new Date().toISOString();
     if (setFields.terms_accepted === undefined) onInsertFields.terms_accepted = false;
+    if (setFields.show_online_status === undefined) onInsertFields.show_online_status = true;
 
     return { $set: setFields, $setOnInsert: onInsertFields };
   }

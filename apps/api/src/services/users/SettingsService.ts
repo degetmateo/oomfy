@@ -4,6 +4,7 @@ import { PostgresSessionRepository } from '../../infrastructure/repositories/pos
 import { AuthSessionValidator } from '../auth/AuthSessionValidator.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
+import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { PasswordHasher } from '../../infrastructure/adapters/PasswordHasher.js';
 import { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } from '../../errors/AppError.js';
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
@@ -76,5 +77,18 @@ export class SettingsService {
       AuthSessionValidator.revokeUserBefore(userId);
       SocketGateway.disconnectUser(userId);
     }
+  }
+
+  public static async updateOnlineStatus(userId: string, showOnlineStatus: boolean): Promise<{ show_online_status: boolean }> {
+    const member = await MongoMemberRepository.findById(userId);
+    if (!member) {
+      const pgUser = await PostgresUserRepository.findById(userId);
+      if (!pgUser) throw new NotFoundError('Usuario no encontrado.');
+      await MongoMemberRepository.createOrUpdate({ id: pgUser.id, username: pgUser.username, name: pgUser.name, role: pgUser.role, show_online_status: showOnlineStatus });
+    } else {
+      await MongoMemberRepository.setOnlineStatusVisibility(userId, showOnlineStatus);
+    }
+    SocketGateway.setUserInvisible(userId, !showOnlineStatus);
+    return { show_online_status: showOnlineStatus };
   }
 }

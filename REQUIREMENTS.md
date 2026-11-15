@@ -828,6 +828,15 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Los compositores web adaptan dinámicamente `maxLength` y el contador (`X/1024` vs `X/∞`) según el rol del usuario autenticado.
     - Cobertura de pruebas en `packages/shared/tests/schemas.test.ts`, `apps/api/tests/limits-and-admin-content.test.ts` y `apps/web/tests/customization-and-autocomplete.test.tsx` con limpieza total bajo **RNF-08**.
 
+- **Hito 57: Compositores Auto-Expandibles y Visibilidad de Estado en Línea ("Modo Invisible"):**
+  - *Crecimiento Vertical Automático en Compositores de Publicaciones (`PublicationCreator`, `ReplyComposer`, `PublicationComposerToolbar`, `useComposerMedia`, `composerMediaHelper`):*
+    - Los `<textarea>` para crear publicaciones, citas y respuestas incorporan `field-sizing: content` junto a sincronización progresiva por `scrollHeight` (`syncTextareaHeight`) con altura mínima de inicio y tope vertical de `320px` (`max-h-80`) antes de habilitar desplazamiento interno, restableciéndose automáticamente al vaciar o enviar el contenido.
+  - *Configuración de Estado en Línea / Modo Invisible (`UpdateOnlineStatusSchema`, `MongoMemberMapper`, `MongoMemberRepository`, `SocketGateway`, `SocketHandlers`, `AuxController`, `SettingsService`, `SettingsController`, `settings.routes`, `OnlineStatusSettingsSection`, `AccountSettingsTab`, `Aside`):*
+    - Se agrega la preferencia `show_online_status` en `User`/`PublicUser` (por defecto `true`) persistida en MongoDB (`members`) y expuesta mediante `PUT/PATCH /settings/online-status`.
+    - `SocketGateway` mantiene las conexiones y salas activas (`user:${userId}`) pero excluye a los usuarios con modo invisible de `getOnlineUserIds()`, `isUserOnline()` y `/aux/online-members`.
+    - La pestaña Cuenta incorpora `OnlineStatusSettingsSection` para alternar entre estado `En línea` e `Invisible`, reflejando el ocultamiento inmediato en `Aside` y actualizando la sesión activa.
+    - Cobertura de pruebas en `packages/shared/tests/schemas.test.ts`, `apps/api/tests/online-status-visibility.test.ts`, `apps/web/src/components/publication/PublicationCreator.test.tsx`, `apps/web/src/components/publication/ReplyComposer.test.tsx` y `apps/web/tests/online-status-settings.test.tsx` con limpieza total bajo **RNF-08**.
+
 
 
 

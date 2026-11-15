@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, Film, Smile } from 'lucide-react';
 import { LIMITS } from '@oomfy/shared';
 import { useAuthStore } from '../../stores/authStore.js';
@@ -7,6 +7,7 @@ import { EmojiPickerMenu } from '../common/EmojiPickerMenu.js';
 import { ImageCropperModal } from '../common/ImageCropperModal.js';
 import { ComposerAutocompleteMenu } from '../common/ComposerAutocompleteMenu.js';
 import { useComposerAutocomplete } from '../../hooks/useComposerAutocomplete.js';
+import { syncTextareaHeight } from '../../utils/composerMediaHelper.js';
 
 interface Props {
   content: string;
@@ -40,6 +41,7 @@ export const PublicationComposerToolbar: React.FC<Props> = ({
   const ac = useComposerAutocomplete(content, onChangeContent, media.textareaRef, media.textareaEl, isAdmin ? undefined : LIMITS.POST_CONTENT_MAX);
   const pad = compact ? 'p-1' : 'p-1.5';
   const toggleGifModal = (open: boolean) => { setShowGifModal(open); onGifModalChange?.(open); };
+  useEffect(() => { syncTextareaHeight(media.textareaEl); }, [content, media.textareaEl]);
 
   return (
     <>

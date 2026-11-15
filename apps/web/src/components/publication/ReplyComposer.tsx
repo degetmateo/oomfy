@@ -58,7 +58,8 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
         id={inputId} name="content" ref={media.attachTextareaRef} rows={2} value={content}
         onChange={(e) => setContent(e.target.value)} onPaste={media.handlePaste}
         placeholder="Publicar tu respuesta..." maxLength={maxLen}
-        className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans"
+        style={{ fieldSizing: 'content' } as React.CSSProperties}
+        className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans min-h-[3.25rem] max-h-80 overflow-y-hidden"
       />
       <ComposerAttachmentPreviews files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
       <PublicationComposerToolbar

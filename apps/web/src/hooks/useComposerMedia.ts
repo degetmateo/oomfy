@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, RefObject } from 'react';
 import { useImageCropQueue } from './useImageCropQueue.js';
-import { extractMediaFromDataTransfer } from '../utils/composerMediaHelper.js';
+import { extractMediaFromDataTransfer, syncTextareaHeight } from '../utils/composerMediaHelper.js';
 
 interface Options {
   allowCrop?: boolean;
@@ -55,12 +55,18 @@ export function useComposerMedia(options: Options = {}) {
 
   useEffect(() => {
     if (!textareaEl) return;
+    syncTextareaHeight(textareaEl);
+    const onInput = () => syncTextareaHeight(textareaEl);
     const onNativeBeforeInput = (e: Event) => {
       const dt = (e as InputEvent).dataTransfer;
       if (dt) transferHandlerRef.current(dt, () => e.preventDefault());
     };
+    textareaEl.addEventListener('input', onInput);
     textareaEl.addEventListener('beforeinput', onNativeBeforeInput);
-    return () => textareaEl.removeEventListener('beforeinput', onNativeBeforeInput);
+    return () => {
+      textareaEl.removeEventListener('input', onInput);
+      textareaEl.removeEventListener('beforeinput', onNativeBeforeInput);
+    };
   }, [textareaEl]);
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -80,6 +86,6 @@ export function useComposerMedia(options: Options = {}) {
     files, setFiles, gifs, setGifs, textareaRef, textareaEl, attachTextareaRef, cropQueue, attachFiles, attachGifUrl,
     removeFile: (i: number) => setFiles((p) => p.filter((_, idx) => idx !== i)),
     removeGif: (i: number) => setGifs((p) => p.filter((_, idx) => idx !== i)),
-    handlePaste, insertEmoji, clearMedia: () => { setFiles([]); setGifs([]); },
+    handlePaste, insertEmoji, clearMedia: () => { setFiles([]); setGifs([]); if (textareaRef.current) { textareaRef.current.value = ''; syncTextareaHeight(textareaRef.current); } },
   };
 }

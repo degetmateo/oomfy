@@ -77,7 +77,8 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
         placeholder={quotedPublication ? 'Añade un comentario...' : '¿Qué estás pensando?'}
         rows={3}
         maxLength={maxLen}
-        className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans"
+        style={{ fieldSizing: 'content' } as React.CSSProperties}
+        className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans min-h-[4.5rem] max-h-80 overflow-y-hidden"
       />
       {quotedPublication && <PublicationQuotedPreview quotedPublication={quotedPublication} onRemove={onRemoveQuoted} />}
       <ComposerAttachmentPreviews files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />

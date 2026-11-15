@@ -1,7 +1,9 @@
 import { Socket } from 'socket.io';
 import { LIMITS } from '@oomfy/shared';
 import { MongoChatRepository } from '../infrastructure/repositories/mongo/MongoChatRepository.js';
+import { MongoMemberRepository } from '../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MessageService } from '../services/chat/MessageService.js';
+import { SocketGateway } from './SocketGateway.js';
 
 async function hasChatAccess(socket: Socket, chatId: string, userId: string): Promise<boolean> {
   if (typeof chatId !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(chatId)) return false;
@@ -24,6 +26,9 @@ export function registerSocketHandlers(socket: Socket, userSockets: Map<string, 
   if (user.sessionId) socket.join(`session:${user.sessionId}`);
   if (!userSockets.has(user.id)) userSockets.set(user.id, new Set());
   userSockets.get(user.id)!.add(socket.id);
+  MongoMemberRepository.findById(user.id)
+    .then((m) => { if (m) SocketGateway.setUserInvisible(user.id, m.show_online_status === false); })
+    .catch(() => {});
 
   socket.on('join-chat', async (chatId: string) => {
     if (isWithinSocketQuota(socket) && await hasChatAccess(socket, chatId, user.id)) socket.join(`chat:${chatId}`);

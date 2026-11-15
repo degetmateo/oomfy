@@ -19,19 +19,17 @@ export class MongoMemberRepository {
     await this.getCollection().updateOne(MongoIdHelper.idFilter(id), { $set: { pinned_publication_id: publicationId } });
   }
 
+  public static async setOnlineStatusVisibility(id: string, showOnlineStatus: boolean): Promise<void> {
+    await this.getCollection().updateOne(MongoIdHelper.idFilter(id), { $set: { show_online_status: showOnlineStatus } });
+  }
+
   public static async acceptTerms(userId: string): Promise<PublicUser | null> {
-    await this.getCollection().updateOne(
-      MongoIdHelper.idFilter(userId),
-      { $set: { terms_accepted: true, terms_accepted_at: new Date().toISOString() } }
-    );
+    await this.getCollection().updateOne(MongoIdHelper.idFilter(userId), { $set: { terms_accepted: true, terms_accepted_at: new Date().toISOString() } });
     return this.findById(userId);
   }
 
   public static async findByUsername(username: string): Promise<PublicUser | null> {
-    const doc = await this.getCollection().findOne({
-      username: { $regex: new RegExp(`^${MongoIdHelper.escapeRegex(username)}$`, 'i') },
-      ...ACTIVE_MEMBER_FILTER,
-    });
+    const doc = await this.getCollection().findOne({ username: { $regex: new RegExp(`^${MongoIdHelper.escapeRegex(username)}$`, 'i') }, ...ACTIVE_MEMBER_FILTER });
     return doc ? MongoMemberMapper.toDomain(doc) : null;
   }
 
@@ -86,9 +84,7 @@ export class MongoMemberRepository {
     const filter = MongoIdHelper.idFilter(id);
     await this.getCollection().updateOne(filter, { $inc: inc });
     if (Object.values(inc).some((v) => typeof v === 'number' && v < 0)) {
-      await this.getCollection().updateOne(filter, {
-        $max: { follower_count: 0, followed_count: 0, publication_count: 0 },
-      });
+      await this.getCollection().updateOne(filter, { $max: { follower_count: 0, followed_count: 0, publication_count: 0 } });
     }
   }
 

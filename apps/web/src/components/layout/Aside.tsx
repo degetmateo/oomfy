@@ -31,7 +31,9 @@ export const Aside: React.FC = () => {
     if (search.trim()) navigate(`/explore?q=${encodeURIComponent(search.trim())}`);
   };
 
-  const onlineMembers = onlineData?.data || [];
+  const onlineMembers = (onlineData?.data || []).filter(
+    (m) => !(currentUser?.id === m.id && currentUser.show_online_status === false)
+  );
   const suggestedMembers = (suggestedData?.data || []).filter((m) => !currentUser || m.id !== currentUser.id);
 
   return (

@@ -46,4 +46,18 @@ describe('ReplyComposer Component', () => {
 
     expect(screen.getByText(/reaction\.gif/i)).toBeInTheDocument();
   });
+
+  it('auto-grows reply textarea vertically as lines are added', () => {
+    renderComponent({ targetId: 'pub-1', onSubmit: vi.fn(), isSubmitting: false });
+    const textarea = screen.getByPlaceholderText('Publicar tu respuesta...') as HTMLTextAreaElement;
+    expect((textarea.style as CSSStyleDeclaration & { fieldSizing?: string }).fieldSizing || textarea.style.getPropertyValue('field-sizing')).toBe('content');
+
+    Object.defineProperty(textarea, 'scrollHeight', { configurable: true, get: () => (textarea.value ? 140 : 48) });
+    fireEvent.change(textarea, { target: { value: 'L1\nL2\nL3' } });
+    expect(textarea.style.height).toBe('140px');
+    expect(textarea.style.overflowY).toBe('hidden');
+
+    fireEvent.change(textarea, { target: { value: '' } });
+    expect(textarea.style.height).toBe('auto');
+  });
 });

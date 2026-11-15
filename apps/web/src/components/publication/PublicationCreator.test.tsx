@@ -43,4 +43,23 @@ describe('PublicationCreator Component', () => {
 
     expect(screen.getByText(/funny\.gif/i)).toBeInTheDocument();
   });
+
+  it('auto-grows textarea vertically up to 320px before scrolling and resets when cleared', () => {
+    renderComponent();
+    const textarea = screen.getByPlaceholderText('¿Qué estás pensando?') as HTMLTextAreaElement;
+    expect((textarea.style as CSSStyleDeclaration & { fieldSizing?: string }).fieldSizing || textarea.style.getPropertyValue('field-sizing')).toBe('content');
+
+    Object.defineProperty(textarea, 'scrollHeight', { configurable: true, get: () => (textarea.value.length > 50 ? 450 : textarea.value ? 180 : 60) });
+    fireEvent.change(textarea, { target: { value: 'Linea 1\nLinea 2\nLinea 3' } });
+    expect(textarea.style.height).toBe('180px');
+    expect(textarea.style.overflowY).toBe('hidden');
+
+    fireEvent.change(textarea, { target: { value: 'a'.repeat(80) } });
+    expect(textarea.style.height).toBe('320px');
+    expect(textarea.style.overflowY).toBe('auto');
+
+    fireEvent.change(textarea, { target: { value: '' } });
+    expect(textarea.style.height).toBe('auto');
+    expect(textarea.style.overflowY).toBe('hidden');
+  });
 });

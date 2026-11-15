@@ -30,3 +30,15 @@ export function extractMediaFromDataTransfer(dt: DataTransfer | null | undefined
   return { files: [], url: null };
 }
 
+export function syncTextareaHeight(el: HTMLTextAreaElement | null, maxHeightPx = 320): void {
+  if (!el) return;
+  el.style.height = 'auto';
+  if (el.value && el.scrollHeight > 0) {
+    const nextHeight = Math.min(el.scrollHeight, maxHeightPx);
+    el.style.height = `${nextHeight}px`;
+    el.style.overflowY = el.scrollHeight > maxHeightPx ? 'auto' : 'hidden';
+  } else {
+    el.style.overflowY = 'hidden';
+  }
+}
+

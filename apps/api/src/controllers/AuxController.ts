@@ -13,27 +13,17 @@ export class AuxController {
       const limit = Number(req.query.limit) || 20;
       const gifs = await KlipyAdapter.search(q, limit);
       res.status(200).json({ success: true, data: gifs });
-    } catch (err) {
-      next(err);
-    }
+    } catch (err) { next(err); }
   }
 
   public static async getLinkPreview(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const url = req.query.url as string;
-      if (!url) {
-        res.status(400).json({ success: false, message: 'URL requerida.' });
-        return;
-      }
-      if (!(await isSafePublicHttpUrl(url))) {
-        res.status(400).json({ success: false, message: 'URL no permitida o insegura.' });
-        return;
-      }
+      if (!url) { res.status(400).json({ success: false, message: 'URL requerida.' }); return; }
+      if (!(await isSafePublicHttpUrl(url))) { res.status(400).json({ success: false, message: 'URL no permitida o insegura.' }); return; }
       const preview = await UrlPreviewAdapter.getPreview(url);
       res.status(200).json({ success: true, data: preview });
-    } catch (err) {
-      next(err);
-    }
+    } catch (err) { next(err); }
   }
 
   public static async getOnlineMembers(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -41,19 +31,16 @@ export class AuxController {
       const onlineIds = SocketGateway.getOnlineUserIds();
       const members = [];
       const currentUserId = req.user?.id;
-      for (const id of onlineIds.slice(0, 10)) {
+      for (const id of onlineIds) {
         const m = await MongoMemberRepository.findById(id);
-        if (m) {
-          if (currentUserId) {
-            m.is_following = await MongoFollowRepository.isFollowing(currentUserId, m.id);
-          }
-          members.push(m);
-        }
+        if (!m) continue;
+        if (m.show_online_status === false) { SocketGateway.setUserInvisible(m.id, true); continue; }
+        if (currentUserId) m.is_following = await MongoFollowRepository.isFollowing(currentUserId, m.id);
+        members.push(m);
+        if (members.length >= 10) break;
       }
       res.status(200).json({ success: true, data: members });
-    } catch (err) {
-      next(err);
-    }
+    } catch (err) { next(err); }
   }
 
   public static async getSuggestedMembers(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -61,17 +48,11 @@ export class AuxController {
       const limit = Number(req.query.limit) || 5;
       const currentUserId = req.user?.id;
       const members = await MongoMemberRepository.findSuggested(limit, currentUserId);
-
       if (currentUserId) {
-        for (const m of members) {
-          m.is_following = false;
-        }
+        for (const m of members) m.is_following = false;
       }
-
       res.status(200).json({ success: true, data: members });
-    } catch (err) {
-      next(err);
-    }
+    } catch (err) { next(err); }
   }
 
   public static async searchUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -80,16 +61,10 @@ export class AuxController {
       const limit = Number(req.query.limit) || 20;
       const users = await MongoMemberRepository.search(q, limit);
       const currentUserId = req.user?.id;
-
       if (currentUserId) {
-        for (const u of users) {
-          u.is_following = await MongoFollowRepository.isFollowing(currentUserId, u.id);
-        }
+        for (const u of users) u.is_following = await MongoFollowRepository.isFollowing(currentUserId, u.id);
       }
-
       res.status(200).json({ success: true, data: users });
-    } catch (err) {
-      next(err);
-    }
+    } catch (err) { next(err); }
   }
 }
