@@ -61,7 +61,7 @@ export const FormattedText: React.FC<Props> = ({ text, className = '', authorId 
           const emote = authorId ? (userEmoteMap?.[authorId]?.[lower] ?? emotes.find((e) => e.creator_id === authorId && e.name.toLowerCase() === lower)) : emoteMap[lower];
           if (!emote) return <React.Fragment key={key}>:{tok.name}:</React.Fragment>;
           const canImport = Boolean(viewerId && viewerId !== emote.creator_id && !userEmoteMap?.[viewerId]?.[lower] && !emotes.some((e) => e.creator_id === viewerId && e.name.toLowerCase() === lower));
-          const img = <img src={emote.image_url} alt={`:${emote.name}:`} title={canImport ? `:${emote.name}: (clic para importar a tu colección)` : `:${emote.name}:`} className="inline-block w-5 h-5 align-text-bottom object-contain mx-0.5" />;
+          const img = <img src={emote.image_url} alt={`:${emote.name}:`} title={canImport ? `:${emote.name}: (clic para importar a tu colección)` : `:${emote.name}:`} className="inline-block w-6 h-6 align-text-bottom object-contain mx-0.5" />;
           return canImport ? <button key={key} type="button" data-no-card-nav="true" onClick={(e) => void handleImportEmote(e, emote)} className="inline-flex p-0 border-0 bg-transparent cursor-pointer align-text-bottom">{img}</button> : <React.Fragment key={key}>{img}</React.Fragment>;
         }
       }
