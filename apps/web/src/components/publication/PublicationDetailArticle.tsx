@@ -71,7 +71,7 @@ export const PublicationDetailArticle: React.FC<Props> = ({
       </div>
 
       {publication.content && (
-        <FormattedText text={publication.content} className="text-base text-dark-text whitespace-pre-line leading-relaxed mb-3 font-sans block" />
+        <FormattedText text={publication.content} authorId={publication.author.id} className="text-base text-dark-text whitespace-pre-line leading-relaxed mb-3 font-sans block" />
       )}
 
       <MediaGrid images={publication.images || []} priority />

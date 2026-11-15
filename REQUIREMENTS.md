@@ -837,6 +837,18 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - La pestaña Cuenta incorpora `OnlineStatusSettingsSection` para alternar entre estado `En línea` e `Invisible`, reflejando el ocultamiento inmediato en `Aside` y actualizando la sesión activa.
     - Cobertura de pruebas en `packages/shared/tests/schemas.test.ts`, `apps/api/tests/online-status-visibility.test.ts`, `apps/web/src/components/publication/PublicationCreator.test.tsx`, `apps/web/src/components/publication/ReplyComposer.test.tsx` y `apps/web/tests/online-status-settings.test.tsx` con limpieza total bajo **RNF-08**.
 
+- **Hito 58: Colecciones Personales de 6 Emotes, Renderizado por Autor e Importación de Emotes:**
+  - *Límite por Usuario e Índice Compuesto (`LIMITS`, `MongoMigrationRunner`, `MongoEmoteRepository`, `EmoteService`, `EmoteController`, `settings.routes`):*
+    - Se reduce `LIMITS.EMOTE_MAX_PER_USER` de `12` a `6` para colecciones personales individuales.
+    - Se reemplaza el índice único global `name_lower_1` en `emotes` por el índice único compuesto `{ creator_id: 1, name_lower: 1 }`, permitiendo que distintos usuarios posean o importen emotes con el mismo nombre dentro de sus colecciones personales.
+    - Se incorpora `POST /settings/emotes/:id/import` (`POST /settings/emotes/import`) para copiar un emote de otro usuario a la colección propia respetando el tope de 6 y evitando duplicados propios o autoimportación.
+  - *Renderizado por Autor, Autocompletado Propio e Importación en UI (`emoteStore`, `useComposerAutocomplete`, `FormattedText`, `EmoteListSection`, `CustomizationSettingsTab` y consumidores de `FormattedText`):*
+    - `emoteStore` indexa `userEmoteMap[creator_id][name_lower]` y expone `importEmote(emoteId)`.
+    - `useComposerAutocomplete` filtra las sugerencias `:emote` exclusivamente a los emotes donde `creator_id === user.id`.
+    - `FormattedText` acepta `authorId` (propagado desde publicaciones, citas, vistas previas de enlaces, compartidos, hilos, mensajes y biografía) para resolver los emotes según el autor y permitir al lector autenticado importar un emote ajeno mediante diálogo de confirmación.
+    - `EmoteListSection` muestra `Tu colección (X/6)` separada de `Emotes de otros usuarios` con botón `Importar`.
+    - Cobertura de pruebas actualizada en `packages/shared/tests/schemas.test.ts`, `apps/api/tests/limits-and-admin-content.test.ts`, `apps/api/tests/emotes-and-mentions.test.ts`, `apps/web/src/components/common/FormattedText.test.tsx` y `apps/web/tests/customization-and-autocomplete.test.tsx` con limpieza total bajo **RNF-08**.
+
 
 
 

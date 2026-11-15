@@ -65,7 +65,7 @@ export const CustomizationSettingsTab: React.FC = () => {
           <span className={`text-xs font-bold ${limitReached ? 'text-red-400' : 'text-brand-400'}`}>Mis emotes: {myCount}/{LIMITS.EMOTE_MAX_PER_USER}</span>
         </div>
         <p className="text-xs text-dark-muted font-sans leading-relaxed -mt-2">
-          Sube hasta {LIMITS.EMOTE_MAX_PER_USER} emotes pequeños (máx. 256 KB y hasta 256x256 px) para usarlos escribiendo <code className="text-brand-400">:nombre:</code>.
+          Tu colección personal admite hasta {LIMITS.EMOTE_MAX_PER_USER} emotes pequeños (máx. 256 KB). Puedes subir los tuyos o importar de otros usuarios para usarlos con <code className="text-brand-400">:nombre:</code>.
         </p>
         <div className="flex flex-col sm:flex-row gap-2.5">
           <div className="flex-1 flex items-center bg-dark-card border border-dark-border px-3 py-2 text-xs">

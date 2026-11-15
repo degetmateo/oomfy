@@ -29,7 +29,7 @@ export const PublicationQuotedPreview: React.FC<Props> = ({ quotedPublication, o
         </span>
       </div>
       {quotedPublication.content && (
-        <FormattedText text={quotedPublication.content} className="text-dark-text whitespace-pre-line leading-relaxed font-sans block" />
+        <FormattedText text={quotedPublication.content} authorId={quotedPublication.author.id} className="text-dark-text whitespace-pre-line leading-relaxed font-sans block" />
       )}
       {quotedPublication.images && quotedPublication.images.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2">

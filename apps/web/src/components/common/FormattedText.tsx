@@ -1,17 +1,18 @@
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { CustomEmote } from '@oomfy/shared';
 import { UrlHelper } from '../../utils/UrlHelper.js';
 import { InlineToken, parseMarkdownBlocks } from '../../utils/markdownParser.js';
 import { useEmoteStore } from '../../stores/emoteStore.js';
+import { useAuthStore } from '../../stores/authStore.js';
+import { useDialogStore } from '../../stores/dialogStore.js';
 
-interface Props {
-  text: string | null | undefined;
-  className?: string;
-}
+interface Props { text: string | null | undefined; className?: string; authorId?: string; }
 
-export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
+export const FormattedText: React.FC<Props> = ({ text, className = '', authorId }) => {
   const navigate = useNavigate();
-  const { emoteMap, isLoaded, isLoading, fetchEmotes } = useEmoteStore();
+  const viewerId = useAuthStore((s) => s.user?.id);
+  const { emoteMap, userEmoteMap, emotes, isLoaded, isLoading, fetchEmotes, importEmote } = useEmoteStore();
   const hasEmoteSyntax = useMemo(() => Boolean(text && /:([a-zA-Z0-9_]{2,32}):/.test(text)), [text]);
 
   useEffect(() => {
@@ -24,22 +25,19 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
 
   const handleLinkClick = (e: React.MouseEvent, url: string) => {
     e.preventDefault(); e.stopPropagation();
-    if (window.getSelection()?.toString()) return;
-    navigate(UrlHelper.isInternalUrl(url) ? UrlHelper.getInternalPath(url) : `/external?url=${encodeURIComponent(url)}`);
+    if (!window.getSelection()?.toString()) navigate(UrlHelper.isInternalUrl(url) ? UrlHelper.getInternalPath(url) : `/external?url=${encodeURIComponent(url)}`);
   };
-
-  const handleTokenNav = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (window.getSelection()?.toString()) e.preventDefault();
+  const handleTokenNav = (e: React.MouseEvent) => { e.stopPropagation(); if (window.getSelection()?.toString()) e.preventDefault(); };
+  const handleImportEmote = async (e: React.MouseEvent, emote: CustomEmote) => {
+    e.preventDefault(); e.stopPropagation();
+    const dialog = useDialogStore.getState();
+    if (!await dialog.confirm({ title: 'Importar emote', message: `¿Importar :${emote.name}: a tu colección personal?`, confirmText: 'Importar' })) return;
+    try { await importEmote(emote.id); await dialog.alert(`Emote :${emote.name}: agregado a tu colección.`, 'Personalización'); }
+    catch (err) { await dialog.alert((err as Error).message, 'No se pudo importar'); }
   };
-
   const renderAnchor = (key: string, url: string, label: string) => {
     const isInternal = UrlHelper.isInternalUrl(url);
-    return (
-      <a key={key} href={url} target={isInternal ? undefined : '_blank'} rel={isInternal ? undefined : 'ugc nofollow noopener noreferrer'} onClick={(e) => handleLinkClick(e, url)} title={`Ir a ${url}`} className="text-brand-400 font-bold hover:underline cursor-pointer break-all">
-        {label}
-      </a>
-    );
+    return <a key={key} href={url} target={isInternal ? undefined : '_blank'} rel={isInternal ? undefined : 'ugc nofollow noopener noreferrer'} onClick={(e) => handleLinkClick(e, url)} title={`Ir a ${url}`} className="text-brand-400 font-bold hover:underline cursor-pointer break-all">{label}</a>;
   };
 
   const renderInline = (tokens: InlineToken[], prefix: string): React.ReactNode[] =>
@@ -59,19 +57,18 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
         case 'mention': return <Link key={key} to={`/${tok.username.slice(1)}`} onClick={handleTokenNav} title={`Ver perfil de ${tok.username}`} className="text-brand-400 font-bold hover:underline cursor-pointer">{tok.username}</Link>;
         case 'hashtag': return <Link key={key} to={`/t/${encodeURIComponent(tok.tag.slice(1).toLowerCase())}`} onClick={handleTokenNav} title={`Explorar ${tok.tag}`} className="text-brand-400 hover:underline cursor-pointer">{tok.tag}</Link>;
         case 'emote': {
-          const emote = emoteMap[tok.name.toLowerCase()];
+          const lower = tok.name.toLowerCase();
+          const emote = authorId ? (userEmoteMap?.[authorId]?.[lower] ?? emotes.find((e) => e.creator_id === authorId && e.name.toLowerCase() === lower)) : emoteMap[lower];
           if (!emote) return <React.Fragment key={key}>:{tok.name}:</React.Fragment>;
-          return <img key={key} src={emote.image_url} alt={`:${emote.name}:`} title={`:${emote.name}:`} className="inline-block w-5 h-5 align-text-bottom object-contain mx-0.5" />;
+          const canImport = Boolean(viewerId && viewerId !== emote.creator_id && !userEmoteMap?.[viewerId]?.[lower] && !emotes.some((e) => e.creator_id === viewerId && e.name.toLowerCase() === lower));
+          const img = <img src={emote.image_url} alt={`:${emote.name}:`} title={canImport ? `:${emote.name}: (clic para importar a tu colección)` : `:${emote.name}:`} className="inline-block w-5 h-5 align-text-bottom object-contain mx-0.5" />;
+          return canImport ? <button key={key} type="button" data-no-card-nav="true" onClick={(e) => void handleImportEmote(e, emote)} className="inline-flex p-0 border-0 bg-transparent cursor-pointer align-text-bottom">{img}</button> : <React.Fragment key={key}>{img}</React.Fragment>;
         }
       }
     });
 
   if (!hasBlockElements) {
-    return (
-      <span className={className}>
-        {blocks.map((b, idx) => b.type === 'line' && <React.Fragment key={idx}>{idx > 0 && '\n'}{renderInline(b.children, `l${idx}`)}</React.Fragment>)}
-      </span>
-    );
+    return <span className={className}>{blocks.map((b, idx) => b.type === 'line' && <React.Fragment key={idx}>{idx > 0 && '\n'}{renderInline(b.children, `l${idx}`)}</React.Fragment>)}</span>;
   }
 
   return (
@@ -81,8 +78,7 @@ export const FormattedText: React.FC<Props> = ({ text, className = '' }) => {
         if (block.type === 'hr') return <hr key={idx} className="my-2 border-dark-border" />;
         if (block.type === 'list') {
           const ListTag = block.ordered ? 'ol' : 'ul';
-          const listCls = block.ordered ? 'list-decimal pl-5 my-1 space-y-0.5' : 'list-disc pl-5 my-1 space-y-0.5';
-          return <ListTag key={idx} className={listCls}>{block.items.map((item, j) => <li key={j}>{renderInline(item, `b${idx}-${j}`)}</li>)}</ListTag>;
+          return <ListTag key={idx} className={`${block.ordered ? 'list-decimal' : 'list-disc'} pl-5 my-1 space-y-0.5`}>{block.items.map((item, j) => <li key={j}>{renderInline(item, `b${idx}-${j}`)}</li>)}</ListTag>;
         }
         const children = renderInline(block.children, `b${idx}`);
         if (block.type === 'heading') {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, RefObject } from 'react';
 import { CustomEmote, PublicUser } from '@oomfy/shared';
 import { ApiClient } from '../services/api.js';
+import { useAuthStore } from '../stores/authStore.js';
 import { useEmoteStore } from '../stores/emoteStore.js';
 
 export type AutocompleteItem = { kind: 'emote'; emote: CustomEmote } | { kind: 'mention'; user: PublicUser };
@@ -18,6 +19,7 @@ export function useComposerAutocomplete(
   textareaEl: HTMLTextAreaElement | null,
   maxLength?: number
 ) {
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const { emotes, fetchEmotes } = useEmoteStore();
   const [caretTick, setCaretTick] = useState(0);
   const [dismissedAt, setDismissedAt] = useState<string | null>(null);
@@ -52,12 +54,12 @@ export function useComposerAutocomplete(
     if (trigger.mode === 'emote') {
       const q = trigger.query.toLowerCase();
       return emotes
-        .filter((e) => e.name.toLowerCase().includes(q))
+        .filter((e) => (!currentUserId || e.creator_id === currentUserId) && e.name.toLowerCase().includes(q))
         .sort((a, b) => Number(b.name.toLowerCase().startsWith(q)) - Number(a.name.toLowerCase().startsWith(q)))
         .slice(0, 8).map((emote) => ({ kind: 'emote' as const, emote }));
     }
     return mentionUsers.slice(0, 6).map((user) => ({ kind: 'mention' as const, user }));
-  }, [trigger, isDismissed, emotes, mentionUsers]);
+  }, [trigger, isDismissed, emotes, mentionUsers, currentUserId]);
 
   useEffect(() => { setActiveIndex(0); }, [triggerKey, items.length]);
 

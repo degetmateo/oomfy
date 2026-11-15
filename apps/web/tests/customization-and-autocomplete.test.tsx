@@ -13,31 +13,37 @@ describe('Customization Tab, Composer Autocomplete & Mention Notifications', () 
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const sampleEmote = {
     id: 'em-cool', name: 'pepe_cool', image_url: 'https://cdn.example/cool.png',
-    creator_id: 'u1', creator_username: 'mateo_dev', created_at: new Date().toISOString(),
+    creator_id: 'u1', creator_username: 'tester', created_at: new Date().toISOString(),
+  };
+  const otherEmote = {
+    id: 'em-other', name: 'pepe_ajeno', image_url: 'https://cdn.example/ajeno.png',
+    creator_id: 'u2', creator_username: 'mateo_dev', created_at: new Date().toISOString(),
   };
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    useAuthStore.setState({
-      isAuthenticated: true,
-      user: { id: 'u1', username: 'tester', name: 'Tester', role: 'member' } as any,
+    useAuthStore.setState({ isAuthenticated: true, user: { id: 'u1', username: 'tester', name: 'Tester', role: 'member' } as any });
+    useEmoteStore.setState({
+      emotes: [sampleEmote, otherEmote], emoteMap: { pepe_cool: sampleEmote, pepe_ajeno: otherEmote },
+      userEmoteMap: { u1: { pepe_cool: sampleEmote }, u2: { pepe_ajeno: otherEmote } }, isLoaded: true, isLoading: false,
     });
-    useEmoteStore.setState({ emotes: [sampleEmote], emoteMap: { pepe_cool: sampleEmote }, isLoaded: true, isLoading: false });
     vi.spyOn(ApiClient, 'get').mockImplementation(async (endpoint: string) => {
-      if (endpoint.startsWith('/aux/emotes')) return { success: true, data: [sampleEmote] } as any;
-      if (endpoint.startsWith('/aux/search-users')) {
-        return { success: true, data: [{ id: 'u2', username: 'mateo_dev', name: 'Mateo Dev', role: 'member', icon_url: null }] } as any;
-      }
+      if (endpoint.startsWith('/aux/emotes')) return { success: true, data: [sampleEmote, otherEmote] } as any;
+      if (endpoint.startsWith('/aux/search-users')) return { success: true, data: [{ id: 'u2', username: 'mateo_dev', name: 'Mateo Dev', role: 'member', icon_url: null }] } as any;
       return { success: true, data: [] } as any;
     });
   });
 
-  it('renders Personalización tab in SettingsView with emote quota and displays custom emotes', async () => {
+  it('renders Personalización tab with 6-emote quota and allows importing other users emotes', async () => {
+    const importedCopy = { ...otherEmote, id: 'em-imp', creator_id: 'u1', creator_username: 'tester' };
+    const postSpy = vi.spyOn(ApiClient, 'post').mockResolvedValue({ success: true, data: importedCopy } as any);
     render(<MemoryRouter initialEntries={['/settings?tab=customization']}><SettingsView /></MemoryRouter>);
     expect(screen.getByText('Personalización')).toBeInTheDocument();
-    expect(screen.getByText('Emotes personalizados')).toBeInTheDocument();
-    expect(screen.getByText('Mis emotes: 1/12')).toBeInTheDocument();
+    expect(screen.getByText('Mis emotes: 1/6')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText(':pepe_cool:')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Importar emote pepe_ajeno' }));
+    await waitFor(() => expect(postSpy).toHaveBeenCalledWith('/settings/emotes/em-other/import', {}));
+    expect(await screen.findByText('Mis emotes: 2/6')).toBeInTheDocument();
   });
 
   it('enforces 1024 char limit for members and unlimited for admins in composer', () => {
@@ -53,19 +59,13 @@ describe('Customization Tab, Composer Autocomplete & Mention Notifications', () 
   });
 
   it('shows emote autocomplete for :prefix and user mention autocomplete for @prefix', async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter><PublicationCreator /></MemoryRouter>
-      </QueryClientProvider>
-    );
-
+    render(<QueryClientProvider client={queryClient}><MemoryRouter><PublicationCreator /></MemoryRouter></QueryClientProvider>);
     const textarea = screen.getByPlaceholderText('¿Qué estás pensando?') as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: 'Hola :pe' } });
-
     const emoteOpt = await screen.findByText(':pepe_cool:');
+    expect(screen.queryByText(':pepe_ajeno:')).not.toBeInTheDocument();
     fireEvent.mouseDown(emoteOpt);
     expect(textarea.value).toBe('Hola :pepe_cool: ');
-
     fireEvent.change(textarea, { target: { value: 'Hola @ma' } });
     const userOpt = await screen.findByText('@mateo_dev');
     fireEvent.mouseDown(userOpt);

@@ -72,7 +72,7 @@ export const PublicationCard: React.FC<Props> = ({ post: rawPost, onDelete }) =>
           rightSlot={<PublicationMenu postId={post.id} authorId={post.author.id} authorUsername={post.author.username} content={post.content} canDelete={canDelete} onDelete={handleDelete} />}
         />
 
-        {post.content && <FormattedText text={post.content} className="mt-1.5 text-sm text-dark-text whitespace-pre-line leading-relaxed font-sans block" />}
+        {post.content && <FormattedText text={post.content} authorId={post.author.id} className="mt-1.5 text-sm text-dark-text whitespace-pre-line leading-relaxed font-sans block" />}
         <MediaGrid images={post.images || []} />
         <LinkPreviewCard embeds={post.embeds} targetPublication={post.type === 'quote' ? post.target_publication : undefined} />
         <PublicationActions

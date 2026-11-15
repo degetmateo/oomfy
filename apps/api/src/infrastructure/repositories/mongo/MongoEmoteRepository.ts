@@ -5,8 +5,21 @@ import { MongoIdHelper } from './MongoIdHelper.js';
 export type StoredEmote = CustomEmote & { delete_url?: string | null };
 
 export class MongoEmoteRepository {
+  private static indexesSynced = false;
+
   private static getCollection() {
     return MongoDatabase.getDb().collection<any>('emotes');
+  }
+
+  public static async ensurePerUserIndex(): Promise<void> {
+    if (this.indexesSynced) return;
+    this.indexesSynced = true;
+    const col = this.getCollection();
+    const idxs = await col.listIndexes().toArray().catch(() => []);
+    if (idxs.some((i: any) => i.name === 'name_lower_1' && i.unique)) {
+      await col.dropIndex('name_lower_1').catch(() => {});
+    }
+    await col.createIndex({ creator_id: 1, name_lower: 1 }, { unique: true }).catch(() => {});
   }
 
   private static toDomain(doc: any): CustomEmote {
@@ -21,6 +34,7 @@ export class MongoEmoteRepository {
   }
 
   public static async create(emote: StoredEmote): Promise<CustomEmote> {
+    await this.ensurePerUserIndex();
     const doc = {
       _id: MongoIdHelper.toMongoId(emote.id),
       id: emote.id,
@@ -36,6 +50,14 @@ export class MongoEmoteRepository {
     return this.toDomain(doc);
   }
 
+  public static async findByCreatorAndName(creatorId: string, name: string): Promise<StoredEmote | null> {
+    const doc = await this.getCollection().findOne({
+      ...MongoIdHelper.fieldFilter('creator_id', creatorId),
+      name_lower: name.trim().toLowerCase(),
+    });
+    return doc ? { ...this.toDomain(doc), delete_url: doc.delete_url || null } : null;
+  }
+
   public static async findByName(name: string): Promise<StoredEmote | null> {
     const doc = await this.getCollection().findOne({ name_lower: name.trim().toLowerCase() });
     return doc ? { ...this.toDomain(doc), delete_url: doc.delete_url || null } : null;
@@ -46,10 +68,11 @@ export class MongoEmoteRepository {
     return doc ? { ...this.toDomain(doc), delete_url: doc.delete_url || null } : null;
   }
 
-  public static async search(query?: string, limit = 100): Promise<CustomEmote[]> {
+  public static async search(query?: string, limit = 200, creatorId?: string): Promise<CustomEmote[]> {
     const clean = query?.trim().toLowerCase();
-    const filter = clean ? { name_lower: { $regex: new RegExp(MongoIdHelper.escapeRegex(clean), 'i') } } : {};
-    const safeLimit = Math.min(Math.max(1, limit || 100), 200);
+    const filter: Record<string, any> = clean ? { name_lower: { $regex: new RegExp(MongoIdHelper.escapeRegex(clean), 'i') } } : {};
+    if (creatorId) Object.assign(filter, MongoIdHelper.fieldFilter('creator_id', creatorId));
+    const safeLimit = Math.min(Math.max(1, limit || 200), 500);
     const docs = await this.getCollection().find(filter).sort({ name_lower: 1 }).limit(safeLimit).toArray();
     return docs.map((d) => this.toDomain(d));
   }

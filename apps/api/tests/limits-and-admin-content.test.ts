@@ -53,19 +53,26 @@ describe('Emote Per-User Cap & Content Length Limits', () => {
     await MongoDatabase.close();
   });
 
-  it('caps custom emotes at 12 per user while allowing other users to upload', async () => {
-    for (let i = 1; i <= 12; i++) {
+  it('caps custom emotes at 6 per user while allowing other users to create or import', async () => {
+    let firstEmoteId = '';
+    for (let i = 1; i <= 6; i++) {
       const res = await request(server.app).post('/settings/emotes').set('Authorization', `Bearer ${tokens.member}`)
         .field('name', `lim_em_${i}`).attach('image', png32, { filename: 'e.png', contentType: 'image/png' });
       expect(res.status).toBe(201);
+      if (i === 1) firstEmoteId = res.body.data.id;
     }
-    const thirteenth = await request(server.app).post('/settings/emotes').set('Authorization', `Bearer ${tokens.member}`)
-      .field('name', 'lim_em_13').attach('image', png32, { filename: 'e.png', contentType: 'image/png' });
-    expect(thirteenth.status).toBe(400);
+    const seventh = await request(server.app).post('/settings/emotes').set('Authorization', `Bearer ${tokens.member}`)
+      .field('name', 'lim_em_7').attach('image', png32, { filename: 'e.png', contentType: 'image/png' });
+    expect(seventh.status).toBe(400);
 
-    const otherEmote = await request(server.app).post('/settings/emotes').set('Authorization', `Bearer ${tokens.other}`)
-      .field('name', 'lim_other_1').attach('image', png32, { filename: 'e.png', contentType: 'image/png' });
-    expect(otherEmote.status).toBe(201);
+    const sameNameOther = await request(server.app).post('/settings/emotes').set('Authorization', `Bearer ${tokens.other}`)
+      .field('name', 'lim_em_2').attach('image', png32, { filename: 'e.png', contentType: 'image/png' });
+    expect(sameNameOther.status).toBe(201);
+
+    const imported = await request(server.app).post(`/settings/emotes/${firstEmoteId}/import`).set('Authorization', `Bearer ${tokens.other}`);
+    expect(imported.status).toBe(201);
+    expect(imported.body.data.creator_id).toBe(other.id);
+    expect(imported.body.data.name).toBe('lim_em_1');
   });
 
   it('allows 1024 chars for members, rejects 1025, and allows unlimited for authenticated admins', async () => {

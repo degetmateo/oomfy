@@ -44,7 +44,12 @@ export class MongoMigrationRunner {
     await this.safeCreateIndex(blocks, { blocked_id: 1 });
 
     const emotes = db.collection('emotes');
-    await this.safeCreateIndex(emotes, { name_lower: 1 }, { unique: true });
+    const emoteIndexes = await emotes.listIndexes().toArray().catch(() => []);
+    if (emoteIndexes.some((idx: any) => idx.name === 'name_lower_1' && idx.unique)) {
+      await emotes.dropIndex('name_lower_1').catch(() => {});
+    }
+    await this.safeCreateIndex(emotes, { creator_id: 1, name_lower: 1 }, { unique: true });
+    await this.safeCreateIndex(emotes, { name_lower: 1 });
     await this.safeCreateIndex(emotes, { creator_id: 1 });
     await this.safeCreateIndex(emotes, { created_at: -1 });
   }

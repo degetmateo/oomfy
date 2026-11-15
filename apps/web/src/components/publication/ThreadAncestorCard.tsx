@@ -31,7 +31,7 @@ export const ThreadAncestorCard: React.FC<Props> = ({ post: rawPost }) => {
         <div className="mb-1">
           <PublicationHeader name={post.author.name} username={post.author.username} role={post.author.role} createdAt={post.created_at} compact />
         </div>
-        {post.content && <FormattedText text={post.content} className="text-xs text-dark-text whitespace-pre-line leading-relaxed font-sans block mb-2" />}
+        {post.content && <FormattedText text={post.content} authorId={post.author.id} className="text-xs text-dark-text whitespace-pre-line leading-relaxed font-sans block mb-2" />}
         <MediaGrid images={post.images || []} />
         <LinkPreviewCard embeds={post.embeds} targetPublication={(post.type === 'quote' || post.type === 'shared') ? post.target_publication : undefined} />
       </div>

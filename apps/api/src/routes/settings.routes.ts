@@ -31,6 +31,8 @@ router.put('/online-status', ValidateRequest.body(UpdateOnlineStatusSchema), Set
 router.patch('/online-status', ValidateRequest.body(UpdateOnlineStatusSchema), SettingsController.updateOnlineStatus);
 router.post('/email/request', ValidateRequest.body(RequestEmailChangeSchema), SettingsController.requestEmailChange);
 router.post('/emotes', emoteUpload.single('image'), validateUploadedImages, ValidateRequest.body(CreateEmoteSchema), EmoteController.createEmote);
+router.post('/emotes/import', EmoteController.importEmote);
+router.post('/emotes/:id/import', EmoteController.importEmote);
 router.delete('/emotes/:id', EmoteController.deleteEmote);
 
 export default router;

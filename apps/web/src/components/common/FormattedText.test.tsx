@@ -73,4 +73,13 @@ describe('FormattedText Component', () => {
     expect(img).toHaveAttribute('src', 'https://cdn.example/pepe.png');
     expect(screen.getByText(/y :desconocido:/)).toBeInTheDocument();
   });
+
+  it('scopes emote rendering to authorId so viewers see author emotes while non-owners show plain text', () => {
+    const { rerender } = render(<MemoryRouter><FormattedText text="Hola :pepe_ok:" authorId="u1" /></MemoryRouter>);
+    expect(screen.getByRole('img', { name: ':pepe_ok:' })).toBeInTheDocument();
+
+    rerender(<MemoryRouter><FormattedText text="Hola :pepe_ok:" authorId="u2" /></MemoryRouter>);
+    expect(screen.queryByRole('img', { name: ':pepe_ok:' })).not.toBeInTheDocument();
+    expect(screen.getByText('Hola :pepe_ok:')).toBeInTheDocument();
+  });
 });

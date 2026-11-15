@@ -51,7 +51,7 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
             )}
           </div>
           {targetPublication.content && (
-            <FormattedText text={targetPublication.content} className="text-xs text-dark-text whitespace-pre-line leading-relaxed font-sans block" />
+            <FormattedText text={targetPublication.content} authorId={targetPublication.author?.id} className="text-xs text-dark-text whitespace-pre-line leading-relaxed font-sans block" />
           )}
           {targetPublication.images?.length > 0 && (
             <div className="mt-2"><MediaGrid images={targetPublication.images} /></div>

@@ -71,7 +71,7 @@ export const ProfileInfo: React.FC<Props> = ({ user: rawUser, isOwnProfile = fal
         <p className="text-xs text-dark-muted">@{user.username}</p>
       </div>
       {user.bio && (
-        <FormattedText text={user.bio} className="mt-2 text-xs text-dark-text leading-relaxed whitespace-pre-line font-sans block" />
+        <FormattedText text={user.bio} authorId={user.id} className="mt-2 text-xs text-dark-text leading-relaxed whitespace-pre-line font-sans block" />
       )}
       <ProfileMeta user={user} />
       <ReportModal

@@ -49,7 +49,7 @@ export const SharedPublicationCard: React.FC<Props> = ({ post: rawPost, canDelet
 
           <div className="flex-1 min-w-0">
             <PublicationHeader name={original.author.name} username={original.author.username} role={original.author.role} createdAt={original.created_at} />
-            {original.content && <FormattedText text={original.content} className="mt-1.5 text-sm text-dark-text whitespace-pre-line leading-relaxed font-sans block" />}
+            {original.content && <FormattedText text={original.content} authorId={original.author.id} className="mt-1.5 text-sm text-dark-text whitespace-pre-line leading-relaxed font-sans block" />}
             <MediaGrid images={original.images || []} />
             <LinkPreviewCard embeds={original.embeds} targetPublication={original.type === 'quote' ? original.target_publication : undefined} />
             <PublicationActions

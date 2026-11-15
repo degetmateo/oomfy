@@ -42,7 +42,7 @@ describe('Shared Schemas Validation', () => {
   });
 
   it('should enforce 1024 char limit for standard users and unlimited for admins', () => {
-    expect(LIMITS.EMOTE_MAX_PER_USER).toBe(12);
+    expect(LIMITS.EMOTE_MAX_PER_USER).toBe(6);
     expect(CreatePublicationSchema.safeParse({ content: 'a'.repeat(1024) }).success).toBe(true);
     expect(CreatePublicationSchema.safeParse({ content: 'a'.repeat(1025) }).success).toBe(false);
     expect(CreatePublicationAdminFormSchema.safeParse({ content: 'a'.repeat(2500) }).success).toBe(true);

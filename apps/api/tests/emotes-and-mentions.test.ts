@@ -12,10 +12,8 @@ import { WebPushService } from '../src/services/notifications/WebPushService.js'
 const makePng = (w: number, h: number): Buffer => {
   const sig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   const ihdr = Buffer.alloc(25);
-  ihdr.writeUInt32BE(13, 0);
-  ihdr.write('IHDR', 4, 'ascii');
-  ihdr.writeUInt32BE(w, 8);
-  ihdr.writeUInt32BE(h, 12);
+  ihdr.writeUInt32BE(13, 0); ihdr.write('IHDR', 4, 'ascii');
+  ihdr.writeUInt32BE(w, 8); ihdr.writeUInt32BE(h, 12);
   return Buffer.concat([sig, ihdr, Buffer.from([0, 0, 0, 0, 0x49, 0x45, 0x4e, 0x44, 0, 0, 0, 0])]);
 };
 
@@ -52,27 +50,26 @@ describe('Custom Emotes & Mention Notifications', () => {
     const badName = await request(server.app).post('/settings/emotes').set('Authorization', `Bearer ${authorToken}`)
       .field('name', 'bad name!').attach('image', makePng(32, 32), { filename: 'ok.png', contentType: 'image/png' });
     expect(badName.status).toBe(400);
-
     const bigDim = await request(server.app).post('/settings/emotes').set('Authorization', `Bearer ${authorToken}`)
       .field('name', 'big_dim').attach('image', makePng(512, 512), { filename: 'big.png', contentType: 'image/png' });
     expect(bigDim.status).toBe(400);
-
     const created = await request(server.app).post('/settings/emotes').set('Authorization', `Bearer ${authorToken}`)
       .field('name', 'emote_test_ok').attach('image', makePng(32, 32), { filename: 'ok.png', contentType: 'image/png' });
     expect(created.status).toBe(201);
     const emoteId = created.body.data.id;
-
     const dup = await request(server.app).post('/settings/emotes').set('Authorization', `Bearer ${authorToken}`)
       .field('name', 'EMOTE_TEST_OK').attach('image', makePng(32, 32), { filename: 'ok.png', contentType: 'image/png' });
     expect(dup.status).toBe(409);
-
     const listed = await request(server.app).get('/aux/emotes');
     expect(listed.status).toBe(200);
     expect(listed.body.data.some((e: any) => e.id === emoteId && e.name === 'emote_test_ok')).toBe(true);
-
     const delOther = await request(server.app).delete(`/settings/emotes/${emoteId}`).set('Authorization', `Bearer ${targetToken}`);
     expect(delOther.status).toBe(403);
-
+    const imported = await request(server.app).post(`/settings/emotes/${emoteId}/import`).set('Authorization', `Bearer ${targetToken}`);
+    expect(imported.status).toBe(201);
+    expect(imported.body.data.creator_id).toBe(target.id);
+    const delImported = await request(server.app).delete(`/settings/emotes/${imported.body.data.id}`).set('Authorization', `Bearer ${targetToken}`);
+    expect(delImported.status).toBe(200);
     const delOwner = await request(server.app).delete(`/settings/emotes/${emoteId}`).set('Authorization', `Bearer ${authorToken}`);
     expect(delOwner.status).toBe(200);
   });
