@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ProfileService } from '../services/users/ProfileService.js';
 import { AccountLifecycleService } from '../services/users/AccountLifecycleService.js';
-import { isHttpUrl } from '../utils/UrlSecurityHelper.js';
+import { toSafeHttpsAssetUrl } from '../utils/UrlSecurityHelper.js';
 import { AuthCookieHelper } from './AuthCookieHelper.js';
 
 export class ProfileController {
@@ -32,8 +32,8 @@ export class ProfileController {
 
   public static async getUserIcon(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const url = await ProfileService.getUserIcon(req.params.username);
-      if (!url || !isHttpUrl(url)) {
+      const url = toSafeHttpsAssetUrl(await ProfileService.getUserIcon(req.params.username));
+      if (!url) {
         res.status(404).json({ success: false, message: 'Avatar no encontrado.' });
         return;
       }
@@ -44,8 +44,8 @@ export class ProfileController {
 
   public static async getUserBanner(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const url = await ProfileService.getUserBanner(req.params.username);
-      if (!url || !isHttpUrl(url)) {
+      const url = toSafeHttpsAssetUrl(await ProfileService.getUserBanner(req.params.username));
+      if (!url) {
         res.status(404).json({ success: false, message: 'Banner no encontrado.' });
         return;
       }

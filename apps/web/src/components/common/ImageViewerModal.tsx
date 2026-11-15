@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useImageViewerZoom } from '../../hooks/useImageViewerZoom.js';
+import { resolveMediaUrl } from '../../utils/mediaUrl.js';
 
 interface Props {
   imageUrl: string | null;
@@ -9,12 +10,13 @@ interface Props {
 }
 
 export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
+  const safeUrl = resolveMediaUrl(imageUrl);
   const {
     scale, position, isDragging, stageRef, handleZoom, resetZoom,
     handleWheel, handleMouseDown, stopDragging, handleTouchStart, handleTouchMove, handleTouchEnd,
-  } = useImageViewerZoom(imageUrl, onClose);
+  } = useImageViewerZoom(safeUrl, onClose);
 
-  if (!imageUrl) return null;
+  if (!safeUrl) return null;
 
   const stopAndClose = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -68,7 +70,7 @@ export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
         }`}
       >
         <img
-          src={imageUrl}
+          src={safeUrl}
           alt="Vista ampliada"
           draggable={false}
           onDragStart={(e) => e.preventDefault()}

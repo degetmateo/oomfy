@@ -849,6 +849,18 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - `EmoteListSection` muestra `Tu colección (X/6)` separada de `Emotes de otros usuarios` con botón `Importar`.
     - Cobertura de pruebas actualizada en `packages/shared/tests/schemas.test.ts`, `apps/api/tests/limits-and-admin-content.test.ts`, `apps/api/tests/emotes-and-mentions.test.ts`, `apps/web/src/components/common/FormattedText.test.tsx` y `apps/web/tests/customization-and-autocomplete.test.tsx` con limpieza total bajo **RNF-08**.
 
+- **Hito 59: Corrección de Cabeceras de Seguridad, Contenido Mixto HTTPS y Compatibilidad en Navegadores Android:**
+  - *Cabeceras de Seguridad, CSP `upgrade-insecure-requests`, HSTS Preload y COOP (`security.ts`, `Server.ts`, `SecurityHeaders.ts`, `_headers`, `vite.config.ts`):*
+    - Se agrega `upgrade-insecure-requests` en `CSP_DIRECTIVES` (excluyéndolo únicamente en `buildDevCspHeader()` para desarrollo HTTP local), además de `'wasm-unsafe-eval'`, `https://static.cloudflareinsights.com`, `blob:`/`data:` y `cloudflareinsights.com` en `connect-src`.
+    - Se actualiza `Strict-Transport-Security` a `max-age=31536000; includeSubDomains; preload` y se agrega `Cross-Origin-Opener-Policy: same-origin-allow-popups`, eliminando el registro duplicado de `helmet()` en `Server.ts` para mantener `SecurityHeaders.apply` como única fuente de verdad.
+    - Se sincronizan las reglas de `Cache-Control` en `_headers` y `vite.config.ts` (`no-cache, no-store, must-revalidate` para `/index.html` y `/sw.js`, e `immutable` para `/assets/*`).
+  - *Erradicación de Contenido Mixto HTTP (`UrlSecurityHelper`, `UrlPreviewAdapter`, `SocialOEmbedAdapter`, `PublicationMapper`, `ProfileController`, `mediaUrl.ts`, `SeoHead.tsx` y componentes multimedia):*
+    - Se implementa `toSafeHttpsAssetUrl` en backend y `resolveMediaUrl` en frontend para actualizar URLs externas `http://` a `https://`, bloquear esquemas inseguros/locales (`localhost`/`127.0.0.1`/IPs privadas) en previsualizaciones, normalizar imágenes y avatares en `MediaGrid`, `LinkPreviewCard`, `ImageViewerModal`, `ChatMessageMedia`, `PublicationQuotedPreview` y corregir el `ogImage` por defecto en `SeoHead`.
+  - *Resiliencia de Arranque en Navegadores Android y Service Worker (`safeStorage.ts`, `authStore.ts`, `api.ts`, `useSessionInitializer.ts`, `pwaStore.ts`, `SigninView.tsx`, `sw.js`, `main.tsx`, `index.html`, `index.css`):*
+    - Se introduce `safeStorage.ts` para encapsular `localStorage` y `sessionStorage` ante excepciones `SecurityError` en WebViews restringidos de Android (`Instagram`, `Telegram`, `Brave`, modos privados), evitando bloqueos antes del montaje de React.
+    - Se añaden timeouts con `Promise.race` en `ApiClient.refreshAccessToken` y `useSessionInitializer`, guardas seguras para `window.matchMedia` y `navigator.serviceWorker`, separación de reglas `:has(...)` y `.keyboard-open` en `index.css`, recuperación automática ante `vite:preloadError` y migración del caché del Service Worker a `oomfy-static-v2` rechazando respuestas `text/html` en `/assets/`.
+    - Cobertura de pruebas en `apps/api/tests/security-headers.test.ts` y `apps/web/tests/boot-loading-gate.test.tsx` verificando las cabeceras, normalización HTTPS y arranque sin errores bajo almacenamiento/APIs bloqueadas.
+
 
 
 

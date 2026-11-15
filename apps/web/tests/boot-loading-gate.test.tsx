@@ -7,6 +7,8 @@ import { App } from '../src/App.js';
 import { useAuthStore } from '../src/stores/authStore.js';
 import { ApiClient } from '../src/services/api.js';
 import { setAccessToken } from '../src/services/sessionTokenMemory.js';
+import { usePwaStore } from '../src/stores/pwaStore.js';
+import { resolveMediaUrl } from '../src/utils/mediaUrl.js';
 
 describe('Boot Loading Screen Gate & PWA Cold-Launch Shell', () => {
   beforeEach(() => {
@@ -62,6 +64,24 @@ describe('Boot Loading Screen Gate & PWA Cold-Launch Shell', () => {
     await waitFor(() => expect(screen.getByText(/No te pierdas lo que pasa en Oomfy/i)).toBeInTheDocument());
     expect(screen.queryByRole('status', { name: /Cargando aplicación/i })).toBeNull();
     expect(screen.getAllByText('Iniciar sesión').length).toBeGreaterThan(0);
+  });
+
+  it('survives Android WebView storage/matchMedia restrictions and upgrades external http media URLs', async () => {
+    const origStorage = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    const origMatchMedia = window.matchMedia;
+    Object.defineProperty(window, 'localStorage', { configurable: true, get() { throw new DOMException('Blocked', 'SecurityError'); } });
+    (window as any).matchMedia = undefined;
+    try {
+      expect(() => usePwaStore.getState().initPwa()).not.toThrow();
+      vi.spyOn(ApiClient, 'refreshAccessToken').mockResolvedValue(null);
+      render(<App />);
+      await waitFor(() => expect(screen.getByText(/No te pierdas lo que pasa en Oomfy/i)).toBeInTheDocument());
+    } finally {
+      if (origStorage) Object.defineProperty(window, 'localStorage', origStorage);
+      window.matchMedia = origMatchMedia;
+    }
+    expect(resolveMediaUrl('http://cdn.example.com/pic.png')).toBe('https://cdn.example.com/pic.png');
+    expect(resolveMediaUrl('http://localhost:4000/a.png')).toBe('http://localhost:4000/a.png');
   });
 });
 

@@ -21,7 +21,13 @@ function securityHeadersPlugin() {
     configurePreviewServer(s: any) { s.middlewares.use(applyHeaders(SECURITY_HEADER_VALUES)); },
     writeBundle(options: { dir?: string }) {
       const outDir = options.dir || path.resolve(process.cwd(), 'dist');
-      const lines = ['/*', ...Object.entries(SECURITY_HEADER_VALUES).map(([k, v]) => `  ${k}: ${v}`)];
+      const lines = [
+        '/*',
+        ...Object.entries(SECURITY_HEADER_VALUES).map(([k, v]) => `  ${k}: ${v}`),
+        '', '/index.html', '  Cache-Control: no-cache, no-store, must-revalidate',
+        '', '/sw.js', '  Cache-Control: no-cache, no-store, must-revalidate',
+        '', '/assets/*', '  Cache-Control: public, max-age=31536000, immutable',
+      ];
       fs.writeFileSync(path.join(outDir, '_headers'), `${lines.join('\n')}\n`, 'utf-8');
     },
   };

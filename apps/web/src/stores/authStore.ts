@@ -6,6 +6,7 @@ import { SocketClient } from '../services/socket.js';
 import { setAccessToken } from '../services/sessionTokenMemory.js';
 import { RouteScrollStore } from './routeScrollStore.js';
 import { useEntityRegistryStore } from './entityRegistryStore.js';
+import { safeLocalGet, safeLocalRemove, safeLocalSet } from '../utils/safeStorage.js';
 
 interface AuthState {
   user: PublicUser | null;
@@ -19,9 +20,7 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
 }
 
-if (typeof localStorage !== 'undefined') {
-  localStorage.removeItem('oomfy_token');
-}
+safeLocalRemove('oomfy_token');
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
@@ -31,24 +30,22 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setAuth: (user, token, refreshToken) => {
     setAccessToken(token);
-    if (refreshToken && typeof localStorage !== 'undefined') localStorage.setItem('oomfy_refresh_token', refreshToken);
+    if (refreshToken) safeLocalSet('oomfy_refresh_token', refreshToken);
     set({ user, token, isAuthenticated: true, isLoading: false });
   },
 
   setToken: (token, refreshToken) => {
     setAccessToken(token);
-    if (refreshToken && typeof localStorage !== 'undefined') localStorage.setItem('oomfy_refresh_token', refreshToken);
+    if (refreshToken) safeLocalSet('oomfy_refresh_token', refreshToken);
     set({ token, isAuthenticated: true });
   },
 
   setUser: (user) => set({ user, isAuthenticated: true, isLoading: false }),
 
   logout: (notifyServer = true) => {
-    const rt = typeof localStorage !== 'undefined' ? localStorage.getItem('oomfy_refresh_token') : null;
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem('oomfy_token');
-      localStorage.removeItem('oomfy_refresh_token');
-    }
+    const rt = safeLocalGet('oomfy_refresh_token');
+    safeLocalRemove('oomfy_token');
+    safeLocalRemove('oomfy_refresh_token');
     PushNotificationService.unsubscribe().catch(() => {});
     if (notifyServer !== false) {
       ApiClient.post('/auth/logout', rt ? { refreshToken: rt } : {}).catch(() => {});

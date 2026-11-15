@@ -1,36 +1,36 @@
 import { resolveApiBaseUrl } from '../utils/apiBase.js';
+import { safeLocalGet, safeLocalRemove, safeLocalSet } from '../utils/safeStorage.js';
 import { getAccessToken, setAccessToken } from './sessionTokenMemory.js';
 
 export class ApiClient {
   private static readonly BASE_URL = resolveApiBaseUrl(false);
   private static refreshPromise: Promise<string | null> | null = null;
-
-  private static createHttpError(message: string, status: number): Error {
-    return Object.assign(new Error(message), { status });
-  }
+  private static createHttpError(message: string, status: number): Error { return Object.assign(new Error(message), { status }); }
 
   public static async refreshAccessToken(): Promise<string | null> {
     if (this.refreshPromise) return this.refreshPromise;
-
     this.refreshPromise = (async () => {
-      const storedRefresh = typeof localStorage !== 'undefined' ? localStorage.getItem('oomfy_refresh_token') : null;
+      const storedRefresh = safeLocalGet('oomfy_refresh_token');
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timer = controller ? setTimeout(() => controller.abort(), 15_000) : null;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const timeoutMs = storedRefresh ? 10_000 : 6_000;
+      const timeout = new Promise<null>((resolve) => {
+        timer = setTimeout(() => { controller?.abort(); resolve(null); }, timeoutMs);
+      });
       try {
-        const res = await fetch(`${this.BASE_URL}/auth/refresh`, {
-          method: 'POST',
-          credentials: 'include',
-          ...(controller ? { signal: controller.signal } : {}),
-          ...(storedRefresh ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: storedRefresh }) } : {}),
-        });
-        if (!res.ok) {
-          if ((res.status === 401 || res.status === 403) && typeof localStorage !== 'undefined') localStorage.removeItem('oomfy_refresh_token');
-          return null;
-        }
+        const res = await Promise.race([
+          fetch(`${this.BASE_URL}/auth/refresh`, {
+            method: 'POST', credentials: 'include', ...(controller ? { signal: controller.signal } : {}),
+            ...(storedRefresh ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: storedRefresh }) } : {}),
+          }),
+          timeout,
+        ]);
+        if (!res) return null;
+        if (!res.ok) { if (res.status === 401 || res.status === 403) safeLocalRemove('oomfy_refresh_token'); return null; }
         const data = await res.json();
         if (data?.success && data.accessToken) {
           setAccessToken(data.accessToken);
-          if (data.refreshToken && typeof localStorage !== 'undefined') localStorage.setItem('oomfy_refresh_token', data.refreshToken);
+          if (data.refreshToken) safeLocalSet('oomfy_refresh_token', data.refreshToken);
           window.dispatchEvent(new CustomEvent('auth:token-refreshed', { detail: { accessToken: data.accessToken, refreshToken: data.refreshToken } }));
           return data.accessToken as string;
         }
@@ -42,7 +42,6 @@ export class ApiClient {
         this.refreshPromise = null;
       }
     })();
-
     return this.refreshPromise;
   }
 
@@ -58,7 +57,7 @@ export class ApiClient {
     const res = await fetch(`${this.BASE_URL}${endpoint}`, { ...options, credentials: 'include', headers });
 
     if (res.status === 401 && !endpoint.includes('/auth/')) {
-      const hasSession = Boolean(token || (typeof localStorage !== 'undefined' && localStorage.getItem('oomfy_refresh_token')));
+      const hasSession = Boolean(token || safeLocalGet('oomfy_refresh_token'));
       const newToken = hasSession ? await this.refreshAccessToken() : null;
       if (newToken) {
         headers.Authorization = `Bearer ${newToken}`;

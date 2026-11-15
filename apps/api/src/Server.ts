@@ -1,9 +1,7 @@
 import http from 'http';
 import express, { Express } from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { CSP_DIRECTIVES } from '@oomfy/shared';
 import { Environment } from './config/Environment.js';
 import { corsOriginHandler } from './config/CorsPolicy.js';
 import { SecurityHeaders } from './middlewares/SecurityHeaders.js';
@@ -29,16 +27,6 @@ export class Server {
   }
 
   private configureMiddlewares(): void {
-    this.app.use(
-      helmet({
-        hsts: { maxAge: 31536000, includeSubDomains: true },
-        frameguard: { action: 'sameorigin' },
-        contentSecurityPolicy: { directives: CSP_DIRECTIVES },
-        referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-        crossOriginResourcePolicy: { policy: 'cross-origin' },
-        xXssProtection: false,
-      })
-    );
     this.app.use(SecurityHeaders.apply);
     this.app.use(cors({ origin: corsOriginHandler, credentials: true }));
     this.app.use(express.json({ limit: '1mb' }));

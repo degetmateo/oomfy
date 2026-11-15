@@ -2,7 +2,7 @@ import { Environment } from '../../config/Environment.js';
 import { SpotifyEmbedAdapter } from './SpotifyEmbedAdapter.js';
 import { SocialOEmbedAdapter } from './SocialOEmbedAdapter.js';
 import { MongoPublicationRepository } from '../repositories/mongo/MongoPublicationRepository.js';
-import { safeFetchPublicHtml } from '../../utils/UrlSecurityHelper.js';
+import { safeFetchPublicHtml, toSafeHttpsAssetUrl } from '../../utils/UrlSecurityHelper.js';
 
 export interface LinkPreview {
   type: 'spotify' | 'twitter' | 'tiktok' | 'youtube' | 'link' | 'quote';
@@ -74,14 +74,15 @@ export class UrlPreviewAdapter {
       const titleMatch = html.match(/<meta property=["']og:title["'] content=["'](.*?)["']/i) || html.match(/<title>(.*?)<\/title>/i);
       const descMatch = html.match(/<meta property=["']og:description["'] content=["'](.*?)["']/i) || html.match(/<meta name=["']description["'] content=["'](.*?)["']/i);
       const imgMatch = html.match(/<meta property=["']og:image["'] content=["'](.*?)["']/i);
+      const safeImg = imgMatch ? toSafeHttpsAssetUrl(imgMatch[1], url) : null;
 
       return {
         type: 'link',
         url,
         title: titleMatch ? titleMatch[1].trim() : host,
         description: descMatch ? descMatch[1].trim() : undefined,
-        image: imgMatch ? imgMatch[1].trim() : null,
-        thumbnail_url: imgMatch ? imgMatch[1].trim() : undefined,
+        image: safeImg,
+        thumbnail_url: safeImg || undefined,
         site_name: host,
       };
     } catch {

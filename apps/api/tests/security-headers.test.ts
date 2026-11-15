@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { SECURITY_HEADER_VALUES } from '@oomfy/shared';
 import { Server } from '../src/Server.js';
+import { toSafeHttpsAssetUrl } from '../src/utils/UrlSecurityHelper.js';
 
 describe('Helmet Security Headers Middleware', () => {
   const server = new Server(5009);
@@ -12,13 +13,22 @@ describe('Helmet Security Headers Middleware', () => {
     const res = await request(server.app).get('/health');
     expect(res.status).toBe(200);
 
-    expect(res.headers['strict-transport-security']).toBe('max-age=31536000; includeSubDomains');
+    expect(res.headers['strict-transport-security']).toBe('max-age=31536000; includeSubDomains; preload');
     expect(res.headers['content-security-policy']).toBe(SECURITY_HEADER_VALUES['Content-Security-Policy']);
+    expect(res.headers['content-security-policy']).toContain('upgrade-insecure-requests');
     expect(res.headers['x-frame-options']).toBe('SAMEORIGIN');
     expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
     expect(res.headers['permissions-policy']).toBe('geolocation=(), microphone=(), camera=()');
     expect(res.headers['cross-origin-resource-policy']).toBe('cross-origin');
+    expect(res.headers['cross-origin-opener-policy']).toBe('same-origin-allow-popups');
+  });
+
+  it('upgrades external http asset URLs to https and rejects unsafe or local URLs', () => {
+    expect(toSafeHttpsAssetUrl('http://cdn.example.com/img.png')).toBe('https://cdn.example.com/img.png');
+    expect(toSafeHttpsAssetUrl('/img/og.png', 'https://example.com/post/1')).toBe('https://example.com/img/og.png');
+    expect(toSafeHttpsAssetUrl('http://localhost:8080/a.png')).toBeNull();
+    expect(toSafeHttpsAssetUrl('javascript:alert(1)')).toBeNull();
   });
 
   it('removes fingerprinting headers and omits obsolete X-XSS-Protection', async () => {

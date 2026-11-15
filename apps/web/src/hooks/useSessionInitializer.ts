@@ -27,9 +27,15 @@ export function useSessionInitializer(): void {
 
           if (currentToken && !useAuthStore.getState().user) {
             const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-            const timer = controller ? setTimeout(() => controller.abort(), 15_000) : null;
+            let timer: ReturnType<typeof setTimeout> | null = null;
+            const timeout = new Promise<never>((_resolve, reject) => {
+              timer = setTimeout(() => { controller?.abort(); reject(Object.assign(new Error('Session init timeout'), { status: 408 })); }, 8_000);
+            });
             try {
-              const res = await ApiClient.get<any>('/members/me', controller ? { signal: controller.signal } : undefined);
+              const res = await Promise.race([
+                ApiClient.get<any>('/members/me', controller ? { signal: controller.signal } : undefined),
+                timeout,
+              ]);
               useAuthStore.getState().setUser(res.data);
               if (PushNotificationService.isPermissionGranted()) {
                 PushNotificationService.syncSubscription().catch(() => {});

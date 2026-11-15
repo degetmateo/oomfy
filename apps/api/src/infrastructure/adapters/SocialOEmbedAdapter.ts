@@ -1,4 +1,5 @@
 import { GenericEmbed } from '@oomfy/shared';
+import { toSafeHttpsAssetUrl } from '../../utils/UrlSecurityHelper.js';
 
 export class SocialOEmbedAdapter {
   public static async fetchTwitter(url: string): Promise<GenericEmbed | null> {
@@ -13,6 +14,8 @@ export class SocialOEmbedAdapter {
       if (!res.ok) return null;
       const data = (await res.json()) as any;
       if (!data?.tweet) return null;
+      const photo = toSafeHttpsAssetUrl(data.tweet.media?.photos?.[0]?.url);
+      const thumb = photo || toSafeHttpsAssetUrl(data.tweet.author?.avatar_url) || undefined;
       return {
         type: 'twitter',
         url,
@@ -20,8 +23,8 @@ export class SocialOEmbedAdapter {
         description: data.tweet.text || '',
         author_name: data.tweet.author?.name,
         author_username: data.tweet.author?.screen_name,
-        thumbnail_url: data.tweet.media?.photos?.[0]?.url || data.tweet.author?.avatar_url,
-        image: data.tweet.media?.photos?.[0]?.url || null,
+        thumbnail_url: thumb,
+        image: photo,
         site_name: 'Twitter / X',
       };
     } catch {
@@ -36,14 +39,15 @@ export class SocialOEmbedAdapter {
       });
       if (!res.ok) return null;
       const data = (await res.json()) as any;
+      const thumb = toSafeHttpsAssetUrl(data.thumbnail_url);
       return {
         type: 'tiktok',
         url,
         title: data.title || `Video de @${data.author_name}`,
         description: `TikTok por ${data.author_name}`,
         author_name: data.author_name,
-        thumbnail_url: data.thumbnail_url,
-        image: data.thumbnail_url || null,
+        thumbnail_url: thumb || undefined,
+        image: thumb,
         site_name: 'TikTok',
       };
     } catch {
@@ -58,14 +62,15 @@ export class SocialOEmbedAdapter {
       });
       if (!res.ok) return null;
       const data = (await res.json()) as any;
+      const thumb = toSafeHttpsAssetUrl(data.thumbnail_url);
       return {
         type: 'youtube',
         url,
         title: data.title,
         description: `Video de YouTube por ${data.author_name}`,
         author_name: data.author_name,
-        thumbnail_url: data.thumbnail_url,
-        image: data.thumbnail_url || null,
+        thumbnail_url: thumb || undefined,
+        image: thumb,
         site_name: 'YouTube',
       };
     } catch {

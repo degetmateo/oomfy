@@ -1,4 +1,5 @@
 import React from 'react';
+import { resolveMediaUrl } from '../../utils/mediaUrl.js';
 
 interface Props {
   mediaUrls?: string[];
@@ -7,16 +8,17 @@ interface Props {
 }
 
 export const ChatMessageMedia: React.FC<Props> = ({ mediaUrls, gifUrl, onImageClick }) => {
-  const images = (mediaUrls || []).filter(Boolean);
-  if (images.length === 0 && !gifUrl) return null;
+  const safeGif = resolveMediaUrl(gifUrl);
+  const images = (mediaUrls || []).map((u) => resolveMediaUrl(u)).filter((u): u is string => Boolean(u));
+  if (images.length === 0 && !safeGif) return null;
 
   return (
     <div className="mt-1.5 flex flex-col items-start gap-1.5 max-w-sm sm:max-w-md">
-      {gifUrl && (
+      {safeGif && (
         <img
-          src={gifUrl}
+          src={safeGif}
           alt="GIF"
-          onClick={() => onImageClick?.(gifUrl)}
+          onClick={() => onImageClick?.(safeGif)}
           className="self-start max-h-80 sm:max-h-96 max-w-full w-auto h-auto cursor-pointer object-contain object-left rounded border border-dark-border hover:opacity-95 block"
           loading="lazy"
         />

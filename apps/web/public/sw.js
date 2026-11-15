@@ -1,9 +1,12 @@
-const STATIC_CACHE = 'oomfy-static-v1';
+const STATIC_CACHE = 'oomfy-static-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== STATIC_CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== STATIC_CACHE).map((k) => caches.delete(k))))
+      .catch(() => {})
+      .then(() => self.clients.claim())
   );
 });
 
@@ -13,14 +16,25 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (!url.pathname.startsWith('/assets/') && !url.pathname.startsWith('/fonts/')) return;
+  const isCacheableAsset = (res) => {
+    const ct = String(res.headers.get('content-type') || '').toLowerCase();
+    return res.ok && res.type === 'basic' && !res.redirected && !ct.includes('text/html');
+  };
   event.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req).then((res) => {
-      if (res.ok && res.type === 'basic') {
-        const clone = res.clone();
-        caches.open(STATIC_CACHE).then((c) => c.put(req, clone)).catch(() => {});
+    caches.match(req).catch(() => null).then((cached) => {
+      if (cached) {
+        const cachedCt = String(cached.headers.get('content-type') || '').toLowerCase();
+        if (!cachedCt.includes('text/html')) return cached;
+        caches.open(STATIC_CACHE).then((c) => c.delete(req)).catch(() => {});
       }
-      return res;
-    }))
+      return fetch(req).then((res) => {
+        if (isCacheableAsset(res)) {
+          const clone = res.clone();
+          caches.open(STATIC_CACHE).then((c) => c.put(req, clone)).catch(() => {});
+        }
+        return res;
+      });
+    }).catch(() => fetch(req).catch(() => Response.error()))
   );
 });
 

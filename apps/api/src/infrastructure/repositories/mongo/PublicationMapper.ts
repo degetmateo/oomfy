@@ -1,5 +1,13 @@
 import { Publication, MediaItem } from '@oomfy/shared';
 import { MongoIdHelper } from './MongoIdHelper.js';
+import { toSafeHttpsAssetUrl } from '../../../utils/UrlSecurityHelper.js';
+
+function normalizeAssetUrl(raw?: string | null): string | null {
+  const trimmed = typeof raw === 'string' ? raw.trim() : '';
+  if (!trimmed) return null;
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return trimmed;
+  return toSafeHttpsAssetUrl(trimmed);
+}
 
 export class PublicationMapper {
   public static toDomain(doc: any): Publication {
@@ -35,7 +43,11 @@ export class PublicationMapper {
       root_publication_id: rootId,
       thread_ids: (doc.thread_ids || []).map((t: any) => t.toString()),
       images: PublicationMapper.sanitizeImages(doc.images),
-      embeds: doc.embeds || [],
+      embeds: (doc.embeds || []).map((emb: any) => ({
+        ...emb,
+        ...(emb?.thumbnail_url ? { thumbnail_url: normalizeAssetUrl(emb.thumbnail_url) || undefined } : {}),
+        ...(emb?.image ? { image: normalizeAssetUrl(emb.image) } : {}),
+      })),
       upvotes_count: Math.max(0, doc.upvote_count || 0, doc.upvotes_count || 0),
       shares_count: Math.max(0, doc.share_count || 0, doc.shares_count || 0),
       quotes_count: Math.max(0, doc.quote_count || 0, doc.quotes_count || 0),
@@ -48,7 +60,8 @@ export class PublicationMapper {
 
   public static sanitizeImages(images?: any[]): MediaItem[] {
     return (images || [])
-      .filter((img: any) => img && typeof img.url === 'string' && img.url.trim().length > 0)
+      .map((img: any) => ({ ...img, url: normalizeAssetUrl(img?.url) }))
+      .filter((img: any) => Boolean(img.url))
       .map((img: any, idx: number) => ({
         url: img.url,
         source: img.source || 'other',

@@ -27,24 +27,16 @@ export const SigninView: React.FC = () => {
     try {
       const res = await ApiClient.post<any>('/auth/signin', { username, password });
       setAuth(res.user, res.accessToken, res.refreshToken);
-      const isStandalone = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true);
-      if (PushNotificationService.isPermissionGranted()) await PushNotificationService.syncSubscription().catch(() => { });
+      let isStandalone = Boolean((navigator as any)?.standalone);
+      try { if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') isStandalone ||= window.matchMedia('(display-mode: standalone)').matches; } catch {}
+      if (PushNotificationService.isPermissionGranted()) await PushNotificationService.syncSubscription().catch(() => {});
       navigate('/');
-
       if (res.user?.terms_accepted === false) return;
       if (!isStandalone) {
-        const wantInstall = await useDialogStore.getState().confirm({
-          title: 'Instalar oomfy',
-          message: '¿Sabías que podés instalar oomfy en tu dispositivo para acceder más rápido y recibir notificaciones?',
-          confirmText: 'Ver instrucciones', cancelText: 'Más tarde',
-        });
+        const wantInstall = await useDialogStore.getState().confirm({ title: 'Instalar oomfy', message: '¿Sabías que podés instalar oomfy en tu dispositivo para acceder más rápido y recibir notificaciones?', confirmText: 'Ver instrucciones', cancelText: 'Más tarde' });
         if (wantInstall) navigate('/settings?tab=app');
       } else if (!PushNotificationService.isPermissionGranted()) {
-        const wantPush = await useDialogStore.getState().confirm({
-          title: 'Notificaciones Push',
-          message: 'oomfy está instalada en tu dispositivo, pero aún no tienes las notificaciones activadas. ¿Deseas activarlas?',
-          confirmText: 'Activar notificaciones', cancelText: 'Más tarde',
-        });
+        const wantPush = await useDialogStore.getState().confirm({ title: 'Notificaciones Push', message: 'oomfy está instalada en tu dispositivo, pero aún no tienes las notificaciones activadas. ¿Deseas activarlas?', confirmText: 'Activar notificaciones', cancelText: 'Más tarde' });
         if (wantPush) navigate('/settings?tab=app');
       }
     } catch (err) {

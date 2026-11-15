@@ -127,7 +127,10 @@ dialog::backdrop {
     font-size: 16px !important;
   }
 
-  body:has(input:focus:not([type="checkbox"]):not([type="radio"]), textarea:focus, [contenteditable="true"]:focus) .mobile-keyboard-hide,
+  body:has(input:focus:not([type="checkbox"]):not([type="radio"]), textarea:focus, [contenteditable="true"]:focus) .mobile-keyboard-hide {
+    display: none !important;
+  }
+
   body.keyboard-open .mobile-keyboard-hide {
     display: none !important;
   }

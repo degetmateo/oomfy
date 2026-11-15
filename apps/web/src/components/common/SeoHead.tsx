@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { SITE_URL as BASE_URL } from '@oomfy/shared';
+import { resolveMediaUrl } from '../../utils/mediaUrl.js';
 
 export interface SeoHeadProps {
   title: string;
@@ -35,13 +36,14 @@ export const SeoHead: React.FC<SeoHeadProps> = ({
   title,
   description,
   canonicalPath = '/',
-  ogImage = `${BASE_URL}/pwa-512x512.png`,
+  ogImage = `${BASE_URL}/assets/oomfy-logo-black-bg.png`,
   ogType = 'website',
   noIndex = false,
   jsonLd = null,
 }) => {
   useEffect(() => {
     const cleanDesc = description.replace(/\s+/g, ' ').trim().slice(0, 160);
+    const safeOgImage = resolveMediaUrl(ogImage) || `${BASE_URL}/assets/oomfy-logo-black-bg.png`;
     const canonicalUrl = canonicalPath.startsWith('http')
       ? canonicalPath
       : `${BASE_URL}${canonicalPath.startsWith('/') ? canonicalPath : `/${canonicalPath}`}`;
@@ -54,14 +56,14 @@ export const SeoHead: React.FC<SeoHeadProps> = ({
     upsertMeta('property', 'og:title', title);
     upsertMeta('property', 'og:description', cleanDesc);
     upsertMeta('property', 'og:url', canonicalUrl);
-    upsertMeta('property', 'og:image', ogImage);
+    upsertMeta('property', 'og:image', safeOgImage);
     upsertMeta('property', 'og:type', ogType);
     upsertMeta('property', 'og:site_name', 'Oomfy');
 
     upsertMeta('name', 'twitter:card', 'summary_large_image');
     upsertMeta('name', 'twitter:title', title);
     upsertMeta('name', 'twitter:description', cleanDesc);
-    upsertMeta('name', 'twitter:image', ogImage);
+    upsertMeta('name', 'twitter:image', safeOgImage);
 
     let scriptEl = document.getElementById('oomfy-jsonld') as HTMLScriptElement | null;
     if (jsonLd) {

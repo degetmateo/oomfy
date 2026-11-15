@@ -7,6 +7,7 @@ import { PixelBadge } from '../icons/PixelBadge.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { FormattedText } from '../common/FormattedText.js';
 import { UrlHelper } from '../../utils/UrlHelper.js';
+import { resolveMediaUrl } from '../../utils/mediaUrl.js';
 import { formatRelativeTime, formatExactDateTime } from '../../utils/formatTime.js';
 import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
 import { usePublicationModel } from '../../hooks/usePublicationModel.js';
@@ -61,7 +62,7 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
 
       {embeds.map((emb: any, idx: number) => {
         if (emb.type === 'spotify') return <SpotifyPlayer key={idx} embeds={[emb]} />;
-        const thumb = emb.thumbnail_url || emb.image;
+        const thumb = resolveMediaUrl(emb.thumbnail_url || emb.image);
         return (
           <div
             key={idx}

@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { Publication } from '@oomfy/shared';
 import { formatRelativeTime, formatExactDateTime } from '../../utils/formatTime.js';
 import { FormattedText } from '../common/FormattedText.js';
+import { resolveMediaUrl } from '../../utils/mediaUrl.js';
 
 interface Props {
   quotedPublication: Publication;
@@ -33,9 +34,10 @@ export const PublicationQuotedPreview: React.FC<Props> = ({ quotedPublication, o
       )}
       {quotedPublication.images && quotedPublication.images.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2">
-          {quotedPublication.images.map((img: any, i: number) => (
-            <img key={i} src={img.url} alt="" className="w-16 h-16 object-cover border border-dark-border" />
-          ))}
+          {quotedPublication.images.map((img: any, i: number) => {
+            const safeSrc = resolveMediaUrl(img?.url);
+            return safeSrc ? <img key={i} src={safeSrc} alt="" className="w-16 h-16 object-cover border border-dark-border" /> : null;
+          })}
         </div>
       )}
     </div>

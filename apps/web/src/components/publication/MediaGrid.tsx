@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MediaItem } from '@oomfy/shared';
 import { ImageViewerModal } from '../common/ImageViewerModal.js';
+import { resolveMediaUrl } from '../../utils/mediaUrl.js';
 
 interface MediaGridProps {
   images: MediaItem[];
@@ -12,7 +13,8 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
   const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
 
   const validImages = (images || [])
-    .filter((img) => img && typeof img.url === 'string' && img.url.trim().length > 0 && !failedUrls[img.url])
+    .map((img) => ({ ...img, resolvedUrl: resolveMediaUrl(img?.url) }))
+    .filter((img): img is MediaItem & { resolvedUrl: string } => Boolean(img.resolvedUrl && !failedUrls[img.resolvedUrl]))
     .slice(0, 4);
 
   if (validImages.length === 0) return null;
@@ -32,13 +34,13 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
           <div
             data-no-card-nav="true"
             onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => openZoom(e, singleImg.url)}
+            onClick={(e) => openZoom(e, singleImg.resolvedUrl)}
             className="relative overflow-hidden bg-dark-card cursor-pointer group border border-dark-border max-w-full inline-block min-h-[120px]"
           >
             <img
-              src={singleImg.url}
+              src={singleImg.resolvedUrl}
               alt="Adjunto de publicación"
-              onError={() => setFailedUrls((prev) => ({ ...prev, [singleImg.url]: true }))}
+              onError={() => setFailedUrls((prev) => ({ ...prev, [singleImg.resolvedUrl]: true }))}
               className="max-w-full w-auto max-h-[450px] object-contain group-hover:opacity-90 transition-opacity"
               loading={priority ? 'eager' : 'lazy'}
               {...({ fetchpriority: priority ? 'high' : 'auto' } as any)}
@@ -60,14 +62,14 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
       >
         {validImages.map((img, i) => (
           <div
-            key={img.url + i}
-            onClick={(e) => openZoom(e, img.url)}
+            key={img.resolvedUrl + i}
+            onClick={(e) => openZoom(e, img.resolvedUrl)}
             className={`relative overflow-hidden bg-dark-card cursor-pointer group ${count === 3 && i === 0 ? 'row-span-2' : ''}`}
           >
             <img
-              src={img.url}
+              src={img.resolvedUrl}
               alt="Adjunto de publicación"
-              onError={() => setFailedUrls((prev) => ({ ...prev, [img.url]: true }))}
+              onError={() => setFailedUrls((prev) => ({ ...prev, [img.resolvedUrl]: true }))}
               className="w-full h-full object-cover max-h-80 group-hover:scale-105 transition-transform duration-200"
               loading={priority && i === 0 ? 'eager' : 'lazy'}
               {...({ fetchpriority: priority && i === 0 ? 'high' : 'auto' } as any)}

@@ -33,44 +33,39 @@ export function isPrivateOrReservedIp(ip: string): boolean {
   }
   if (net.isIPv4(clean)) return isPrivateIpv4(clean);
   if (!net.isIPv6(clean)) return true;
-  return (
-    clean === '::' ||
-    clean === '::1' ||
-    clean.startsWith('0:') ||
-    clean.startsWith('fc') ||
-    clean.startsWith('fd') ||
-    clean.startsWith('fe8') ||
-    clean.startsWith('fe9') ||
-    clean.startsWith('fea') ||
-    clean.startsWith('feb') ||
-    clean.startsWith('ff') ||
-    clean.startsWith('2001:db8:') ||
-    clean.startsWith('2001:0db8:')
-  );
+  return clean === '::' || clean === '::1' || /^(0:|fc|fd|fe[89ab]|ff|2001:0?db8:)/.test(clean);
 }
 
-export function isHttpUrl(rawUrl: string): boolean {
+function parseNonLocalHttpUrl(rawUrl?: string | null, baseUrl?: string): { parsed: URL; host: string } | null {
+  if (!rawUrl || !rawUrl.trim()) return null;
   try {
-    const parsed = new URL(rawUrl);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
-  } catch {
-    return false;
-  }
-}
-
-export async function isSafePublicHttpUrl(rawUrl: string): Promise<URL | null> {
-  try {
-    const parsed = new URL(rawUrl);
+    const parsed = new URL(rawUrl.trim(), baseUrl);
     if ((parsed.protocol !== 'https:' && parsed.protocol !== 'http:') || parsed.username || parsed.password) return null;
     const host = parsed.hostname.replace(/^\[|\]$/g, '').toLowerCase();
     if (!host || host === 'localhost' || host.endsWith('.local') || host.endsWith('.internal')) return null;
-    if (net.isIP(host)) return isPrivateOrReservedIp(host) ? null : parsed;
-    const records = await dns.lookup(host, { all: true });
-    if (!records.length || records.some((r) => isPrivateOrReservedIp(r.address))) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+    return net.isIP(host) && isPrivateOrReservedIp(host) ? null : { parsed, host };
+  } catch { return null; }
+}
+
+export function isHttpUrl(rawUrl: string): boolean {
+  try { const p = new URL(rawUrl); return p.protocol === 'https:' || p.protocol === 'http:'; } catch { return false; }
+}
+
+export function toSafeHttpsAssetUrl(rawUrl?: string | null, baseUrl?: string): string | null {
+  const res = parseNonLocalHttpUrl(rawUrl, baseUrl);
+  if (!res) return null;
+  res.parsed.protocol = 'https:';
+  return res.parsed.toString();
+}
+
+export async function isSafePublicHttpUrl(rawUrl: string): Promise<URL | null> {
+  const res = parseNonLocalHttpUrl(rawUrl);
+  if (!res) return null;
+  if (net.isIP(res.host)) return res.parsed;
+  try {
+    const records = await dns.lookup(res.host, { all: true });
+    return records.length && !records.some((r) => isPrivateOrReservedIp(r.address)) ? res.parsed : null;
+  } catch { return null; }
 }
 
 export async function safeFetchPublicHtml(rawUrl: string): Promise<string | null> {

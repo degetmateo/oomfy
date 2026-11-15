@@ -32,24 +32,24 @@ export const usePwaStore = create<PwaState>((set, get) => ({
 
   initPwa: () => {
     if (typeof window === 'undefined') return;
-
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      set({ isInstalled: true });
-    }
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      set({ deferredPrompt: e, isInstallable: true });
-    });
-
-    window.addEventListener('appinstalled', () => {
-      set({ deferredPrompt: null, isInstallable: false, isInstalled: true });
-    });
-
-    if ('serviceWorker' in navigator && import.meta.env.PROD) {
-      navigator.serviceWorker.register('/sw.js').catch((err) => {
-        console.warn('Service worker registration failed:', err);
+    try {
+      if (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches) {
+        set({ isInstalled: true });
+      }
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        set({ deferredPrompt: e, isInstallable: true });
       });
+      window.addEventListener('appinstalled', () => {
+        set({ deferredPrompt: null, isInstallable: false, isInstalled: true });
+      });
+      if ('serviceWorker' in navigator && import.meta.env.PROD) {
+        navigator.serviceWorker?.register('/sw.js').catch((err) => {
+          console.warn('Service worker registration failed:', err);
+        });
+      }
+    } catch {
+      /* ignore browser restrictions on serviceWorker or matchMedia */
     }
   },
 }));
