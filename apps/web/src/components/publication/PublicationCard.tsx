@@ -20,13 +20,11 @@ import { usePublicationModel } from '../../hooks/usePublicationModel.js';
 import { PublicationController } from '../../controllers/PublicationController.js';
 
 interface Props {
-  post: Publication;
-  index?: number;
-  hideBottomBorder?: boolean;
-  onDelete?: (id: string) => void;
+  post: Publication; index?: number; hideBottomBorder?: boolean;
+  hideThreadPreview?: boolean; onDelete?: (id: string) => void;
 }
 
-const PublicationCardBase: React.FC<Props> = ({ post: rawPost, index, hideBottomBorder = false, onDelete }) => {
+const PublicationCardBase: React.FC<Props> = ({ post: rawPost, index, hideBottomBorder = false, hideThreadPreview = false, onDelete }) => {
   const post = usePublicationModel(rawPost) || rawPost;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -47,7 +45,7 @@ const PublicationCardBase: React.FC<Props> = ({ post: rawPost, index, hideBottom
     return deferClass ? <div className={deferClass}>{sharedEl}</div> : sharedEl;
   }
 
-  const threadItems = post.author_thread_preview || [];
+  const threadItems = hideThreadPreview ? [] : (post.author_thread_preview || []);
   const hasThread = threadItems.length > 0;
   const showLine = hasThread || hideBottomBorder;
   const articleEl = (
@@ -94,5 +92,4 @@ const PublicationCardBase: React.FC<Props> = ({ post: rawPost, index, hideBottom
     </div>
   );
 };
-
 export const PublicationCard = React.memo(PublicationCardBase);

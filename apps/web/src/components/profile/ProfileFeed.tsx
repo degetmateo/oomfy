@@ -48,7 +48,7 @@ export const ProfileFeed: React.FC<Props> = ({
         <PinnedPublicationItem post={pinnedPublication} pinnedByName={pinnedByName || 'usuario'} />
       )}
       {displayedPosts.map((post, idx) => (
-        <PublicationCard key={post.id} post={post} index={showPinned ? idx + 1 : idx} />
+        <PublicationCard key={post.id} post={post} index={showPinned ? idx + 1 : idx} hideThreadPreview={activeTab === 'likes'} />
       ))}
       <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">
         {isFetchingNextPage && <span>Cargando más publicaciones...</span>}

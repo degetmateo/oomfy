@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { EMOJI_CATEGORIES } from '../../utils/emojiData.js';
+import { EmojiPickerEmotesSection } from './EmojiPickerEmotesSection.js';
 
 interface Props {
   isOpen: boolean;
@@ -71,17 +72,20 @@ export const EmojiPickerMenu: React.FC<Props> = ({ isOpen, onClose, onSelectEmoj
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-6 sm:grid-cols-7 gap-1 max-h-48 overflow-y-auto p-1 bg-dark-bg/60 rounded border border-dark-border/40">
-        {currentCategory.emojis.map((emoji, index) => (
-          <button
-            key={index}
-            type="button"
-            onClick={() => onSelectEmoji(emoji)}
-            className="w-9 h-9 flex items-center justify-center text-xl hover:bg-dark-card/90 hover:scale-125 rounded transition-transform cursor-pointer"
-          >
-            {emoji}
-          </button>
-        ))}
+      <div className="max-h-52 overflow-y-auto p-1 bg-dark-bg/60 rounded border border-dark-border/40">
+        {activeCategory === EMOJI_CATEGORIES[0].id && <EmojiPickerEmotesSection onSelectEmote={onSelectEmoji} />}
+        <div className="grid grid-cols-6 sm:grid-cols-7 gap-1">
+          {currentCategory.emojis.map((emoji, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => onSelectEmoji(emoji)}
+              className="w-9 h-9 flex items-center justify-center text-xl hover:bg-dark-card/90 hover:scale-125 rounded transition-transform cursor-pointer"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

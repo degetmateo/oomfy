@@ -54,7 +54,14 @@ export class MongoPublicationLikedHelper {
       if (post && !orderedList.some((p) => p.id === post.id)) orderedList.push(post);
     }
     const populated = await PublicationTargetPopulator.populate(orderedList);
-    return PublicationInteractionDecorator.decorate(populated, params.userId);
+    const decorated = await PublicationInteractionDecorator.decorate(populated, params.userId);
+    return decorated.map((post) => {
+      delete post.author_thread_preview;
+      delete post.author_thread_remaining_count;
+      delete post.subthread_preview;
+      delete post.subthread_remaining_count;
+      return post;
+    });
   }
 }
 

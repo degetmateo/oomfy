@@ -886,6 +886,18 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - En `PublicationDetailView`, las respuestas con subhilos muestran indicador `Respondido por @autor en este hilo`, etiqueta `Autor` en respuestas del creador original y botón `Mostrar más respuestas (Y X respuesta(s) más...)` sincronizando las entidades en `publicationIdentityMap`.
     - Cobertura de pruebas en `apps/api/tests/thread-preview.test.ts` y `apps/web/tests/dynamic-thread-preview.test.tsx` con limpieza verificada en BD (**RNF-08**).
 
+- **Hito 62: Tipografía de Subhilos en Mobile, Supresión de Hilos en Pestaña "Me gusta" y Emotes Propios en el Selector de Emojis:**
+  - *Legibilidad y Tipografía Móvil en Subhilos (`SubthreadPreviewItem.tsx`):*
+    - Se ajusta el tamaño tipográfico del contenido en vistas de subhilo de `text-xs sm:text-sm` a `text-sm` consistente y legible en pantallas móviles, optimizando además el espaciado de la columna de avatar a `w-10 sm:w-12` y `gap-2.5 sm:gap-3` para evitar reducción excesiva de texto en viewport estrecho.
+  - *Supresión de Subhilos y Continuaciones en Pestaña "Me gusta" (`MongoPublicationLikedHelper.ts`, `ProfileFeed.tsx`, `PublicationCard.tsx`, `ProfileFeed.test.tsx`, `thread-preview.test.ts`):*
+    - En el backend (`MongoPublicationLikedHelper`), se eliminan explícitamente los campos de continuación de hilo (`author_thread_preview`, `author_thread_remaining_count`, `subthread_preview`, `subthread_remaining_count`) en respuestas de publicaciones gustadas (`liked_by`).
+    - En el frontend (`ProfileFeed`), se pasa la propiedad `hideThreadPreview={activeTab === 'likes'}` a `PublicationCard`. Cuando `hideThreadPreview` está activa, `PublicationCard` ignora cualquier hilo en caché o precargado, mostrando estrictamente la publicación individual a la que el usuario dio me gusta sin ramificaciones secundarias.
+  - *Emotes Personales Primero en el Selector de Emojis (`EmojiPickerEmotesSection.tsx`, `EmojiPickerMenu.tsx`, `EmojiPickerMenu.test.tsx`):*
+    - En la primera pestaña del selector de emojis ("Caras" / `smileys`), se introduce la sección `Tus Emotes` en la parte superior del listado si el usuario autenticado posee emotes en su colección personal (`creator_id === user.id`).
+    - Cada emote se renderiza con su imagen `object-contain`, tooltip descriptivo y `aria-label` en formato `:${emote.name}:`. Al hacer clic, inserta directamente el token `:${emote.name}: ` en el cursor del compositor o chat.
+    - Componentes desacoplados en `< 100` LOC con cobertura total de pruebas unitarias y de integración.
+
+
 
 
 

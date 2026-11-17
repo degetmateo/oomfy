@@ -30,6 +30,7 @@ describe('Dynamic Thread Previews & Inline Sub-Threads API', () => {
     const db = MongoDatabase.getDb();
     const idVars = [...MongoIdHelper.idVariants(authorId), ...MongoIdHelper.idVariants(replierId)];
     await db.collection('notifications').deleteMany({ $or: [{ recipient_id: { $in: idVars } }, { sender_id: { $in: idVars } }] });
+    await db.collection('upvotes').deleteMany({ user_id: { $in: idVars } });
     await db.collection('publications').deleteMany({ $or: [{ 'author.id': { $in: idVars } }, { 'author.username': { $in: ['thread_author_1', 'thread_replier_1'] } }] });
     await db.collection('members').deleteMany({ $or: [{ id: { $in: idVars } }, { username: { $in: ['thread_author_1', 'thread_replier_1'] } }] });
     await MongoDatabase.close();
@@ -76,5 +77,17 @@ describe('Dynamic Thread Previews & Inline Sub-Threads API', () => {
     expect(moreRes.body.data.items.map((x: any) => x.id)).toEqual([sub3.id]);
     expect(moreRes.body.data.remaining).toBe(0);
     expect(moreRes.body.data.has_more).toBe(false);
+  });
+
+  it('omits thread previews when querying liked feed', async () => {
+    const root = (await createPost(authorToken, 'Liked post with thread')).body.data;
+    await createPost(authorToken, 'Author continuation to liked post', root.id);
+    await request(server.app).post(`/interactions/${root.id}/upvote`).set('Authorization', `Bearer ${replierToken}`);
+    const res = await request(server.app).get('/publications?liked_by=thread_replier_1');
+    expect(res.status).toBe(200);
+    const liked = res.body.data.find((x: any) => x.id === root.id);
+    expect(liked).toBeDefined();
+    expect(liked.author_thread_preview).toBeUndefined();
+    expect(liked.subthread_preview).toBeUndefined();
   });
 });
