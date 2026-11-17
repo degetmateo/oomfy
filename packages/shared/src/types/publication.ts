@@ -60,5 +60,10 @@ export interface Publication {
   is_quoted?: boolean;
   is_shared?: boolean;
   target_publication?: Publication | null;
+  author_thread_preview?: Publication[];
+  author_thread_remaining_count?: number;
+  subthread_preview?: Publication[];
+  subthread_remaining_count?: number;
+  has_author_reply?: boolean;
 }
 

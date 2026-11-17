@@ -8,6 +8,8 @@ export function collectPublications(
   for (const item of items) {
     if (!item?.id) continue;
     if (item.target_publication) collectPublications([item.target_publication], out, true);
+    if (item.author_thread_preview?.length) collectPublications(item.author_thread_preview, out, isNested);
+    if (item.subthread_preview?.length) collectPublications(item.subthread_preview, out, isNested);
     const key = item.id.toLowerCase();
     const existing = out.get(key);
     if (!existing) out.set(key, item);

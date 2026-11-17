@@ -55,5 +55,12 @@ export const QueryPublicationSchema = z.object({
   limit: z.coerce.number().int().min(1).max(LIMITS.PAGINATION_LIMIT_MAX).default(LIMITS.PAGINATION_LIMIT_DEFAULT),
 });
 
+export const SubthreadQuerySchema = z.object({
+  mode: z.enum(['author', 'subthread']).default('subthread'),
+  offset: z.coerce.number().int().min(0).max(500).default(0),
+  limit: z.coerce.number().int().min(1).max(20).default(5),
+});
+
 export type CreatePublicationInput = z.infer<typeof CreatePublicationSchema>;
 export type QueryPublicationInput = z.infer<typeof QueryPublicationSchema>;
+export type SubthreadQueryInput = z.infer<typeof SubthreadQuerySchema>;

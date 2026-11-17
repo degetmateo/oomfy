@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import multer from 'multer';
 import {
-  CreatePublicationFormSchema, CreatePublicationAdminFormSchema, QueryPublicationSchema, EntityIdParamSchema, PaginationQuerySchema,
+  CreatePublicationFormSchema, CreatePublicationAdminFormSchema, QueryPublicationSchema,
+  SubthreadQuerySchema, EntityIdParamSchema, PaginationQuerySchema,
 } from '@oomfy/shared';
 import { PublicationController } from '../controllers/PublicationController.js';
 import { PublicationInteractionsController } from '../controllers/PublicationInteractionsController.js';
@@ -21,6 +22,7 @@ router.get('/:id/interactions/shares', AuthGuard.optionalAuth, ValidateRequest.p
 router.get('/:id/interactions/likes', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), ValidateRequest.query(PaginationQuerySchema), PublicationInteractionsController.getLikes);
 router.get('/:id/interactions/upvotes', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), ValidateRequest.query(PaginationQuerySchema), PublicationInteractionsController.getLikes);
 router.get('/:id/ancestors', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), PublicationController.getAncestors);
+router.get('/:id/subthread', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), ValidateRequest.query(SubthreadQuerySchema), PublicationController.getSubthread);
 router.get('/:id', AuthGuard.optionalAuth, ValidateRequest.params(EntityIdParamSchema), PublicationController.getById);
 router.post('/:id/pin', AuthGuard.requireAuth, writeLimiter, ValidateRequest.params(EntityIdParamSchema), PublicationPinController.pin);
 router.delete('/:id/pin', AuthGuard.requireAuth, writeLimiter, ValidateRequest.params(EntityIdParamSchema), PublicationPinController.unpin);

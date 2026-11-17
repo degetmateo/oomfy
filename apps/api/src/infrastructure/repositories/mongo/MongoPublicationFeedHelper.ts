@@ -4,6 +4,7 @@ import { MongoIdHelper } from './MongoIdHelper.js';
 import { PublicationMapper } from './PublicationMapper.js';
 import { PublicationInteractionDecorator } from './PublicationInteractionDecorator.js';
 import { PublicationTargetPopulator } from './PublicationTargetPopulator.js';
+import { PublicationSubthreadResolver } from './PublicationSubthreadResolver.js';
 import { MongoPublicationLikedHelper } from './MongoPublicationLikedHelper.js';
 import type { FeedParams } from './MongoPublicationRepository.js';
 
@@ -45,7 +46,8 @@ export class MongoPublicationFeedHelper {
     const limit = params.limit ? Number(params.limit) : 20;
     const docs = await col.find(query).sort({ created_at: -1, _id: -1 }).limit(limit).toArray();
     const populated = await PublicationTargetPopulator.populate(docs.map(PublicationMapper.toDomain));
-    return PublicationInteractionDecorator.decorate(populated, params.userId);
+    const decorated = await PublicationInteractionDecorator.decorate(populated, params.userId);
+    return PublicationSubthreadResolver.attachAuthorThreadPreviews(col, decorated, params.userId);
   }
 }
 

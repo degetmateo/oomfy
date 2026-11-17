@@ -874,6 +874,18 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Agrupación por lotes `notifyMany` en `ObservableSubject` para evitar $O(N^2)$ clonaciones en suscripciones globales, memoización `React.memo(PublicationCard)`, `content-visibility: auto` con `contain-intrinsic-size` en tarjetas bajo el pliegue (`index >= 4`), `fetchpriority="high"` exclusivo para el primer adjunto del feed (`index === 0`) y `loading="lazy"` + `decoding="async"` + dimensiones explícitas en avatares/medios restantes.
     - Cobertura de pruebas en `apps/web/tests/local-cache-and-prefetch.test.tsx` verificando persistencia IndexedDB + SWR, `<CachedTabPanel>`, `notifyMany`, `feed-card-deferred` y `fetchpriority="high"`.
 
+- **Hito 61: Previsualización Dinámica de Hilos del Autor e Hilos Anidados en Respuestas (Estilo Twitter/X):**
+  - *Contrato de Datos y Validación (`publication.ts`, `publication.schemas.ts`):*
+    - Extensión aditiva del modelo `Publication` con `author_thread_preview`, `author_thread_remaining_count`, `subthread_preview`, `subthread_remaining_count` y `has_author_reply`, junto al esquema Zod `SubthreadQuerySchema` (`mode`: `'author' | 'subthread'`, `offset`, `limit`).
+  - *Resolución en Lote y Paginación de Subhilos (`SubthreadGraphHelper`, `PublicationSubthreadResolver`, `MongoPublicationFeedHelper`, `MongoPublicationRepository`, `QueryPublicationService`, `PublicationController`, `publication.routes`):*
+    - En feeds (`GET /publications`), si el autor responde secuencialmente a su propia publicación ($P_0 \to P_1 \to P_2 \dots$), se adjuntan en lote hasta 2 respuestas continuadas en `author_thread_preview` y el conteo restante en `author_thread_remaining_count`.
+    - En detalle de publicación (`GET /publications/:id`), cada respuesta directa incluye un subhilo ordenado de hasta 2 niveles/elementos priorizando las respuestas del autor original (`has_author_reply: true` y badge `Autor`) junto al conteo pendiente `subthread_remaining_count`.
+    - Se expone el endpoint paginado `GET /publications/:id/subthread?mode=author|subthread&offset=...&limit=...` para cargar el resto de respuestas del hilo o subhilo en línea sin navegar hoja por hoja.
+  - *Interfaz Conectada y Expansión Progresiva (`PublicationCard`, `AuthorThreadPreview`, `ReplyThreadGroup`, `SubthreadPreviewItem`, `PublicationDetailView`, `entityMergeHelpers`):*
+    - Conector vertical en hilo desde el avatar original hasta las continuaciones del autor en el feed con el botón de expansión `Y X respuesta(s) más...` sobre trazo discontinuo.
+    - En `PublicationDetailView`, las respuestas con subhilos muestran indicador `Respondido por @autor en este hilo`, etiqueta `Autor` en respuestas del creador original y botón `Mostrar más respuestas (Y X respuesta(s) más...)` sincronizando las entidades en `publicationIdentityMap`.
+    - Cobertura de pruebas en `apps/api/tests/thread-preview.test.ts` y `apps/web/tests/dynamic-thread-preview.test.tsx` con limpieza verificada en BD (**RNF-08**).
+
 
 
 

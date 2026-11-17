@@ -5,6 +5,7 @@ import { PublicationMapper } from './PublicationMapper.js';
 import { PublicationInteractionDecorator } from './PublicationInteractionDecorator.js';
 import { PublicationTargetPopulator } from './PublicationTargetPopulator.js';
 import { PublicationThreadResolver } from './PublicationThreadResolver.js';
+import { PublicationSubthreadResolver } from './PublicationSubthreadResolver.js';
 import { MongoPublicationFeedHelper } from './MongoPublicationFeedHelper.js';
 
 export interface FeedParams {
@@ -46,22 +47,12 @@ export class MongoPublicationRepository {
     return PublicationThreadResolver.findAncestors(publication, userId, maxLevels);
   }
 
-  public static async findReplies(id: string, userId?: string, limit: number = 50): Promise<Publication[]> {
-    const targetVariants = MongoIdHelper.idVariants(id);
-    const docs = await this.getCollection()
-      .find({
-        type: 'reply',
-        $or: [
-          { target_publication_id: { $in: targetVariants } },
-          { parent_publication_id: { $in: targetVariants } },
-          { old_parent_publication_id: parseInt(id, 10) || -1 },
-        ],
-      })
-      .sort({ created_at: 1 })
-      .limit(limit)
-      .toArray();
-    const populated = await PublicationTargetPopulator.populate(docs.map(PublicationMapper.toDomain));
-    return PublicationInteractionDecorator.decorate(populated, userId);
+  public static findReplies(id: string, userId?: string, limit: number = 50, parentPub?: Publication): Promise<Publication[]> {
+    return PublicationSubthreadResolver.findRepliesWithSubthreads(this.getCollection(), id, userId, limit, parentPub);
+  }
+
+  public static findSubthread(pub: Publication, mode: 'author' | 'subthread', offset = 0, limit = 5, userId?: string) {
+    return PublicationSubthreadResolver.getPaginatedSubthread(this.getCollection(), pub, mode, offset, limit, userId);
   }
 
   public static async incrementCounters(

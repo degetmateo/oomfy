@@ -6,7 +6,7 @@ import { Publication } from '@oomfy/shared';
 import { Header } from '../components/layout/Header.js';
 import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { ApiClient } from '../services/api.js';
-import { PublicationCard } from '../components/publication/PublicationCard.js';
+import { ReplyThreadGroup } from '../components/publication/ReplyThreadGroup.js';
 import { PublicationDetailSeo } from '../components/publication/PublicationDetailSeo.js';
 import { ThreadAncestorsList } from '../components/publication/ThreadAncestorsList.js';
 import { PublicationDetailArticle } from '../components/publication/PublicationDetailArticle.js';
@@ -86,7 +86,7 @@ export const PublicationDetailView: React.FC = () => {
         <PublicationDetailArticle publication={publication} repliesCount={replies.length} canDelete={canDelete} isAuthenticated={isAuthenticated} articleRef={targetArticleRef} onDelete={handleDelete} onQuote={() => (isAuthenticated ? openPostModal(publication) : navigate('/signin'))} />
         {isAuthenticated && <ReplyComposer targetId={id!} onSubmit={(fd) => replyMutation.mutate(fd)} isSubmitting={replyMutation.isPending} />}
         <div>
-          {replies.length > 0 ? replies.map((c) => <PublicationCard key={c.id} post={c} />) : isFetching ? (
+          {replies.length > 0 ? replies.map((c) => <ReplyThreadGroup key={c.id} reply={c} rootAuthorId={publication.author.id} rootAuthorUsername={publication.author.username} />) : isFetching ? (
             <div className="p-8 text-center text-xs text-dark-muted flex items-center justify-center gap-2"><RefreshCw className="w-4 h-4 animate-spin text-brand-400" /><span>Cargando respuestas...</span></div>
           ) : <div className="p-8 text-center text-xs text-dark-muted">No hay respuestas todavía. ¡Sé el primero en responder!</div>}
           <div className="pb-12" />

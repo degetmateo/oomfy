@@ -47,6 +47,18 @@ export class PublicationController {
     }
   }
 
+  public static async getSubthread(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const mode = req.query.mode === 'author' ? 'author' : 'subthread';
+      const offset = Number(req.query.offset) || 0;
+      const limit = Number(req.query.limit) || 5;
+      const result = await QueryPublicationService.getSubthread(req.params.id, req.user?.id, mode, offset, limit);
+      res.status(200).json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   public static async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const id = req.params.id;
