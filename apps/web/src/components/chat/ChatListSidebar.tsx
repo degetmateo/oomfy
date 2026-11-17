@@ -7,13 +7,14 @@ interface Props {
   chats: any[];
   isLoading: boolean;
   selectedChatId: string | null;
+  typingChats?: Record<string, string>;
   getOtherParticipant: (chat: any) => any;
   onSelectChat: (chatId: string) => void;
   onOpenNewChat: () => void;
 }
 
 export const ChatListSidebar: React.FC<Props> = ({
-  chats, isLoading, selectedChatId, getOtherParticipant, onSelectChat, onOpenNewChat,
+  chats, isLoading, selectedChatId, typingChats, getOtherParticipant, onSelectChat, onOpenNewChat,
 }) => (
   <div className={`${selectedChatId ? 'hidden md:flex' : 'flex'} w-full md:w-80 flex-col border-r border-dark-border bg-dark-bg flex-shrink-0 h-full overflow-hidden`}>
     <div className="p-3 border-b border-dark-border flex items-center justify-between bg-dark-bg select-none flex-shrink-0">
@@ -32,6 +33,8 @@ export const ChatListSidebar: React.FC<Props> = ({
           const isSelected = Boolean(selectedChatId && chat.id?.toLowerCase() === selectedChatId.toLowerCase());
           const hasUnread = Boolean(chat.unread_count && chat.unread_count > 0);
           const lastAt = chat.last_message?.created_at;
+          const typingUsername = typingChats?.[chat.id?.toLowerCase()];
+          const isTyping = Boolean(typingUsername);
 
           return (
             <div
@@ -57,9 +60,16 @@ export const ChatListSidebar: React.FC<Props> = ({
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-2 mt-0.5">
-                  <p className={`text-xs sm:text-sm truncate flex-1 ${hasUnread ? 'text-white font-semibold' : 'text-dark-muted'}`}>
-                    {chat.last_message?.content || 'Sin mensajes aún'}
-                  </p>
+                  {isTyping ? (
+                    <p className="text-xs sm:text-sm truncate flex-1 text-brand-400 font-semibold flex items-center gap-1.5 animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand-400 inline-block" />
+                      <span>{typingUsername} está escribiendo...</span>
+                    </p>
+                  ) : (
+                    <p className={`text-xs sm:text-sm truncate flex-1 ${hasUnread ? 'text-white font-semibold' : 'text-dark-muted'}`}>
+                      {chat.last_message?.content || 'Sin mensajes aún'}
+                    </p>
+                  )}
                   {hasUnread && (
                     <span className="px-1.5 py-0.5 text-[10px] sm:text-xs font-bold bg-brand-500 text-black border border-brand-400 pixel-button flex-shrink-0 animate-pulse">
                       {chat.unread_count > 99 ? '99+' : chat.unread_count}

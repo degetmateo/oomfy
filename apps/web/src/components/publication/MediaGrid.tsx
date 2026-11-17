@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MediaItem } from '@oomfy/shared';
 import { ImageViewerModal } from '../common/ImageViewerModal.js';
 import { resolveMediaUrl } from '../../utils/mediaUrl.js';
+import { ImageMemoryCache } from '../../utils/imageCache.js';
 
 interface MediaGridProps {
   images: MediaItem[];
@@ -40,10 +41,11 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
             <img
               src={singleImg.resolvedUrl}
               alt="Adjunto de publicación"
+              onLoad={() => ImageMemoryCache.mark(singleImg.resolvedUrl)}
               onError={() => setFailedUrls((prev) => ({ ...prev, [singleImg.resolvedUrl]: true }))}
               className="max-w-full w-auto max-h-[450px] object-contain group-hover:opacity-90 transition-opacity"
-              loading={priority ? 'eager' : 'lazy'}
-              decoding="async"
+              loading={priority || ImageMemoryCache.has(singleImg.resolvedUrl) ? 'eager' : 'lazy'}
+              decoding={ImageMemoryCache.has(singleImg.resolvedUrl) ? 'sync' : 'auto'}
               {...(priority ? ({ fetchpriority: 'high' } as any) : {})}
             />
           </div>
@@ -70,10 +72,11 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
             <img
               src={img.resolvedUrl}
               alt="Adjunto de publicación"
+              onLoad={() => ImageMemoryCache.mark(img.resolvedUrl)}
               onError={() => setFailedUrls((prev) => ({ ...prev, [img.resolvedUrl]: true }))}
               className="w-full h-full object-cover max-h-80 group-hover:scale-105 transition-transform duration-200"
-              loading={priority && i === 0 ? 'eager' : 'lazy'}
-              decoding="async"
+              loading={(priority && i === 0) || ImageMemoryCache.has(img.resolvedUrl) ? 'eager' : 'lazy'}
+              decoding={ImageMemoryCache.has(img.resolvedUrl) ? 'sync' : 'auto'}
               {...(priority && i === 0 ? ({ fetchpriority: 'high' } as any) : {})}
             />
           </div>

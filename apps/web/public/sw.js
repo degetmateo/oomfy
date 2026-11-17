@@ -56,6 +56,7 @@ self.addEventListener('fetch', (event) => {
   if (req.destination !== 'image' && !isMemberMedia) return;
 
   const isCacheableImage = (res) => {
+    if (res.type === 'opaque') return true;
     const ct = String(res.headers.get('content-type') || '').toLowerCase();
     return res.ok && (res.type === 'basic' || res.type === 'cors') && ct.startsWith('image/');
   };
@@ -88,6 +89,21 @@ function toSafeInternalPath(rawUrl, fallback = '/notifications') {
   return (s.startsWith('/') && !s.startsWith('//') && !s.startsWith('\\') && !/^\/\\/.test(s)) ? s : fallback;
 }
 
+function resolveNotificationIcon(rawIcon) {
+  if (!rawIcon || typeof rawIcon !== 'string') return '/assets/oomfy-logo-black-bg.png';
+  const trimmed = rawIcon.trim();
+  if (trimmed.startsWith('https://') || trimmed.startsWith('http://') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/members/') || trimmed.startsWith('/api/')) {
+    return `${getApiBase()}${trimmed}`;
+  }
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+  return '/assets/oomfy-logo-black-bg.png';
+}
+
 self.addEventListener('push', (event) => {
   event.waitUntil((async () => {
     let title = 'oomfy';
@@ -103,8 +119,10 @@ self.addEventListener('push', (event) => {
         const data = event.data.json();
         if (data.title) title = data.title;
         if (data.body) options.body = data.body;
-        if (typeof data.icon === 'string' && data.icon.startsWith('/')) options.icon = data.icon;
+        if (data.icon) options.icon = resolveNotificationIcon(data.icon);
+        if (data.image) options.image = resolveNotificationIcon(data.image);
         if (data.url) options.data.url = toSafeInternalPath(data.url);
+        if (data.tag) options.tag = String(data.tag);
       } catch {
         try {
           const text = event.data.text();
@@ -125,9 +143,12 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const safePath = toSafeInternalPath(event.notification.data?.url, '/');
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url && 'focus' in client) return client.focus();
+        if (client.url && 'focus' in client) {
+          if ('navigate' in client) client.navigate(safePath);
+          return client.focus();
+        }
       }
       if (clients.openWindow) return clients.openWindow(safePath);
     })

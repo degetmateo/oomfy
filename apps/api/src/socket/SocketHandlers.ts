@@ -35,12 +35,18 @@ export function registerSocketHandlers(socket: Socket, userSockets: Map<string, 
   });
   socket.on('typing-start', async (d: { chatId: string }) => {
     if (isWithinSocketQuota(socket) && d?.chatId && await hasChatAccess(socket, d.chatId, user.id)) {
-      socket.to(`chat:${d.chatId}`).emit('user-typing', { chatId: d.chatId, userId: user.id, username: user.username });
+      const payload = { chatId: d.chatId, userId: user.id, username: user.username };
+      socket.to(`chat:${d.chatId}`).emit('user-typing', payload);
+      const participants = await MongoChatRepository.getChatParticipants(d.chatId).catch(() => []);
+      for (const p of participants) if (p !== user.id) SocketGateway.sendToUser(p, 'user-typing', payload);
     }
   });
   socket.on('typing-stop', async (d: { chatId: string }) => {
     if (isWithinSocketQuota(socket) && d?.chatId && await hasChatAccess(socket, d.chatId, user.id)) {
-      socket.to(`chat:${d.chatId}`).emit('user-stop-typing', { chatId: d.chatId, userId: user.id, username: user.username });
+      const payload = { chatId: d.chatId, userId: user.id, username: user.username };
+      socket.to(`chat:${d.chatId}`).emit('user-stop-typing', payload);
+      const participants = await MongoChatRepository.getChatParticipants(d.chatId).catch(() => []);
+      for (const p of participants) if (p !== user.id) SocketGateway.sendToUser(p, 'user-stop-typing', payload);
     }
   });
   socket.on('send-message', async (d: { chatId: string; content: string }) => {

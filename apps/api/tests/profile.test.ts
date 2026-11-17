@@ -27,14 +27,14 @@ describe('Profile Media Dynamic Redirection', () => {
     const res = await request(server.app).get('/members/test_media_user/icon').redirects(0);
     expect(res.status).toBe(302);
     expect(res.headers.location).toBe('https://i.ibb.co/test-icon.png');
-    expect(res.headers['cache-control']).toBe('public, max-age=300');
+    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=604800');
   });
 
   it('should redirect GET /members/:username/banner to banner URL with 302', async () => {
     const res = await request(server.app).get('/members/test_media_user/banner').redirects(0);
     expect(res.status).toBe(302);
     expect(res.headers.location).toBe('https://i.ibb.co/test-banner.png');
-    expect(res.headers['cache-control']).toBe('public, max-age=300');
+    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=604800');
   });
 
   it('should return 404 when requested media does not exist', async () => {

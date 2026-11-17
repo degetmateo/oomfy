@@ -542,9 +542,9 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
       - `follow.routes.ts`: `GET /:username/followers`, `GET /:username/followed`, `GET /:username/following`.
       - `auxiliary.routes.ts`: `GET /gifs`, `GET /preview-url`, `GET /online-members`, `GET /suggested-members`, `GET /search-users`.
   - *Migración de la URL Base de la API del Servidor de `/api` a `/`:*
-    - Dado que el subdominio de producción ya incluye la palabra `api` (`https://api-oomfy.onrender.com`), se eliminó el prefijo redundante `/api`.
+    - Dado que el subdominio de producción ya incluye la palabra `api` (`https://api.oomfy.online`), se eliminó el prefijo redundante `/api`.
     - En `Server.ts`, las rutas de la API se montan directamente en la raíz `/` (manteniendo `/api` como alias secundario seguro).
-    - En el cliente web (`api.ts`), la URL base en desarrollo es `''` y en producción `https://api-oomfy.onrender.com`.
+    - En el cliente web (`api.ts`), la URL base en desarrollo es `''` y en producción `https://api.oomfy.online`.
     - En `vite.config.ts`, la regla de proxying local redirige todas las rutas API (`auth`, `members`, `publications`, `interactions`, `follows`, `notifications`, `chats`, `sessions`, `aux`, `settings`, `reports`, `staff`, `admin`, `health`) al puerto 4000 sin prefijo `/api`.
     - En `sw.js`, las llamadas de suscripción push y clave pública VAPID apuntan a `/notifications/vapid-public-key` y `/notifications/subscribe`.
     - En `mediaUrl.ts`, se soportan rutas `/members/${username}/icon` y `/members/${username}/banner`.
@@ -919,30 +919,56 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Se creó la suite de pruebas unitarias y de integración `apps/web/tests/thread-line-continuity.test.tsx` validando la columna `w-12`, el espaciado `gap-3`, la continuidad responsive y los márgenes negativos de las líneas conectoras.
     - 56 suites de prueba de `@oomfy/web` (152 tests) y 42 suites de `@oomfy/api` (142 tests) pasando al 100%, con 0 errores de compilación (`pnpm build`), estricto cumplimiento de **RNF-01** (< 100 LOC) y 0 trazas de pruebas en base de datos (**RNF-08**).
 
-- **Hito 65: Experiencia de Usuario Avanzada en Chats (Auto-Scroll Inteligente, Botón Flotante, Viaje a Mensaje Respondido, Gesto Físico de Swipe-to-Reply y Slot Estable de Escribiendo):**
-  - *Control Inteligente de Auto-Scroll y Estado de Vista (`useChatScroll.ts`, `ChatThread.tsx`, `useChatMessages.ts`):*
-    - Al ingresar al chat, el scroll automático inicia activado (`isAutoScrollEnabled = true`) desplazándose al final del historial.
-    - Se detecta dinámicamente si el usuario hace scroll hacia arriba ($distancia > 48\text{px}$ del fondo), desactivando el scroll automático para permitir la lectura tranquila de mensajes anteriores sin saltos involuntarios ante nuevos mensajes entrantes.
-    - Si el usuario vuelve a deslizar hasta el fondo o envía un mensaje propio (`sendOptimisticMessage`), el auto-scroll se reactiva automáticamente.
-  - *Navegación / Salto Rápido al Mensaje Respondido con Resaltado Temporal (`ChatMessageReplyPreview.tsx`, `ChatMessageItem.tsx`, `useChatScroll.ts`):*
-    - Al presionar la preview del mensaje citado sobre cualquier réplica, se ejecuta un desplazamiento suave (`scrollIntoView({ behavior: 'smooth', block: 'center' })`) hasta el mensaje original referenciado (`data-message-id`).
-    - Esta acción desactiva el auto-scroll para conservar la posición del mensaje consultado y activa un destello visual temporal (`bg-brand-500/25 ring-1 ring-brand-500/60` durante 1.5s).
-  - *Botón Flotante con Flecha hacia Abajo para Volver al Fondo (`ChatScrollBottomButton.tsx`, `ChatThread.tsx`):*
-    - Al encontrarse fuera del fondo (tras subir en el historial o tras viajar a un mensaje respondido), emerge un botón flotante con flecha hacia abajo (`ArrowDown`) en la esquina inferior derecha del área de mensajes.
-    - Se encapsuló dentro de un contenedor relativo dedicado al scroll (`flex-1 min-h-0 relative`), posicionándolo a `bottom-3 right-4` suspendido sobre los mensajes sin obstruir en absoluto la caja de entrada de texto, los controles de adjuntos ni el botón de enviar.
-    - Al hacer clic, ejecuta un desplazamiento suave al último mensaje y restablece de inmediato el auto-scroll (`isAutoScrollEnabled = true`), ocultando el botón.
-  - *Autofocus Inmediato al Responder un Mensaje (`ChatInputBar.tsx`, `ChatInputBar.test.tsx`):*
-    - Al seleccionar la acción de responder (ya sea por swipe táctil o clic en acción de mensaje), se detecta la activación de `replyingTo` y se enfoca automáticamente el textarea de entrada (`focus({ preventScroll: true })`), permitiendo al usuario comenzar a escribir su respuesta de inmediato sin requerir un toque adicional.
-  - *Feedback Físico y Transición Visual en Deslizamiento hacia la Izquierda para Responder (`useSwipeReply.ts`, `ChatMessageItem.tsx`):*
-    - El gesto táctil traslada físicamente el mensaje hacia la izquierda (`transform: translateX(-Xpx)`) en tiempo real conforme el usuario desliza el dedo.
-    - Se implementó amortiguación suave (resistencia elástica a partir de 48px con tope en 68px) revelando en el lateral derecho un indicador circular con icono de respuesta (`CornerDownRight`).
-    - Al superar el umbral de activación (44px), el indicador se ilumina y escala en color de marca (`bg-brand-500 text-black scale-110`). Al soltar, dispara la acción de responder y el mensaje regresa elásticamente a su posición inicial con transición CSS cúbica.
-  - *Slot Asignado y Estable para el Indicador de "Usuario está escribiendo" (`ChatTypingIndicator.tsx`, `ChatThread.tsx`, `useChatMessages.ts`):*
-    - Se reservó un contenedor dedicado de altura fija inmutable (`h-6`) sobre la barra de entrada de texto.
-    - Cuando un participante escribe, el texto y pulso se muestran dentro de dicho espacio sin alterar la altura del scroll ni mover la caja de mensajes. Al cesar la escritura, el espacio permanece invariable sin generar layout shifts ni alterar el scroll.
-  - *Cobertura de Pruebas y Cumplimiento Normativo (`chat-scroll-and-swipe.test.tsx`):*
-    - Nueva suite de pruebas verificando el ciclo de auto-scroll, botón flotante, salto a mensaje respondido, física de deslizamiento táctil y altura fija del indicador de escritura.
-    - 57 suites de prueba de `@oomfy/web` (156 tests) y 42 suites de `@oomfy/api` (142 tests) en verde al 100%, con 0 errores en `pnpm build`, 0 trazas en MongoDB Atlas (**RNF-08**) y estricto cumplimiento de **RNF-01** (< 100 LOC por archivo).
+- **Hito 66: Optimización de Rendimiento en Mobile y Navegación entre Vistas (Caché en Memoria de Imágenes, Eliminación de Frame Blanco y Transición Instantánea) (Completado):**
+  - *Diagnóstico y Causa Raíz de Parpadeo / Desaparición de Imágenes al Cambiar de Vista:*
+    - *Descodificación Asíncrona y Carga Diferida Inadecuada (`PixelAvatar.tsx`, `MediaGrid.tsx`):* `PixelAvatar` utilizaba incondicionalmente `loading="lazy"` y `decoding="async"`. Al cambiar de vista en una SPA, los componentes se desmontaban y volvían a montar. Con `loading="lazy"` el motor de renderizado retrasa la inicialización del recurso hasta calcular la intersección con el viewport, y con `decoding="async"` el navegador pinta deliberadamente un frame transparente / en blanco mientras decodifica los píxeles en un hilo secundario, provocando que los avatares e imágenes ya descargados desaparezcan por un instante y vuelvan a mostrarse como si se recargaran.
+    - *Rechazo de Imágenes Opacas en Service Worker (`sw.js`):* El filtro `isCacheableImage` exigía `res.ok && (res.type === 'basic' || res.type === 'cors')`. En producción, avatares y multimedia alojados en CDNs o servidores externos (e.g. imgbb) y respuestas tras redirección 302 sin cabeceras CORS generan respuestas de tipo `opaque` (`status: 0`, `ok: false`). Por ello, el Service Worker rechazaba almacenar las imágenes externas en `IMAGE_CACHE`, forzando al navegador a renegociar las peticiones en la red cada vez que se abría una vista.
+    - *Expiración Breve de Redirecciones de Avatar (`ProfileController.ts`):* Las rutas `/members/:username/icon` y `/members/:username/banner` enviaban `Cache-Control: public, max-age=300`. Se elevó a `public, max-age=86400, stale-while-revalidate=604800` (24 horas en caché y 7 días de revalidación en segundo plano).
+  - *Implementación de Memoria Caché de Imágenes y Renderizado Síncrono (`ImageMemoryCache.ts`, `PixelAvatar.tsx`, `MediaGrid.tsx`, `ProfileInfo.tsx`):*
+    - Se creó el singleton `ImageMemoryCache` en `apps/web/src/utils/imageCache.ts` con control de URLs ya visualizadas en la sesión (`loadedUrls`), precarga asíncrona (`preload`) y desalojo automático LRU de hasta 500 entradas.
+    - Si una imagen ya existe en `ImageMemoryCache`, `PixelAvatar` y `MediaGrid` aplican automáticamente `loading="eager"` y `decoding="sync"`, logrando que el navegador pinte el bitmap en memoria de forma instantánea en el primer cuadro de pintado sin ningún parpadeo ni frame blanco.
+    - En `sw.js` se admiten explícitamente respuestas de tipo `opaque` para peticiones con destino de imagen, garantizando que el Service Worker almacene y sirva las imágenes de terceros inmediatamente desde el caché local offline/online.
+    - En `RoutePrefetchService.ts`, al precargar publicaciones o perfiles, se calientan automáticamente los avatares en la memoria del navegador mediante `ImageMemoryCache.preload()`.
+  - *Optimización de Velocidad y Supresión de Retrasos en Mobile (`MobileBottomNav.tsx`, `useRouteScroll.ts`):*
+    - *Eliminación del Delay de 300ms y Feedback Háptico:* Se aplicó `touch-manipulation` a la barra de navegación móvil (`MobileBottomNav.tsx`), suprimiendo el retraso de 300ms impuesto por los navegadores móviles para detección de doble toque. Se añadieron estilos activos táctiles (`active:scale-90 active:opacity-75 transition-all duration-75`) para respuesta inmediata al toque.
+    - *Disparo de Precarga en `pointerdown`:* Se añadió el manejador unificado `onPointerDown` para comenzar la precarga de datos y medios en el microsegundo en que el usuario posa el dedo sobre el botón.
+    - *Soporte de View Transitions:* Se incorporó `viewTransition` en los enlaces `<NavLink>` para transiciones fluidas nativas entre pantallas.
+    - *Erradicación del Layout Thrashing en Scroll:* En `useRouteScroll.ts`, las mediciones y llamadas a `safeScrollTo` dentro del `ResizeObserver` se envolvieron en `requestAnimationFrame` coalescente (`scheduleRestore`), impidiendo que los cálculos síncronos de layout bloqueen el hilo de renderizado móvil durante el montaje de vistas.
+  - *Verificación y Calidad de Código (`image-cache-and-mobile-perf.test.tsx`):*
+    - Nueva suite de pruebas unitarias verificando el funcionamiento de `ImageMemoryCache`, renderizado eager/sync de avatares en caché, disparo de `onLoad`, soporte en `MediaGrid` y atributos `touch-manipulation` y `onPointerDown` en `MobileBottomNav`.
+    - 58 suites de prueba de `@oomfy/web` (162 tests) y 42 suites de `@oomfy/api` (142 tests) en verde al 100%, 0 errores en `pnpm build`, estricto cumplimiento de **RNF-01** (< 100 LOC) y 0 trazas de pruebas en base de datos (**RNF-08**).
+
+- **Hito 67: Enfoque Continuo en Entrada de Chat y Sincronización Multidispositivo de Mensajes e Indicador de Escritura en Tarjetas (Completado):**
+  - *Autofoco y Prevención de Desenfoque en Entrada de Chat (`ChatInputBar.tsx`, `ChatInputBar.test.tsx`):*
+    - Al enviar un mensaje, se previene la pérdida de foco del textarea en dispositivos móviles y de escritorio mediante `e.preventDefault()` en el evento `onPointerDown` del botón de envío, impidiendo que el navegador cierre o parpadee el teclado virtual táctil entre envíos consecutivos.
+    - Se garantiza el re-enfoque síncrono y en `requestAnimationFrame` (`focus({ preventScroll: true })`) tras el despacho de `handleSubmit`, permitiendo escribir ráfagas de mensajes fluidamente sin necesidad de pulsar nuevamente el campo de texto.
+  - *Indicador de "Usuario está escribiendo" en Tarjetas de Chat (`ChatListSidebar.tsx`, `useChatsList.ts`, `ChatsView.tsx`, `SocketHandlers.ts`):*
+    - Se extendió la propagación de eventos socket `user-typing` y `user-stop-typing` en el backend para emitir a las salas `user:${p}` de los participantes además de la sala específica del chat.
+    - En `useChatsList.ts`, se gestiona el estado dinámico `typingChats` por ID de conversación, activando un temporizador de auto-limpieza de 4 segundos que se renueva mientras el remitente continúe digitando y se desactiva de inmediato ante `user-stop-typing` o recepción de un nuevo mensaje.
+    - En `ChatListSidebar.tsx`, si el interlocutor de una conversación está escribiendo, la tarjeta del chat sustituye temporalmente el extracto del último mensaje por un aviso pulsante `"{username} está escribiendo..."` con viñeta verde esmeralda y tipografía de marca.
+  - *Sincronización Multidispositivo y Ordenamiento Cronológico Concurrente (`useChatMessages.ts`, `MessageService.ts`, `SocketGateway.ts`, `socket-chat-typing-sync.test.ts`):*
+    - Cobertura de recepción simultánea: `useChatMessages.ts` escucha concurrentemente tanto `new-message` (sala del chat) como `new_chat_message` (sala del usuario). Si un usuario tiene abierta la misma conversación en dos dispositivos distintos (o dos chats distintos en paralelo), los mensajes entrantes y enviados se replican instantáneamente en todos los clientes conectados.
+    - Ordenamiento temporal estricto: Todo mensaje entrante por socket se inserta y ordena determinísticamente por marca de tiempo (`created_at`) tras deduplicación de IDs, garantizando que el historial de mensajes mantenga un orden cronológico idéntico en todos los dispositivos independientemente de la latencia de red.
+    - Eliminación de mensajes multidispositivo: `SocketGateway.broadcastDeleteMessage` propaga el evento `delete-message` tanto a la sala de chat como a las salas de usuario de los participantes, erradicando el mensaje en tiempo real de todos los dispositivos abiertos.
+  - *Verificación y Calidad de Código (`chat-typing-and-multidevice-sync.test.tsx`, `socket-chat-typing-sync.test.ts`):*
+    - Nuevas suites de pruebas verificando el indicador de escritura en tarjetas de chat, ciclo de eventos socket, ordenamiento cronológico concurrente multidispositivo y persistencia del foco en el input al enviar.
+    - 59 suites de prueba de `@oomfy/web` (166 tests) y 43 suites de `@oomfy/api` (145 tests) en verde al 100%, 0 errores en `pnpm build`, estricto cumplimiento de **RNF-01** (< 100 LOC) y 0 trazas de pruebas en base de datos (**RNF-08**).
+
+- **Hito 68: Robustecimiento Integral de Web Push, Persistencia VAPID, Recuperación Automática de Expiración en iOS/Android y Avatares Dinámicos en Notificaciones (Completado):**
+  - *Persistencia Determinista de Claves VAPID (`Environment.ts`, `WebPushClient.ts`, `.env`):*
+    - Erradicación de la rotación volátil de claves VAPID en reinicios del servidor. Se definieron claves estáticas y permanentes en `.env` y en `Environment.ts`, asegurando que `WebPushClient` firme siempre con el mismo par criptográfico y nunca descalifique suscripciones activas ante redeploys o reinicios de contenedores.
+  - *Compatibilidad y Encabezados APNs para iOS Safari (`WebPushClient.ts`, `WebPushService.ts`):*
+    - Se incorporaron cabeceras obligatorias de Apple Push Notification service (`apns-push-type: 'alert'`, `apns-priority: '10'`) junto con un `TTL: 86400` y `urgency: 'high'` en `webpush.sendNotification`, garantizando que iOS Safari (PWA / Home Screen) y Android procesen la entrega como notificación de alerta inmediata.
+    - Se amplió la detección de suscripciones caducadas: códigos HTTP 400 (ExpiredProviderToken), 403 (InvalidSubscription/BadDeviceToken), 404 y 410 (Gone) marcan de inmediato la suscripción como `expired` en la base de datos para habilitar la renovación automática limpia.
+  - *Auto-Renovación Transparente y Diagnóstico en Cliente (`PushNotificationService.ts`, `PushReconnectBanner.tsx`, `sw.js`):*
+    - En `PushNotificationService`, `syncSubscription()` y `checkSubscriptionHealth()` verifican si el token de APNs/FCM expiró o fue marcado `expired` en el backend; de ser así, ejecutan automáticamente `renewSubscription()` en segundo plano sin molestar al usuario con banners innecesarios si los permisos siguen concedidos (`permission === 'granted'`).
+    - En caso de intentar suscribirse en iOS desde el navegador sin PWA instalada, se informa claramente al usuario cómo agregar la aplicación a la pantalla de inicio desde el menú Compartir.
+  - *Resolución Dinámica de Avatares e Iconos por Notificación (`NotificationDispatcher.ts`, `MessageService.ts`, `AdminPushController.ts`, `sw.js`):*
+    - Cada tipo de notificación (me gusta, respuesta, cita, follow, mención, mensaje de chat o broadcast) resuelve dinámicamente el avatar del usuario causante (`ProfileMediaService.getUserIcon`), pasando la URL completa como `icon` y agrupando con `tag`. Si el usuario no tiene avatar personalizado o la solicitud es del sistema, se utiliza de forma segura el logo oficial de la app (`/assets/oomfy-logo-black-bg.png`).
+    - En `sw.js`, la función `resolveNotificationIcon` normaliza URLs relativas `/members/.../icon` prefijando la URL base de la API, y en `notificationclick` se enfoca y navega la ventana existente si ya está abierta.
+  - *Verificación y Calidad de Código (`web-push-ios-and-icons.test.ts`, `push-service-ios-renewal.test.ts`):*
+    - Nuevas suites de pruebas unitarias y de integración que verifican la inclusión de cabeceras APNs, el marcado de expiración en 400/403/404/410, la auto-renovación silenciosa en cliente y el ruteo de iconos dinámicos.
+    - 60 suites de prueba en `@oomfy/web` (170 tests) y 44 suites en `@oomfy/api` (149 tests) pasando al 100%, con estricto cumplimiento de **RNF-01** (< 100 LOC) y 0 trazas de prueba en base de datos (**RNF-08**).
 
 
 

@@ -2,6 +2,8 @@ import { QueryClient } from '@tanstack/react-query';
 import { Publication, PublicUser } from '@oomfy/shared';
 import { ApiClient } from './api.js';
 import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
+import { resolveMediaUrl } from '../utils/mediaUrl.js';
+import { ImageMemoryCache } from '../utils/imageCache.js';
 
 const PREFETCH_STALE_MS = 2 * 60 * 1000;
 const STATIC_TOP_ROUTES = new Set([
@@ -17,7 +19,10 @@ export class RoutePrefetchService {
     const registry = useEntityRegistryStore.getState();
     registry.ingestPublications(items, fetchedAt);
     const authors = items.flatMap((p) => [p?.author, p?.target_publication?.author]).filter(Boolean);
-    if (authors.length > 0) registry.ingestUsers(authors as unknown as PublicUser[]);
+    if (authors.length > 0) {
+      registry.ingestUsers(authors as unknown as PublicUser[]);
+      authors.forEach((a) => a?.icon_url && ImageMemoryCache.preload(resolveMediaUrl(a.icon_url)));
+    }
     return res;
   }
 
@@ -78,7 +83,10 @@ export class RoutePrefetchService {
         queryKey: ['profile', username],
         queryFn: async () => {
           const res = await ApiClient.get<{ success: boolean; data: PublicUser }>(`/members/${username}`);
-          if (res?.data) useEntityRegistryStore.getState().ingestUsers([res.data]);
+          if (res?.data) {
+            useEntityRegistryStore.getState().ingestUsers([res.data]);
+            if (res.data.icon_url) ImageMemoryCache.preload(resolveMediaUrl(res.data.icon_url));
+          }
           return res;
         },
         staleTime: PREFETCH_STALE_MS,

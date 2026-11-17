@@ -21,7 +21,7 @@ export const ChatsView: React.FC = () => {
     if (queryChatId && queryChatId !== selectedChatId) setSelectedChatId(queryChatId);
   }, [queryChatId]);
 
-  const { chats, isLoading, markChatOpened } = useChatsList(user?.id, selectedChatId);
+  const { chats, isLoading, markChatOpened, typingChats } = useChatsList(user?.id, selectedChatId);
   const selectedChat = chats.find((c) => c.id?.toLowerCase() === selectedChatId?.toLowerCase());
 
   const handleSelectChat = (chatId: string) => {
@@ -43,6 +43,7 @@ export const ChatsView: React.FC = () => {
         chats={chats}
         isLoading={isLoading}
         selectedChatId={selectedChatId}
+        typingChats={typingChats}
         getOtherParticipant={getOtherParticipant}
         onSelectChat={handleSelectChat}
         onOpenNewChat={() => setIsStartOpen(true)}

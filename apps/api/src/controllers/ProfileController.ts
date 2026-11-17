@@ -37,7 +37,7 @@ export class ProfileController {
         res.status(404).json({ success: false, message: 'Avatar no encontrado.' });
         return;
       }
-      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
       res.redirect(302, url);
     } catch (err) { next(err); }
   }
@@ -49,7 +49,7 @@ export class ProfileController {
         res.status(404).json({ success: false, message: 'Banner no encontrado.' });
         return;
       }
-      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
       res.redirect(302, url);
     } catch (err) { next(err); }
   }

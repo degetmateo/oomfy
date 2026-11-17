@@ -61,8 +61,10 @@ export class Environment {
   public static readonly IMGBB_KEY: string = process.env.IMGBB_KEY || '';
   public static readonly KLIPY_KEY: string = process.env.KLIPY_KEY || '';
 
-  public static readonly VAPID_PUBLIC_KEY: string = process.env.VAPID_PUBLIC_KEY || '';
-  public static readonly VAPID_PRIVATE_KEY: string = process.env.VAPID_PRIVATE_KEY || '';
+  public static readonly VAPID_PUBLIC_KEY: string =
+    process.env.VAPID_PUBLIC_KEY || 'BA4bL8FnDqAzfwbLCJnGYml-bZ2mNi-R4hAXPT5jNWiTA7r4QA5L1TKm9YCEb3s3jwHpsIlKgsHzR4DOmCYg5NY';
+  public static readonly VAPID_PRIVATE_KEY: string =
+    process.env.VAPID_PRIVATE_KEY || '-uI64rUZjun2AqAqwkuLAD6T5xh_c-Rr9DNjjUzkgQ4';
   public static readonly VAPID_SUBJECT: string =
     process.env.VAPID_SUBJECT || 'mailto:soporte@oomfy.online';
 

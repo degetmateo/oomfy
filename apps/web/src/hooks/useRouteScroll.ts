@@ -41,23 +41,29 @@ export function useRouteScroll(): void {
     }
 
     let cancelled = false;
+    let scheduled = false;
     const cancel = () => { cancelled = true; isRestoringRef.current = false; };
     const events = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const;
     events.forEach((ev) => window.addEventListener(ev, cancel, { passive: true, once: true }));
 
-    const tryRestore = () => {
-      if (cancelled) return;
-      safeScrollTo(targetY);
-      if (Math.abs((window.scrollY || 0) - targetY) <= 2) cancel();
+    const scheduleRestore = () => {
+      if (cancelled || scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        if (cancelled) return;
+        safeScrollTo(targetY);
+        if (Math.abs((window.scrollY || 0) - targetY) <= 2) cancel();
+      });
     };
 
-    const rafId = requestAnimationFrame(tryRestore);
-    const observer = new ResizeObserver(tryRestore);
+    scheduleRestore();
+    const observer = new ResizeObserver(scheduleRestore);
     observer.observe(document.documentElement);
     const timer = setTimeout(cancel, 700);
 
     return () => {
-      cancelAnimationFrame(rafId);
+      cancel();
       observer.disconnect();
       clearTimeout(timer);
       events.forEach((ev) => window.removeEventListener(ev, cancel));

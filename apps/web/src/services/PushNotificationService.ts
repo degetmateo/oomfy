@@ -8,7 +8,7 @@ export { DEFAULT_PUSH_PREFERENCES };
 
 export class PushNotificationService {
   public static isSupported(): boolean {
-    return typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    return typeof window !== 'undefined' && 'serviceWorker' in navigator && Boolean(window.PushManager) && Boolean(window.Notification);
   }
   public static isPermissionGranted(): boolean {
     return this.isSupported() && Notification.permission === 'granted';
@@ -29,7 +29,11 @@ export class PushNotificationService {
   }
 
   public static async subscribe(): Promise<boolean> {
-    if (!this.isSupported()) throw new Error('Tu navegador no soporta notificaciones push.');
+    if (!this.isSupported()) {
+      const isIos = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIos) throw new Error('En iPhone/iPad, primero agrega oomfy a la pantalla de inicio desde Compartir.');
+      throw new Error('Tu navegador no soporta notificaciones push.');
+    }
     const permission = await Notification.requestPermission();
     return permission === 'granted' ? this.renewSubscription() : false;
   }
@@ -68,9 +72,11 @@ export class PushNotificationService {
     try {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
-      if (!sub) return false;
+      if (!sub) return this.renewSubscription();
       const json = sub.toJSON();
       if (json?.endpoint && json?.keys?.p256dh && json?.keys?.auth) {
+        const pref = await PushPreferencesApi.getPreferences(json.endpoint).catch(() => null);
+        if (pref?.status === 'expired') return this.renewSubscription();
         await ApiClient.post('/notifications/subscribe', { endpoint: json.endpoint, keys: json.keys });
         return true;
       }
@@ -81,14 +87,9 @@ export class PushNotificationService {
   public static async checkSubscriptionHealth(): Promise<{ healthy: boolean; needsReconnect: boolean }> {
     if (!this.isPermissionGranted()) return { healthy: false, needsReconnect: false };
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      if (!sub) return { healthy: false, needsReconnect: true };
-      const statusRes = await PushPreferencesApi.getPreferences(sub.endpoint);
-      if (statusRes?.status === 'expired') return { healthy: false, needsReconnect: true };
-      await this.syncSubscription();
-      return { healthy: true, needsReconnect: false };
-    } catch { return { healthy: false, needsReconnect: false }; }
+      const ok = await this.syncSubscription();
+      return { healthy: ok, needsReconnect: !ok };
+    } catch { return { healthy: false, needsReconnect: true }; }
   }
 
   public static getPreferences = PushPreferencesApi.getPreferences.bind(PushPreferencesApi);

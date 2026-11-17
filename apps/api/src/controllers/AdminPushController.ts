@@ -19,6 +19,7 @@ export class AdminPushController {
         title: title.trim(),
         body: body.trim(),
         url: url?.trim() || '/notifications',
+        icon: typeof req.body.icon === 'string' && req.body.icon.trim() ? req.body.icon.trim() : '/assets/oomfy-logo-black-bg.png',
       };
 
       if (target_username && typeof target_username === 'string' && target_username.trim()) {

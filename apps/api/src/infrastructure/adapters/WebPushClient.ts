@@ -5,7 +5,9 @@ export interface WebPushPayload {
   title: string;
   body: string;
   icon?: string;
+  image?: string;
   url?: string;
+  tag?: string;
 }
 
 export class WebPushClient {
@@ -37,7 +39,9 @@ export class WebPushClient {
       title: payload.title || 'oomfy',
       body: payload.body || '',
       icon: payload.icon || '/assets/oomfy-logo-black-bg.png',
+      image: payload.image || undefined,
       url: payload.url || '/notifications',
+      tag: payload.tag || undefined,
     });
   }
 
@@ -46,7 +50,11 @@ export class WebPushClient {
     dataString: string
   ): Promise<void> {
     this.ensureInitialized();
-    await webpush.sendNotification(subscription, dataString);
+    await webpush.sendNotification(subscription, dataString, {
+      TTL: 86400,
+      urgency: 'high',
+      headers: { 'apns-push-type': 'alert', 'apns-priority': '10' },
+    });
   }
 }
 

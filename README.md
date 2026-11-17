@@ -255,7 +255,7 @@ PORT=4000
 FRONTEND_URL=http://localhost:5173
 # En producción:
 # FRONTEND_URL=https://oomfy.online
-# BACKEND_URL=https://api-oomfy.onrender.com
+# BACKEND_URL=https://api.oomfy.online
 
 # Seguridad y Criptografía
 JWT_SECRET=tu_clave_secreta_jwt_muy_segura
@@ -370,7 +370,7 @@ Para desplegar el backend y el frontend en proyectos independientes dentro de Re
   apps/web/dist
   ```
 * **Variables de Entorno:**
-  * `VITE_API_URL`: URL del backend en Render (ej. `https://api-oomfy.onrender.com`)
+  * `VITE_API_URL`: URL del backend en Render (ej. `https://api.oomfy.online`)
 * **Regla de Redirección (SPA Rewrites):**
   * En la pestaña **Redirects/Rewrites** de Render, agregar:
     * **Source:** `/*`

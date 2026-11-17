@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { resolveMediaUrl } from '../../utils/mediaUrl.js';
+import { ImageMemoryCache } from '../../utils/imageCache.js';
 
 interface Props {
   src?: string | null;
   username?: string;
   sizeClass?: string;
   className?: string;
+  priority?: boolean;
   onClick?: (e: React.MouseEvent) => void;
 }
 
@@ -14,11 +16,13 @@ export const PixelAvatar: React.FC<Props> = ({
   username = 'OM',
   sizeClass = 'w-10 h-10',
   className = '',
+  priority = false,
   onClick,
 }) => {
   const [hasError, setHasError] = useState(false);
   const initials = (username || 'OM').slice(0, 2).toUpperCase();
   const resolvedSrc = resolveMediaUrl(src);
+  const isCached = ImageMemoryCache.has(resolvedSrc);
 
   React.useEffect(() => {
     setHasError(false);
@@ -35,8 +39,9 @@ export const PixelAvatar: React.FC<Props> = ({
           alt={username}
           width={40}
           height={40}
-          loading="lazy"
-          decoding="async"
+          loading={priority || isCached ? 'eager' : 'lazy'}
+          decoding={isCached ? 'sync' : 'auto'}
+          onLoad={() => ImageMemoryCache.mark(resolvedSrc)}
           onError={() => setHasError(true)}
           className="w-full h-full object-cover"
           draggable={false}

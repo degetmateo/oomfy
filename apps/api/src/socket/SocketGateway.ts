@@ -51,8 +51,9 @@ export class SocketGateway {
   public static broadcastChatMessage(chatId: string, message: any): void {
     this.io?.to(`chat:${chatId}`).emit('new-message', message);
   }
-  public static broadcastDeleteMessage(chatId: string, messageId: string): void {
+  public static broadcastDeleteMessage(chatId: string, messageId: string, participants: string[] = []): void {
     this.io?.to(`chat:${chatId}`).emit('delete-message', { chatId, messageId });
+    for (const p of participants) this.io?.to(`user:${p}`).emit('delete-message', { chatId, messageId });
   }
   public static setUserInvisible(userId: string, invisible: boolean): void {
     if (invisible) this.invisibleUsers.add(userId);

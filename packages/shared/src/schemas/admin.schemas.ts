@@ -49,6 +49,7 @@ export const AdminPushBroadcastSchema = z.object({
     (v) => v.startsWith('/') && !v.startsWith('//') && !v.startsWith('\\'),
     { error: 'La URL debe ser una ruta interna segura.' }
   ),
+  icon: z.string().trim().max(500).optional(),
   target_username: z.preprocess(
     emptyToNull,
     z

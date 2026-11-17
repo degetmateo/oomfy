@@ -61,4 +61,23 @@ describe('ChatInputBar Component', () => {
     await new Promise((r) => requestAnimationFrame(r));
     expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
   });
+
+  it('keeps/autofocuses textarea on submit and prevents blur on pointerDown', async () => {
+    const onSend = vi.fn();
+    renderComponent({
+      replyingTo: null, onCancelReply: vi.fn(), onSendMessage: onSend, onTyping: vi.fn(),
+    });
+    const textarea = screen.getByPlaceholderText('Escribe un mensaje...') as HTMLTextAreaElement;
+    const focusSpy = vi.spyOn(textarea, 'focus');
+    fireEvent.change(textarea, { target: { value: 'Hola oomfies' } });
+
+    const sendBtn = screen.getByRole('button', { name: /enviar mensaje/i });
+    const pointerEv = new MouseEvent('pointerdown', { bubbles: true, cancelable: true });
+    sendBtn.dispatchEvent(pointerEv);
+    expect(pointerEv.defaultPrevented).toBe(true);
+
+    fireEvent.click(sendBtn);
+    expect(onSend).toHaveBeenCalledTimes(1);
+    expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+  });
 });

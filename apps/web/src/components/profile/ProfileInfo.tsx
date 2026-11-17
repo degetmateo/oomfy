@@ -2,6 +2,7 @@ import React from 'react';
 import { PixelBadge } from '../icons/PixelBadge.js';
 import { FormattedText } from '../common/FormattedText.js';
 import { resolveMediaUrl } from '../../utils/mediaUrl.js';
+import { ImageMemoryCache } from '../../utils/imageCache.js';
 import { PublicUser } from '@oomfy/shared';
 import { ReportModal } from '../modals/ReportModal.js';
 import { ProfileMeta } from './ProfileMeta.js';
@@ -32,7 +33,13 @@ export const ProfileInfo: React.FC<Props> = ({ user: rawUser, isOwnProfile = fal
           }`}
         >
           {user.icon_url ? (
-            <img src={resolveMediaUrl(user.icon_url) || ''} alt={user.username} className="w-full h-full object-cover" />
+            <img
+              src={resolveMediaUrl(user.icon_url) || ''}
+              alt={user.username}
+              onLoad={() => ImageMemoryCache.mark(resolveMediaUrl(user.icon_url))}
+              decoding={ImageMemoryCache.has(resolveMediaUrl(user.icon_url)) ? 'sync' : 'auto'}
+              className="w-full h-full object-cover"
+            />
           ) : (
             user.username.slice(0, 2).toUpperCase()
           )}

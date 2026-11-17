@@ -53,12 +53,10 @@ export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSen
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!hasPayload) return;
-    const payload: OutgoingChatPayload = {
-      content: content.trim(), files: [...media.files], gifUrl: media.gifs[0] || null,
-      replyToId: replyingTo?.id || null, replyTo: replyingTo,
-    };
+    const payload: OutgoingChatPayload = { content: content.trim(), files: [...media.files], gifUrl: media.gifs[0] || null, replyToId: replyingTo?.id || null, replyTo: replyingTo };
     setContent(''); media.clearMedia(); onCancelReply();
-    if (media.textareaRef.current) media.textareaRef.current.style.height = 'auto';
+    if (media.textareaRef.current) { media.textareaRef.current.style.height = 'auto'; media.textareaRef.current.focus({ preventScroll: true }); }
+    requestAnimationFrame(() => media.textareaRef.current?.focus({ preventScroll: true }));
     void onSendMessage(payload);
   };
 
@@ -86,7 +84,7 @@ export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSen
         </div>
         <label htmlFor="chat-message-input" className="sr-only">Escribe un mensaje</label>
         <textarea id="chat-message-input" name="message" enterKeyHint="send" ref={media.attachTextareaRef} rows={1} maxLength={maxLen} value={content} onChange={(e) => { setContent(e.target.value); onTyping(); }} onKeyDown={handleKeyDown} onPaste={media.handlePaste} onFocus={() => { onFocus?.(); setTimeout(() => media.textareaRef.current?.scrollIntoView({ block: 'nearest' }), 100); }} placeholder="Escribe un mensaje..." className="flex-1 min-w-0 px-3 py-2.5 bg-dark-card border border-dark-border text-base text-white focus:outline-none focus:border-brand-500 font-sans resize-none max-h-28 overflow-y-auto leading-relaxed" />
-        <button type="submit" disabled={!hasPayload} aria-label="Enviar mensaje" className="px-3.5 sm:px-4 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-black font-bold text-xs pixel-button flex items-center justify-center font-mono flex-shrink-0">
+        <button type="submit" disabled={!hasPayload} onPointerDown={(e) => { if (hasPayload) e.preventDefault(); }} aria-label="Enviar mensaje" className="px-3.5 sm:px-4 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-black font-bold text-xs pixel-button flex items-center justify-center font-mono flex-shrink-0">
           <Send className="w-5 h-5" aria-hidden="true" />
         </button>
       </form>

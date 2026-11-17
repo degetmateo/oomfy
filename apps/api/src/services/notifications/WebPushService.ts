@@ -51,7 +51,9 @@ export class WebPushService {
           sent++;
         } catch (err: any) {
           failed++;
-          if (err?.statusCode === 404 || err?.statusCode === 410) await PushSubscriptionRepository.markExpired(sub.endpoint);
+          if ([400, 403, 404, 410].includes(err?.statusCode)) {
+            await PushSubscriptionRepository.markExpired(sub.endpoint);
+          }
         }
       })
     );

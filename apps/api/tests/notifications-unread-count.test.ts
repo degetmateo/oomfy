@@ -45,6 +45,6 @@ describe('Notifications Unread Count & Dispatcher', () => {
     });
     expect(createSpy).toHaveBeenCalledTimes(1);
     expect(socketSpy).toHaveBeenCalledWith('u-2', expect.objectContaining({ type: 'upvote', target_publication_id: 'pub-1' }));
-    expect(pushSpy).toHaveBeenCalledWith('u-2', { title: 'Alice liked', body: 'Hi', url: '/publication/pub-1' }, 'upvotes');
+    expect(pushSpy).toHaveBeenCalledWith('u-2', expect.objectContaining({ title: 'Alice liked', body: 'Hi', url: '/publication/pub-1' }), 'upvotes');
   });
 });
