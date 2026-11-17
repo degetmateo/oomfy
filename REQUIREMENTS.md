@@ -979,15 +979,15 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - `PushSubscriptionRepository.findActiveSubscriptions` recupera todos los endpoints activos (`is_active: { $ne: false }`) del usuario que coincidan con las preferencias de la categoría.
     - `WebPushService.sendPushToUser` despacha en paralelo a todos los dispositivos registrados utilizando `Promise.all`.
     - En `WebPushClient.ts`, se evalúa mediante parseo de URL seguro si el endpoint corresponde al servicio de Apple (`apple.com`), enviando cabeceras de alerta APNs (`apns-push-type`, `apns-priority`) exclusivamente a dispositivos iOS/macOS y omitiéndolas en FCM (Google/Android/PC) y Mozilla.
-  - *Aislamiento Estricto de Desuscripción por Dispositivo (`NotificationController.ts`, `PushSubscriptionRepository.ts`):*
+  - *Aislamiento Estricto de Preferencias y Desuscripción por Dispositivo (`NotificationController.ts`, `PushSubscriptionRepository.ts`):*
+    - Cada suscripción (`endpoint`) almacena y gestiona sus propias preferencias de notificación (`PushPreferences`) de forma completamente independiente. Modificar preferencias en la PC (por ejemplo silenciar mensajes) no afecta ni altera las preferencias activas en el celular, permitiendo al usuario recibir mensajes en móvil mientras solo recibe respuestas o menciones en desktop.
     - Desuscribirse o cerrar sesión en un dispositivo (`POST /api/notifications/unsubscribe` con `{ endpoint }`) desactiva única y exclusivamente el endpoint de ese dispositivo específico (`is_active: false`, `status: 'inactive'`).
     - Las suscripciones activas en los demás dispositivos del usuario permanecen 100% activas y continúan recibiendo notificaciones sin interrupciones.
     - Si una petición no provee un endpoint válido, se ignora de forma segura en lugar de desactivar globalmente todos los dispositivos del usuario.
-  - *Sincronización de Preferencias y Prevención de Falsas Alarmas (`AppPwaSettingsTab.tsx`, `PushSubscriptionRepository.ts`):*
-    - `updatePreferences` propaga las actualizaciones de configuración a todas las suscripciones del usuario, garantizando que el filtrado de categorías de notificación se mantenga sincronizado entre PC y móvil.
+  - *Prevención de Falsas Alarmas en Cliente (`AppPwaSettingsTab.tsx`):*
     - En `AppPwaSettingsTab.tsx`, se corrigió la verificación del estado de suscripción para evitar que el banner de aviso de desconexión parpadee mientras el endpoint se encuentra cargando en el cliente.
   - *Verificación y Calidad de Código (`multi-device-push-subscriptions.test.ts`):*
-    - Nueva suite de integración en `@oomfy/api` que valida el ciclo completo multidispositivo: suscripción concurrente en PC y móvil, recepción simultánea, desuscripción aislada de PC con persistencia activa en móvil y sincronización de preferencias.
+    - Nueva suite de integración en `@oomfy/api` que valida el ciclo completo multidispositivo: suscripción concurrente en PC y móvil, recepción simultánea, desuscripción aislada de PC con persistencia activa en móvil y preferencias estrictamente independientes por dispositivo.
     - 60 suites de prueba en `@oomfy/web` (170 tests) y 45 suites en `@oomfy/api` (150 tests) pasando al 100%, 0 errores en `pnpm build`, cumplimiento estricto de **RNF-01** (< 100 LOC) y 0 trazas residuales en MongoDB (**RNF-08**).
 
 

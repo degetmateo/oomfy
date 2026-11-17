@@ -33,8 +33,7 @@ export class PushSubscriptionRepository {
       if (!sameOwner) throw new ForbiddenError('Esta suscripción push ya está registrada en otra cuenta activa.');
     }
 
-    const userSub = await col.findOne({ user_id: { $in: MongoIdHelper.idVariants(userId) }, preferences: { $exists: true } });
-    const preferences = userSub?.preferences || { ...DEFAULT_PUSH_PREFERENCES };
+    const preferences = existing?.preferences || { ...DEFAULT_PUSH_PREFERENCES };
     const id = uuidv7();
     const updateSet = { user_id: mongoUid, endpoint: data.endpoint, keys: data.keys, is_active: true, status: 'active', preferences, updated_at: now };
     await col.updateOne({ endpoint: data.endpoint }, { $set: updateSet, $setOnInsert: { _id: MongoIdHelper.toMongoId(id), id, created_at: now } }, { upsert: true });
@@ -54,13 +53,11 @@ export class PushSubscriptionRepository {
 
   public static async getPreferences(userId: string, endpoint?: string | null): Promise<{ preferences: PushPreferences; is_active: boolean; status: string }> {
     const col = this.getCollection();
-    let doc = endpoint && endpoint.trim() ? await col.findOne(this.buildScopedFilter(userId, endpoint)) : null;
-    if (!doc) doc = await col.findOne({ user_id: { $in: MongoIdHelper.idVariants(userId) }, is_active: { $ne: false } }, { sort: { updated_at: -1 } });
-    if (!doc) return { preferences: { ...DEFAULT_PUSH_PREFERENCES }, is_active: false, status: 'inactive' };
+    const doc = endpoint && endpoint.trim() ? await col.findOne(this.buildScopedFilter(userId, endpoint)) : await col.findOne({ user_id: { $in: MongoIdHelper.idVariants(userId) }, is_active: { $ne: false } }, { sort: { updated_at: -1 } });
     return {
-      preferences: { ...DEFAULT_PUSH_PREFERENCES, ...(doc.preferences || {}) },
-      is_active: doc.is_active !== false,
-      status: (doc.status as string) || 'active',
+      preferences: { ...DEFAULT_PUSH_PREFERENCES, ...(doc?.preferences || {}) },
+      is_active: doc ? doc.is_active !== false : false,
+      status: (doc?.status as string) || (doc?.is_active === false ? 'inactive' : 'inactive'),
     };
   }
 
@@ -69,8 +66,9 @@ export class PushSubscriptionRepository {
     for (const [k, v] of Object.entries(preferences)) {
       if (PREF_KEYS.has(k) && typeof v === 'boolean') setUpdates[`preferences.${k}`] = v;
     }
-    await this.getCollection().updateMany({ user_id: { $in: MongoIdHelper.idVariants(userId) } }, { $set: setUpdates });
-    return (await this.getPreferences(userId, endpoint)).preferences;
+    const safeEndpoint = typeof endpoint === 'string' && endpoint.trim().length > 0 ? endpoint : null;
+    await this.getCollection().updateMany(this.buildScopedFilter(userId, safeEndpoint), { $set: setUpdates });
+    return (await this.getPreferences(userId, safeEndpoint)).preferences;
   }
 
   public static async findActiveSubscriptions(userId: string, category?: keyof PushPreferences): Promise<any[]> {
