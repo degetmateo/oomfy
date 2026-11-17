@@ -144,3 +144,24 @@ dialog::backdrop {
     padding-bottom: 0 !important;
   }
 }
+
+/* Preserved SPA sub-tab state caching & below-the-fold feed rendering optimization */
+.spa-tab-panel-inactive {
+  content-visibility: hidden;
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@supports not (content-visibility: hidden) {
+  .spa-tab-panel-inactive {
+    display: none;
+  }
+}
+
+.feed-card-deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 160px;
+}

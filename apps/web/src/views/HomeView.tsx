@@ -42,8 +42,8 @@ export const HomeView: React.FC = () => {
         ) : allPosts.length > 0 ? (
           <>
             <div className="divide-y divide-dark-border">
-              {allPosts.map((post) => (
-                <PublicationCard key={post.id} post={post} />
+              {allPosts.map((post, idx) => (
+                <PublicationCard key={post.id} post={post} index={idx} />
               ))}
             </div>
             <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">

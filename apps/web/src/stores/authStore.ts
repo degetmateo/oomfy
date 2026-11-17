@@ -31,6 +31,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   setAuth: (user, token, refreshToken) => {
     setAccessToken(token);
     if (refreshToken) safeLocalSet('oomfy_refresh_token', refreshToken);
+    if (refreshToken || safeLocalGet('oomfy_refresh_token')) safeLocalSet('oomfy_cached_user', JSON.stringify(user));
     set({ user, token, isAuthenticated: true, isLoading: false });
   },
 
@@ -40,12 +41,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ token, isAuthenticated: true });
   },
 
-  setUser: (user) => set({ user, isAuthenticated: true, isLoading: false }),
+  setUser: (user) => {
+    if (safeLocalGet('oomfy_refresh_token')) safeLocalSet('oomfy_cached_user', JSON.stringify(user));
+    set({ user, isAuthenticated: true, isLoading: false });
+  },
 
   logout: (notifyServer = true) => {
     const rt = safeLocalGet('oomfy_refresh_token');
     safeLocalRemove('oomfy_token');
     safeLocalRemove('oomfy_refresh_token');
+    safeLocalRemove('oomfy_cached_user');
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('oomfy:clear-local-cache'));
     PushNotificationService.unsubscribe().catch(() => {});
     if (notifyServer !== false) {
       ApiClient.post('/auth/logout', rt ? { refreshToken: rt } : {}).catch(() => {});

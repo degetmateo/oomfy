@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Header } from '../components/layout/Header.js';
+import { CachedTabPanel } from '../components/common/CachedTabPanel.js';
 import { ApiClient } from '../services/api.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
 import {
@@ -44,10 +45,10 @@ export const PublicationInteractionsView: React.FC = () => {
     <div {...touchHandlers} className="flex flex-col min-h-screen font-mono">
       <Header title="Interacciones" subtitle={subtitle} showBack />
       <PublicationInteractionsTabs activeTab={activeTab} onChangeTab={handleTabChange} />
-      <div className="flex-1">
-        {activeTab === 'quotes' && <PublicationInteractionsQuotesTab publicationId={id} />}
-        {activeTab === 'shares' && <PublicationInteractionsUsersTab publicationId={id} type="shares" />}
-        {activeTab === 'likes' && <PublicationInteractionsUsersTab publicationId={id} type="likes" />}
+      <div className="flex-1 relative">
+        <CachedTabPanel active={activeTab === 'quotes'}><PublicationInteractionsQuotesTab publicationId={id} /></CachedTabPanel>
+        <CachedTabPanel active={activeTab === 'shares'}><PublicationInteractionsUsersTab publicationId={id} type="shares" /></CachedTabPanel>
+        <CachedTabPanel active={activeTab === 'likes'}><PublicationInteractionsUsersTab publicationId={id} type="likes" /></CachedTabPanel>
       </div>
     </div>
   );

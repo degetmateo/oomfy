@@ -15,7 +15,9 @@ import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useCursorFeed } from '../hooks/useCursorFeed.js';
 import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
+import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
+import { RoutePrefetchService } from '../services/RoutePrefetchService.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
 
 const PROFILE_TABS: readonly ProfileTab[] = ['posts', 'replies', 'likes'];
@@ -40,8 +42,11 @@ export const ProfileView: React.FC = () => {
       if (res?.data) useEntityRegistryStore.getState().ingestUsers([res.data]);
       return res;
     },
-    staleTime: 5 * 60 * 1000,
-    enabled: Boolean(username),
+    placeholderData: () => {
+      const cached = userIdentityMap.get(username) || (currentUser && username && currentUser.username.toLowerCase() === username.toLowerCase() ? currentUser : undefined);
+      return cached ? { success: true, data: cached } : undefined;
+    },
+    staleTime: 5 * 60 * 1000, enabled: Boolean(username),
   });
 
   const { posts, isLoading: loadingPosts, isFetchingNextPage, refetch: refetchPosts, loadMoreRef } = useCursorFeed({
@@ -77,15 +82,10 @@ export const ProfileView: React.FC = () => {
           {user?.banner_url && <img src={resolveMediaUrl(user.banner_url) || ''} alt="Banner" className="w-full h-full object-cover" />}
         </div>
         {user && <ProfileInfo user={user} isOwnProfile={isOwnProfile} onEditClick={() => setIsEditOpen(true)} onAvatarClick={setZoomedImage} />}
-        <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} />
+        <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} onPrefetchTab={(tab) => username && RoutePrefetchService.prefetchProfileTab(queryClient, username, tab)} />
         <ProfileFeed
-          activeTab={activeTab}
-          posts={posts}
-          pinnedPublication={user?.pinned_publication}
-          pinnedByName={user?.name}
-          loadingPosts={loadingPosts}
-          isFetchingNextPage={isFetchingNextPage}
-          loadMoreRef={loadMoreRef}
+          activeTab={activeTab} posts={posts} pinnedPublication={user?.pinned_publication} pinnedByName={user?.name}
+          loadingPosts={loadingPosts} isFetchingNextPage={isFetchingNextPage} loadMoreRef={loadMoreRef}
         />
         {isOwnProfile && isEditOpen && user && (
           <EditProfileModal key={user.id} user={user} isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} onUpdated={() => { queryClient.invalidateQueries({ queryKey: ['profile'] }); PublicationCacheService.invalidatePublicationLists(queryClient); }} />

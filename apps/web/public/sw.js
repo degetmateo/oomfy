@@ -1,10 +1,22 @@
 const STATIC_CACHE = 'oomfy-static-v2';
+const IMAGE_CACHE = 'oomfy-images-v1';
+const MAX_IMAGE_CACHE_ITEMS = 160;
+const ACTIVE_CACHES = new Set([STATIC_CACHE, IMAGE_CACHE]);
+
+async function trimImageCache(cache) {
+  try {
+    const keys = await cache.keys();
+    if (keys.length > MAX_IMAGE_CACHE_ITEMS) {
+      await Promise.all(keys.slice(0, keys.length - MAX_IMAGE_CACHE_ITEMS).map((k) => cache.delete(k)));
+    }
+  } catch {}
+}
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== STATIC_CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => !ACTIVE_CACHES.has(k)).map((k) => caches.delete(k))))
       .catch(() => {})
       .then(() => self.clients.claim())
   );
@@ -14,28 +26,56 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;
-  if (!url.pathname.startsWith('/assets/') && !url.pathname.startsWith('/fonts/')) return;
-  const isCacheableAsset = (res) => {
-    const ct = String(res.headers.get('content-type') || '').toLowerCase();
-    return res.ok && res.type === 'basic' && !res.redirected && !ct.includes('text/html');
-  };
-  event.respondWith(
-    caches.match(req).catch(() => null).then((cached) => {
-      if (cached) {
-        const cachedCt = String(cached.headers.get('content-type') || '').toLowerCase();
-        if (!cachedCt.includes('text/html')) return cached;
-        caches.open(STATIC_CACHE).then((c) => c.delete(req)).catch(() => {});
-      }
-      return fetch(req).then((res) => {
-        if (isCacheableAsset(res)) {
-          const clone = res.clone();
-          caches.open(STATIC_CACHE).then((c) => c.put(req, clone)).catch(() => {});
+  const isSameOrigin = url.origin === self.location.origin;
+
+  if (isSameOrigin && (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/fonts/'))) {
+    const isCacheableAsset = (res) => {
+      const ct = String(res.headers.get('content-type') || '').toLowerCase();
+      return res.ok && res.type === 'basic' && !res.redirected && !ct.includes('text/html');
+    };
+    event.respondWith(
+      caches.match(req).catch(() => null).then((cached) => {
+        if (cached) {
+          const cachedCt = String(cached.headers.get('content-type') || '').toLowerCase();
+          if (!cachedCt.includes('text/html')) return cached;
+          caches.open(STATIC_CACHE).then((c) => c.delete(req)).catch(() => {});
         }
-        return res;
-      });
-    }).catch(() => fetch(req).catch(() => Response.error()))
-  );
+        return fetch(req).then((res) => {
+          if (isCacheableAsset(res)) {
+            const clone = res.clone();
+            caches.open(STATIC_CACHE).then((c) => c.put(req, clone)).catch(() => {});
+          }
+          return res;
+        });
+      }).catch(() => fetch(req).catch(() => Response.error()))
+    );
+    return;
+  }
+
+  const isMemberMedia = /^\/members\/[^/]+\/(icon|banner)$/.test(url.pathname);
+  if (req.destination !== 'image' && !isMemberMedia) return;
+
+  const isCacheableImage = (res) => {
+    const ct = String(res.headers.get('content-type') || '').toLowerCase();
+    return res.ok && (res.type === 'basic' || res.type === 'cors') && ct.startsWith('image/');
+  };
+
+  event.respondWith((async () => {
+    const cache = await caches.open(IMAGE_CACHE).catch(() => null);
+    const cached = cache ? await cache.match(req).catch(() => null) : null;
+    const networkFetch = fetch(req).then(async (res) => {
+      if (cache && isCacheableImage(res)) {
+        await cache.put(req, res.clone()).catch(() => {});
+        await trimImageCache(cache);
+      }
+      return res;
+    });
+    if (cached) {
+      event.waitUntil(networkFetch.catch(() => {}));
+      return cached;
+    }
+    return networkFetch.catch(() => Response.error());
+  })());
 });
 
 function getApiBase() {

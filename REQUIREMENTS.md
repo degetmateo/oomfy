@@ -861,6 +861,19 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Se añaden timeouts con `Promise.race` en `ApiClient.refreshAccessToken` y `useSessionInitializer`, guardas seguras para `window.matchMedia` y `navigator.serviceWorker`, separación de reglas `:has(...)` y `.keyboard-open` en `index.css`, recuperación automática ante `vite:preloadError` y migración del caché del Service Worker a `oomfy-static-v2` rechazando respuestas `text/html` en `/assets/`.
     - Cobertura de pruebas en `apps/api/tests/security-headers.test.ts` y `apps/web/tests/boot-loading-gate.test.tsx` verificando las cabeceras, normalización HTTPS y arranque sin errores bajo almacenamiento/APIs bloqueadas.
 
+- **Hito 60: Caché Local en IndexedDB (SWR), Caché de Imágenes en Service Worker, bfcache y Cambio Instantáneo de Vistas y Subpestañas:**
+  - *Persistencia Local en IndexedDB + Revalidación en Segundo Plano (`LocalCacheDb`, `QueryPersistenceService`, `authStore`, `useSessionInitializer`, `App`):*
+    - Base de datos local IndexedDB (`oomfy_local_db` / almacén `cache_entries`, con respaldo en memoria ante WebViews restringidos) que persiste snapshots por usuario de `QueryClient` (feeds, perfiles, explorar, comunidades, chats, notificaciones), `publicationIdentityMap` y `userIdentityMap` con ventana de vigencia de 24h y rehidratación marcada como *stale* (Stale-While-Revalidate) para pintar la UI al instante al reabrir la app mientras se revalidan los datos actuales en segundo plano.
+    - Caché de `PublicUser` en `oomfy_cached_user` para desbloquear el arranque sin bloquearse esperando `/members/me`, manteniendo su actualización en segundo plano y limpieza completa del almacén local en `logout`.
+  - *Caché de Imágenes en Service Worker y Habilitación de bfcache (`sw.js`, `_headers`, `vite.config.ts`):*
+    - Almacén `oomfy-images-v1` (máximo 160 entradas LRU/FIFO) con estrategia *Stale-While-Revalidate* para imágenes (`basic`/`cors` con MIME `image/*`) y endpoints `/members/:username/(icon|banner)`.
+    - Sustitución de `no-store` por `no-cache, max-age=0, must-revalidate` en `/index.html` y `/sw.js` para habilitar el Back-Forward Cache (*bfcache*) del navegador sin servir HTML obsoleto.
+  - *Cambio Instantáneo de Vistas, Subpestañas y Renderizado de Feed (`CachedTabPanel`, `RoutePrefetchService`, `ObservableSubject`, `PublicationIdentityMap`, `UserIdentityMap`, `useCursorFeed`, `Navbar`, `MobileBottomNav`, `ProfileView`, `ProfileTabs`, `ExploreView`, `PublicationInteractionsView`, `SettingsView`, `PublicationCard`, `HomeView`, `ProfileFeed`, `MediaGrid`, `PixelAvatar`, `index.css`):*
+    - Implementación de `<CachedTabPanel />` con montaje diferido y conservación de DOM mediante `content-visibility: hidden` + `inert` (respaldo `@supports not` con `display: none`) en `ExploreView`, `PublicationInteractionsView` y `SettingsView`.
+    - Prefetching en `hover`/`touchStart` desde `Navbar`, `MobileBottomNav` y `ProfileTabs` (`RoutePrefetchService`), `placeholderData` inmediato para perfiles desde `userIdentityMap` y poblamiento automático de autores al ingerir feeds (`useCursorFeed`).
+    - Agrupación por lotes `notifyMany` en `ObservableSubject` para evitar $O(N^2)$ clonaciones en suscripciones globales, memoización `React.memo(PublicationCard)`, `content-visibility: auto` con `contain-intrinsic-size` en tarjetas bajo el pliegue (`index >= 4`), `fetchpriority="high"` exclusivo para el primer adjunto del feed (`index === 0`) y `loading="lazy"` + `decoding="async"` + dimensiones explícitas en avatares/medios restantes.
+    - Cobertura de pruebas en `apps/web/tests/local-cache-and-prefetch.test.tsx` verificando persistencia IndexedDB + SWR, `<CachedTabPanel>`, `notifyMany`, `feed-card-deferred` y `fetchpriority="high"`.
+
 
 
 

@@ -1,5 +1,5 @@
 import { useInfiniteQuery, QueryKey } from '@tanstack/react-query';
-import { Publication } from '@oomfy/shared';
+import { Publication, PublicUser } from '@oomfy/shared';
 import { ApiClient } from '../services/api.js';
 import { useInfiniteScroll } from './useInfiniteScroll.js';
 import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
@@ -19,7 +19,11 @@ export function useCursorFeed({ queryKey, buildUrl, limit = 20, enabled = true }
       const res = await ApiClient.get<{ success: boolean; data: Publication[] }>(
         buildUrl(pageParam ? String(pageParam) : null)
       );
-      useEntityRegistryStore.getState().ingestPublications(res?.data || [], fetchedAt);
+      const items = res?.data || [];
+      const registry = useEntityRegistryStore.getState();
+      registry.ingestPublications(items, fetchedAt);
+      const authors = items.flatMap((p) => [p?.author, p?.target_publication?.author]).filter(Boolean);
+      if (authors.length > 0) registry.ingestUsers(authors as unknown as PublicUser[]);
       return res;
     },
     initialPageParam: null as string | null,

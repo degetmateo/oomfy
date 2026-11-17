@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
 import { PublicationCard } from '../components/publication/PublicationCard.js';
+import { CachedTabPanel } from '../components/common/CachedTabPanel.js';
 import { ExploreFilterPanel } from '../components/explore/ExploreFilterPanel.js';
 import { ExploreUsersTab } from '../components/explore/ExploreUsersTab.js';
 import { useCursorFeed } from '../hooks/useCursorFeed.js';
@@ -77,16 +78,18 @@ export const ExploreView: React.FC = () => {
       {showFilters && activeTab === 'posts' && (
         <ExploreFilterPanel values={filters} onChange={setFilters} onReset={() => setFilters({ author: '', since: '', until: '', hasMedia: false })} />
       )}
-
-      <div>
-        {activeTab === 'posts' ? (
-          loadingPosts ? <div className="p-8 text-center text-xs text-dark-muted">Buscando publicaciones...</div> : allPosts.length > 0 ? (
+      <div className="relative">
+        <CachedTabPanel active={activeTab === 'posts'}>
+          {loadingPosts ? <div className="p-8 text-center text-xs text-dark-muted">Buscando publicaciones...</div> : allPosts.length > 0 ? (
             <>
-              {allPosts.map((post) => <PublicationCard key={post.id} post={post} />)}
+              {allPosts.map((post, idx) => <PublicationCard key={post.id} post={post} index={idx} />)}
               <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">{isFetchingNextPage && <span>Cargando más publicaciones...</span>}</div>
             </>
-          ) : <div className="p-8 text-center text-xs text-dark-muted">No se encontraron publicaciones.</div>
-        ) : <ExploreUsersTab searchTerm={searchTerm} />}
+          ) : <div className="p-8 text-center text-xs text-dark-muted">No se encontraron publicaciones.</div>}
+        </CachedTabPanel>
+        <CachedTabPanel active={activeTab === 'users'}>
+          <ExploreUsersTab searchTerm={searchTerm} />
+        </CachedTabPanel>
       </div>
     </div>
   );

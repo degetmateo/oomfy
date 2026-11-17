@@ -35,6 +35,7 @@ export class UserIdentityMap {
   }
 
   public ingest(items: Array<PublicUser | null | undefined>): void {
+    const changed: string[] = [];
     for (const u of items) {
       if (!u?.username) continue;
       const key = u.username.toLowerCase();
@@ -47,8 +48,9 @@ export class UserIdentityMap {
         publication_count: Math.max(0, merged.publication_count || 0),
       };
       this.users.set(key, next);
-      this.subject.notify(key);
+      changed.push(key);
     }
+    if (changed.length > 0) this.subject.notifyMany(changed);
   }
 
   public patch(username: string, updater: (prev: PublicUser) => PublicUser): PublicUser | undefined {
@@ -59,6 +61,10 @@ export class UserIdentityMap {
     this.users.set(key, next);
     this.subject.notify(key);
     return next;
+  }
+
+  public getAll(): PublicUser[] {
+    return Array.from(this.users.values());
   }
 
   public clear(): void {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Shield, Key, Laptop, Smartphone, Sparkles } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
+import { CachedTabPanel } from '../components/common/CachedTabPanel.js';
 import { AccountSettingsTab } from '../components/settings/AccountSettingsTab.js';
 import { CustomizationSettingsTab } from '../components/settings/CustomizationSettingsTab.js';
 import { SecuritySettingsTab } from '../components/settings/SecuritySettingsTab.js';
@@ -62,12 +63,12 @@ export const SettingsView: React.FC = () => {
         })}
       </div>
 
-      <div className="p-4 sm:p-6 max-w-xl">
-        {activeTab === 'account' && <AccountSettingsTab />}
-        {activeTab === 'customization' && <CustomizationSettingsTab />}
-        {activeTab === 'security' && <SecuritySettingsTab />}
-        {activeTab === 'sessions' && <SessionsSettingsTab />}
-        {activeTab === 'app' && <AppPwaSettingsTab />}
+      <div className="p-4 sm:p-6 max-w-xl relative">
+        <CachedTabPanel active={activeTab === 'account'}><AccountSettingsTab /></CachedTabPanel>
+        <CachedTabPanel active={activeTab === 'customization'}><CustomizationSettingsTab /></CachedTabPanel>
+        <CachedTabPanel active={activeTab === 'security'}><SecuritySettingsTab /></CachedTabPanel>
+        <CachedTabPanel active={activeTab === 'sessions'}><SessionsSettingsTab /></CachedTabPanel>
+        <CachedTabPanel active={activeTab === 'app'}><AppPwaSettingsTab /></CachedTabPanel>
 
         <LogoutSection />
 

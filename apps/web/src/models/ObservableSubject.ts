@@ -28,13 +28,25 @@ export class ObservableSubject {
     if (id) {
       const set = this.listenersById.get(id.toLowerCase());
       if (set) {
-        for (const listener of Array.from(set)) {
-          listener();
-        }
+        for (const listener of Array.from(set)) listener();
       }
     }
-    for (const listener of Array.from(this.globalListeners)) {
-      listener();
+    for (const listener of Array.from(this.globalListeners)) listener();
+  }
+
+  public notifyMany(ids: Iterable<string>): void {
+    const notified = new Set<string>();
+    for (const rawId of ids) {
+      const key = rawId.toLowerCase();
+      if (notified.has(key)) continue;
+      notified.add(key);
+      const set = this.listenersById.get(key);
+      if (set) {
+        for (const listener of Array.from(set)) listener();
+      }
+    }
+    if (notified.size > 0) {
+      for (const listener of Array.from(this.globalListeners)) listener();
     }
   }
 

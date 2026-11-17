@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { LogOut } from 'lucide-react';
 import { PixelLogo } from '../icons/PixelLogo.js';
 import { PixelNavIcon } from '../icons/PixelNavIcon.js';
@@ -8,11 +9,13 @@ import { useAuthStore } from '../../stores/authStore.js';
 import { useUIStore } from '../../stores/uiStore.js';
 import { buildNavItems } from '../../config/navigation.js';
 import { useNavBadges } from '../../hooks/useNavBadges.js';
+import { RoutePrefetchService } from '../../services/RoutePrefetchService.js';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
   const { openPostModal } = useUIStore();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const badges = useNavBadges();
 
   const links = isAuthenticated && user ? buildNavItems(user, badges) : [];
@@ -20,16 +23,15 @@ export const Navbar: React.FC = () => {
   return (
     <aside className="hidden md:flex w-64 flex-col justify-between h-screen sticky top-0 border-r border-dark-border p-4 bg-dark-bg select-none font-mono">
       <div className="flex flex-col gap-4">
-        <Link to="/" className="px-3 py-2 flex items-center">
-          <PixelLogo />
-        </Link>
-
+        <Link to="/" className="px-3 py-2 flex items-center"><PixelLogo /></Link>
         {links.length > 0 && (
           <nav aria-label="Navegación principal" className="flex flex-col gap-1.5">
             {links.map(({ to, label, icon, badge }) => (
               <NavLink
                 key={to}
                 to={to}
+                onMouseEnter={() => RoutePrefetchService.prefetchRouteData(queryClient, to)}
+                onTouchStart={() => RoutePrefetchService.prefetchRouteData(queryClient, to)}
                 onClick={() => { if (location.pathname === to) window.scrollTo?.({ top: 0, behavior: 'smooth' }); }}
                 className={({ isActive }) =>
                   `flex items-center justify-between px-3 py-2.5 border transition-colors ${

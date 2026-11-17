@@ -29,6 +29,7 @@ export class PublicationIdentityMap {
 
   public seed(items: Array<Publication | null | undefined>): void {
     const collected = collectPublications(items);
+    const changed: string[] = [];
     for (const [id, pub] of collected.entries()) {
       const key = id.toLowerCase();
       if (!this.entities.has(key)) {
@@ -39,13 +40,15 @@ export class PublicationIdentityMap {
           quotes_count: Math.max(0, pub.quotes_count || 0),
           comments_count: Math.max(0, pub.comments_count || 0),
         });
-        this.subject.notify(key);
+        changed.push(key);
       }
     }
+    if (changed.length > 0) this.subject.notifyMany(changed);
   }
 
   public ingest(items: Array<Publication | null | undefined>, fetchedAt = Date.now()): void {
     const collected = collectPublications(items);
+    const changed: string[] = [];
     for (const [id, incoming] of collected.entries()) {
       const key = id.toLowerCase();
       const prev = this.entities.get(key);
@@ -53,9 +56,10 @@ export class PublicationIdentityMap {
       const merged = mergePublicationEntity(prev, incoming, keepLocal);
       if (prev !== merged) {
         this.entities.set(key, merged);
-        this.subject.notify(key);
+        changed.push(key);
       }
     }
+    if (changed.length > 0) this.subject.notifyMany(changed);
   }
 
   public patch(id: string, updater: (prev: Publication) => Publication, markMutated = true): Publication | undefined {
@@ -83,16 +87,8 @@ export class PublicationIdentityMap {
     else this.inFlight.set(key, count);
   }
 
-  public getAll(): Publication[] {
-    return Array.from(this.entities.values());
-  }
-
-  public clear(): void {
-    this.entities.clear();
-    this.inFlight.clear();
-    this.mutatedAt.clear();
-    this.subject.clear();
-  }
+  public getAll(): Publication[] { return Array.from(this.entities.values()); }
+  public clear(): void { this.entities.clear(); this.inFlight.clear(); this.mutatedAt.clear(); this.subject.clear(); }
 }
 
 export const publicationIdentityMap = PublicationIdentityMap.getInstance();

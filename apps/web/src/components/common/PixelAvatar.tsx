@@ -33,6 +33,9 @@ export const PixelAvatar: React.FC<Props> = ({
         <img
           src={resolvedSrc}
           alt={username}
+          width={40}
+          height={40}
+          loading="lazy"
           decoding="async"
           onError={() => setHasError(true)}
           className="w-full h-full object-cover"

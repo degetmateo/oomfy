@@ -24,8 +24,8 @@ function securityHeadersPlugin() {
       const lines = [
         '/*',
         ...Object.entries(SECURITY_HEADER_VALUES).map(([k, v]) => `  ${k}: ${v}`),
-        '', '/index.html', '  Cache-Control: no-cache, no-store, must-revalidate',
-        '', '/sw.js', '  Cache-Control: no-cache, no-store, must-revalidate',
+        '', '/index.html', '  Cache-Control: no-cache, max-age=0, must-revalidate',
+        '', '/sw.js', '  Cache-Control: no-cache, max-age=0, must-revalidate',
         '', '/assets/*', '  Cache-Control: public, max-age=31536000, immutable',
       ];
       fs.writeFileSync(path.join(outDir, '_headers'), `${lines.join('\n')}\n`, 'utf-8');

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppLayout } from './components/layout/AppLayout.js';
@@ -26,6 +26,7 @@ import { AppBootScreen } from './components/common/AppBootScreen.js';
 import { useRealtimeSync } from './hooks/useRealtimeSync.js';
 import { useSessionInitializer } from './hooks/useSessionInitializer.js';
 import { useAuthStore } from './stores/authStore.js';
+import { QueryPersistenceService } from './services/QueryPersistenceService.js';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,17 @@ const RealtimeBridge: React.FC = () => {
 export const App: React.FC = () => {
   useSessionInitializer();
   const isBooting = useAuthStore((s) => s.isLoading);
+  const userId = useAuthStore((s) => s.user?.id);
+
+  useEffect(() => {
+    if (import.meta.env.MODE === 'test') return;
+    return QueryPersistenceService.attachQueryPersistence(queryClient);
+  }, []);
+
+  useEffect(() => {
+    if (import.meta.env.MODE === 'test') return;
+    QueryPersistenceService.hydrateFromLocalDb(queryClient, userId || 'guest').catch(() => {});
+  }, [userId]);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -1,13 +1,16 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { PixelNavIcon } from '../icons/PixelNavIcon.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { buildNavItems } from '../../config/navigation.js';
 import { useNavBadges } from '../../hooks/useNavBadges.js';
+import { RoutePrefetchService } from '../../services/RoutePrefetchService.js';
 
 export const MobileBottomNav: React.FC = () => {
   const { user, isAuthenticated } = useAuthStore();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const badges = useNavBadges();
 
   if (!isAuthenticated || !user) return null;
@@ -21,6 +24,8 @@ export const MobileBottomNav: React.FC = () => {
           key={to}
           to={to}
           aria-label={badge && badge > 0 ? `${label} (${badge > 9 ? '9+' : badge})` : label}
+          onMouseEnter={() => RoutePrefetchService.prefetchRouteData(queryClient, to)}
+          onTouchStart={() => RoutePrefetchService.prefetchRouteData(queryClient, to)}
           onClick={() => { if (location.pathname === to) window.scrollTo?.({ top: 0, behavior: 'smooth' }); }}
           className={({ isActive }) =>
             `p-2 transition-colors flex items-center justify-center relative ${

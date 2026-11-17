@@ -5,6 +5,7 @@ export type ProfileTab = 'posts' | 'replies' | 'likes';
 interface Props {
   activeTab: ProfileTab;
   onTabChange: (tab: ProfileTab) => void;
+  onPrefetchTab?: (tab: ProfileTab) => void;
 }
 
 const TABS: { id: ProfileTab; label: string }[] = [
@@ -13,12 +14,14 @@ const TABS: { id: ProfileTab; label: string }[] = [
   { id: 'likes', label: 'Me gusta' },
 ];
 
-export const ProfileTabs: React.FC<Props> = ({ activeTab, onTabChange }) => (
+export const ProfileTabs: React.FC<Props> = ({ activeTab, onTabChange, onPrefetchTab }) => (
   <div className="flex border-b border-dark-border text-center select-none bg-dark-bg/60">
     {TABS.map(({ id, label }) => (
       <button
         key={id}
         onClick={() => onTabChange(id)}
+        onMouseEnter={() => onPrefetchTab?.(id)}
+        onTouchStart={() => onPrefetchTab?.(id)}
         className={`flex-1 py-3 text-xs sm:text-sm font-bold tracking-wider transition-colors ${
           activeTab === id
             ? 'text-brand-400 border-b-2 border-brand-400'

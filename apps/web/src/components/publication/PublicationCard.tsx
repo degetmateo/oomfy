@@ -20,10 +20,11 @@ import { PublicationController } from '../../controllers/PublicationController.j
 
 interface Props {
   post: Publication;
+  index?: number;
   onDelete?: (id: string) => void;
 }
 
-export const PublicationCard: React.FC<Props> = ({ post: rawPost, onDelete }) => {
+const PublicationCardBase: React.FC<Props> = ({ post: rawPost, index, onDelete }) => {
   const post = usePublicationModel(rawPost) || rawPost;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -47,10 +48,14 @@ export const PublicationCard: React.FC<Props> = ({ post: rawPost, onDelete }) =>
   const handleQuoteClick = () => (isAuthenticated ? openPostModal(post) : navigate('/signin'));
   const cardHandlers = useCardClickGuard(() => { PublicationCacheService.primePublication(post); navigate(`/publication/${post.id}`); });
 
-  if (post.type === 'shared') return <SharedPublicationCard post={post} canDelete={canDelete} onDelete={handleDelete} />;
+  const deferClass = typeof index === 'number' && index >= 4 ? 'feed-card-deferred' : '';
+  if (post.type === 'shared') {
+    const sharedEl = <SharedPublicationCard post={post} canDelete={canDelete} onDelete={handleDelete} />;
+    return deferClass ? <div className={deferClass}>{sharedEl}</div> : sharedEl;
+  }
 
   return (
-    <article {...cardHandlers} className="p-3 sm:p-4 border-b border-dark-border hover:bg-dark-card/40 transition-colors flex gap-3 cursor-pointer font-mono relative">
+    <article {...cardHandlers} className={`${deferClass ? `${deferClass} ` : ''}p-3 sm:p-4 border-b border-dark-border hover:bg-dark-card/40 transition-colors flex gap-3 cursor-pointer font-mono relative`}>
       <div className="flex-shrink-0 cursor-pointer" data-no-card-nav="true" onClick={(e) => { e.stopPropagation(); navigate(`/publication/${post.id}`); }}>
         <PixelAvatar src={post.author.icon_url} username={post.author.username} sizeClass="w-12 h-12" onClick={(e) => { e.stopPropagation(); navigate(`/${post.author.username}`); }} />
       </div>
@@ -73,7 +78,7 @@ export const PublicationCard: React.FC<Props> = ({ post: rawPost, onDelete }) =>
         />
 
         {post.content && <FormattedText text={post.content} authorId={post.author.id} className="mt-1.5 text-sm text-dark-text whitespace-pre-line leading-relaxed font-sans block" />}
-        <MediaGrid images={post.images || []} />
+        <MediaGrid images={post.images || []} priority={index === 0} />
         <LinkPreviewCard embeds={post.embeds} targetPublication={post.type === 'quote' ? post.target_publication : undefined} />
         <PublicationActions
           postId={post.id} initialUpvotes={Math.max(0, post.upvotes_count || 0, post.is_upvoted ? 1 : 0)} initialIsUpvoted={post.is_upvoted}
@@ -85,3 +90,5 @@ export const PublicationCard: React.FC<Props> = ({ post: rawPost, onDelete }) =>
     </article>
   );
 };
+
+export const PublicationCard = React.memo(PublicationCardBase);

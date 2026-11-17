@@ -43,7 +43,8 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
               onError={() => setFailedUrls((prev) => ({ ...prev, [singleImg.resolvedUrl]: true }))}
               className="max-w-full w-auto max-h-[450px] object-contain group-hover:opacity-90 transition-opacity"
               loading={priority ? 'eager' : 'lazy'}
-              {...({ fetchpriority: priority ? 'high' : 'auto' } as any)}
+              decoding="async"
+              {...(priority ? ({ fetchpriority: 'high' } as any) : {})}
             />
           </div>
         </div>
@@ -72,7 +73,8 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
               onError={() => setFailedUrls((prev) => ({ ...prev, [img.resolvedUrl]: true }))}
               className="w-full h-full object-cover max-h-80 group-hover:scale-105 transition-transform duration-200"
               loading={priority && i === 0 ? 'eager' : 'lazy'}
-              {...({ fetchpriority: priority && i === 0 ? 'high' : 'auto' } as any)}
+              decoding="async"
+              {...(priority && i === 0 ? ({ fetchpriority: 'high' } as any) : {})}
             />
           </div>
         ))}
