@@ -11,20 +11,23 @@ import { usePublicationSnapshot } from '../../hooks/usePublicationSnapshot.js';
 
 interface Props {
   post: Publication;
+  showTopLine?: boolean;
+  showBottomLine?: boolean;
 }
 
-export const ThreadAncestorCard: React.FC<Props> = ({ post: rawPost }) => {
+export const ThreadAncestorCard: React.FC<Props> = ({ post: rawPost, showTopLine = false, showBottomLine = true }) => {
   const post = usePublicationSnapshot(rawPost);
   const navigate = useNavigate();
   const cardHandlers = useCardClickGuard(() => navigate(`/publication/${post.id}`));
 
   return (
     <article {...cardHandlers} className="p-3 sm:p-4 hover:bg-dark-card/30 transition-colors flex gap-3 cursor-pointer font-mono relative">
-      <div className="flex flex-col items-center flex-shrink-0">
+      <div className="w-12 flex flex-col items-center flex-shrink-0">
+        {showTopLine && <div className="w-0.5 h-3 sm:h-4 bg-dark-border -mt-3 sm:-mt-4 mb-1" aria-hidden="true" />}
         <div onClick={(e) => { e.stopPropagation(); navigate(`/${post.author.username}`); }} data-no-card-nav="true">
           <PixelAvatar src={post.author.icon_url} username={post.author.username} sizeClass="w-11 h-11" />
         </div>
-        <div className="w-0.5 flex-1 bg-dark-border mt-2 mb-[-12px]" />
+        {showBottomLine && <div className="w-0.5 flex-1 bg-dark-border mt-1.5 -mb-3 sm:-mb-4" aria-hidden="true" />}
       </div>
 
       <div className="flex-1 min-w-0 pb-2">

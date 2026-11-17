@@ -34,8 +34,8 @@ export const SubthreadPreviewItem: React.FC<Props> = ({
   });
 
   return (
-    <div {...cardHandlers} data-no-card-nav="true" className="px-3 sm:px-4 pt-2 pb-2.5 hover:bg-dark-card/30 transition-colors flex gap-2.5 sm:gap-3 cursor-pointer font-mono relative">
-      <div className="w-10 sm:w-12 flex flex-col items-center flex-shrink-0">
+    <div {...cardHandlers} data-no-card-nav="true" className="px-3 sm:px-4 pt-2 pb-2.5 hover:bg-dark-card/30 transition-colors flex gap-3 cursor-pointer font-mono relative">
+      <div className="w-12 flex flex-col items-center flex-shrink-0">
         {connectTop && <div className="w-0.5 h-2 bg-dark-border -mt-2 mb-1" aria-hidden="true" />}
         <div data-no-card-nav="true" onClick={(e) => { e.stopPropagation(); navigate(`/${item.author.username}`); }}>
           <PixelAvatar src={item.author.icon_url} username={item.author.username} sizeClass={avatarSizeClass} />

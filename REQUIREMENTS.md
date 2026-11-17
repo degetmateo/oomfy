@@ -906,6 +906,20 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Dado que Render Static Site no interpreta archivos `_headers` ni `_redirects` en repositorios, se introduce `render.yaml` declarando el servicio estático `oomfy-web` con su `staticPublishPath: ./apps/web/dist`, cabeceras de seguridad estrictas (`Strict-Transport-Security` con preload, `Content-Security-Policy`, etc.), directivas de caché para `index.html` / `sw.js` (`no-cache`) y `/assets/*` (`immutable`), así como la regla de rewrite `/*` -> `/index.html`.
     - Se amplía `connectSrc` en `CSP_DIRECTIVES` y `_headers`, y `ALLOWED_ORIGINS` en `Environment.ts` y `resolveApiBaseUrl` en `apiBase.ts` para autorizar orígenes `*.onrender.com`.
 
+- **Hito 64: Corrección de Alineación Geométrica y Continuidad de Líneas Conectoras en Hilos y Respuestas:**
+  - *Diagnóstico y Causa Raíz de Líneas Desfasadas / Torcidas en Mobile (`SubthreadPreviewItem.tsx`):*
+    - En pantallas pequeñas (`< sm`), `SubthreadPreviewItem` definía la columna de avatar como `w-10 sm:w-12` (40px) y el contenedor con `gap-2.5 sm:gap-3`, mientras que `PublicationCard` y los bloques de expansión (`AuthorThreadPreview`, `ReplyThreadGroup`) empleaban un ancho fijo de 48px (`w-12`) con avatar centrado.
+    - Esta discrepancia provocaba que en mobile la línea conectora estuviese centrada a $x = 31\text{px}$ en los subhilos en lugar de $x = 35\text{px}$ en la publicación padre y en el bloque inferior, produciendo un quiebre/desvío visible de 4px hacia la izquierda ("se tuercen").
+    - Se estandarizó la columna de avatar en `SubthreadPreviewItem` a `w-12` fijo y el espaciado horizontal a `gap-3` en todos los breakpoints, garantizando una alineación matemática perfecta y vertical sin desviación alguna.
+  - *Diagnóstico y Causa Raíz de Líneas Cortadas / Interrumpidas (`PublicationCard.tsx`, `AuthorThreadPreview.tsx`, `ReplyThreadGroup.tsx`, `ThreadAncestorCard.tsx`, `ThreadAncestorsList.tsx`):*
+    - *Desfase Desktop en Publicación Padre (`PublicationCard.tsx`):* La clase responsive `sm:p-4` anulaba la reducción de padding inferior `pb-2`, dejando un padding de 16px en desktop frente al margen negativo `-mb-2` (8px), lo que causaba un hueco vacío de 8px en la parte inferior de la tarjeta antes del siguiente elemento. Se aplicó `pb-2 sm:pb-2` al mostrar hilo (`showLine`), asegurando que la línea llegue exactamente a ras del límite inferior tanto en mobile como en desktop.
+    - *Hueco en Bloques de Carga Discontinua (`AuthorThreadPreview.tsx`, `ReplyThreadGroup.tsx`):* El contenedor de "Y X respuestas más..." / "Mostrar más respuestas" añadía `pt-1` (4px de padding superior) sin margen negativo en la línea discontinua, generando un corte visual de 4px con el extremo inferior del último subhilo. Se incorporó `-mt-1` (y altura proporcional `h-7`) en la línea discontinua `border-brand-500/60`, conectando de forma continua e ininterrumpida.
+    - *Conectividad Continua en Ancestros (`ThreadAncestorCard.tsx`, `ThreadAncestorsList.tsx`):* Se dotó a `ThreadAncestorCard` de columna uniforme `w-12`, conector superior continuo `{showTopLine && <div ... className="... -mt-3 sm:-mt-4 mb-1" />}` para el segundo y subsiguientes ancestros, y márgenes negativos responsivos `-mb-3 sm:-mb-4` que eliminan los cortes entre publicaciones anteriores.
+  - *Verificación y Calidad de Código (`thread-line-continuity.test.tsx`):*
+    - Se creó la suite de pruebas unitarias y de integración `apps/web/tests/thread-line-continuity.test.tsx` validando la columna `w-12`, el espaciado `gap-3`, la continuidad responsive y los márgenes negativos de las líneas conectoras.
+    - 56 suites de prueba de `@oomfy/web` (152 tests) y 42 suites de `@oomfy/api` (142 tests) pasando al 100%, con 0 errores de compilación (`pnpm build`), estricto cumplimiento de **RNF-01** (< 100 LOC) y 0 trazas de pruebas en base de datos (**RNF-08**).
+
+
 
 
 

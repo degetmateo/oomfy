@@ -82,7 +82,9 @@ export const ThreadAncestorsList: React.FC<Props> = ({
           </button>
         </div>
       )}
-      {allAncestors.map((anc) => <ThreadAncestorCard key={anc.id} post={anc} />)}
+      {allAncestors.map((anc, idx) => (
+        <ThreadAncestorCard key={anc.id} post={anc} showTopLine={idx > 0} />
+      ))}
     </div>
   );
 };

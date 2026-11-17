@@ -52,7 +52,7 @@ export const AuthorThreadPreview: React.FC<Props> = ({ rootPostId, initialItems,
       {remaining > 0 && (
         <div className="px-3 sm:px-4 pb-3 pt-1 flex items-center gap-3 font-mono">
           <div className="w-12 flex justify-center flex-shrink-0" aria-hidden="true">
-            <div className="h-6 border-l-2 border-dashed border-brand-500/60" />
+            <div className="h-7 border-l-2 border-dashed border-brand-500/60 -mt-1" />
           </div>
           <button
             type="button"

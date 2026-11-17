@@ -49,8 +49,8 @@ const PublicationCardBase: React.FC<Props> = ({ post: rawPost, index, hideBottom
   const hasThread = threadItems.length > 0;
   const showLine = hasThread || hideBottomBorder;
   const articleEl = (
-    <article {...cardHandlers} className={`${!hasThread && deferClass ? `${deferClass} ` : ''}p-3 sm:p-4 ${!hasThread && !hideBottomBorder ? 'border-b border-dark-border ' : 'pb-2 '}hover:bg-dark-card/40 transition-colors flex gap-3 cursor-pointer font-mono relative`}>
-      <div className="flex flex-col items-center flex-shrink-0 cursor-pointer" data-no-card-nav="true" onClick={(e) => { e.stopPropagation(); navigate(`/publication/${post.id}`); }}>
+    <article {...cardHandlers} className={`${!hasThread && deferClass ? `${deferClass} ` : ''}p-3 sm:p-4 ${!showLine ? 'border-b border-dark-border ' : 'pb-2 sm:pb-2 '}hover:bg-dark-card/40 transition-colors flex gap-3 cursor-pointer font-mono relative`}>
+      <div className="w-12 flex flex-col items-center flex-shrink-0 cursor-pointer" data-no-card-nav="true" onClick={(e) => { e.stopPropagation(); navigate(`/publication/${post.id}`); }}>
         <PixelAvatar src={post.author.icon_url} username={post.author.username} sizeClass="w-12 h-12" onClick={(e) => { e.stopPropagation(); navigate(`/${post.author.username}`); }} />
         {showLine && <div className="w-0.5 flex-1 bg-dark-border mt-1.5 -mb-2" aria-hidden="true" />}
       </div>
