@@ -75,4 +75,24 @@ describe('PublicationCacheService', () => {
     const cachedQuery = queryClient.getQueryData<any>(['publication', 'post-test-123']);
     expect(cachedQuery).toBeUndefined();
   });
+
+  it('does not treat target_publication as ancestor for quote posts', () => {
+    const queryClient = new QueryClient();
+    const quotedPost: Publication = { ...samplePost, id: 'quoted-1', content: 'Quoted original' };
+    const quotePost: Publication = {
+      ...samplePost,
+      id: 'quote-2',
+      type: 'quote',
+      content: 'Look at this',
+      target_publication: quotedPost,
+    };
+    PublicationCacheService.primePublication(quotePost);
+
+    const placeholder = PublicationCacheService.getPlaceholderDetailData(queryClient, 'quote-2');
+    expect(placeholder).toBeDefined();
+    expect(placeholder?.publication.id).toBe('quote-2');
+    expect(placeholder?.publication.target_publication?.id).toBe('quoted-1');
+    expect(placeholder?.ancestors).toEqual([]);
+    expect(placeholder?.total_ancestors).toBe(0);
+  });
 });

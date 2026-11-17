@@ -42,10 +42,11 @@ export class PublicationCacheService {
     const target = resolved.target_publication?.id
       ? (publicationIdentityMap.get(resolved.target_publication.id) || resolved.target_publication)
       : null;
+    const isReply = resolved.type === 'reply';
     return {
       publication: target ? { ...resolved, target_publication: target } : resolved,
-      ancestors: target ? [target] : [],
-      total_ancestors: target ? 1 : 0,
+      ancestors: isReply && target ? [target] : [],
+      total_ancestors: isReply && target ? 1 : 0,
       has_more_ancestors: false,
       replies: [],
     };

@@ -970,25 +970,15 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Nuevas suites de pruebas unitarias y de integración que verifican la inclusión de cabeceras APNs, el marcado de expiración en 400/403/404/410, la auto-renovación silenciosa en cliente y el ruteo de iconos dinámicos.
     - 60 suites de prueba en `@oomfy/web` (170 tests) y 44 suites en `@oomfy/api` (149 tests) pasando al 100%, con estricto cumplimiento de **RNF-01** (< 100 LOC) y 0 trazas de prueba en base de datos (**RNF-08**).
 
-- **Hito 69: Suscripciones Push Multidispositivo Simultáneas e Independencia de Desuscripción por Endpoint (Completado):**
-  - *Suscripciones Múltiples Concurrentes por Usuario (`PushSubscriptionRepository.ts`, `MongoMigrationRunner.ts`):*
-    - Cada usuario puede poseer múltiples suscripciones activas concurrentemente en la colección `push_subscriptions`, una por cada dispositivo o perfil de navegador físico registrado (PC, celular, tablet, etc.).
-    - Se incorporaron en `MongoMigrationRunner` el índice único por `{ endpoint: 1 }` y el índice compuesto `{ user_id: 1, is_active: 1 }` para garantizar integridad y búsquedas ultrarrápidas de suscripciones activas.
-    - En `upsertSubscription`, se maneja la actualización atómica evitando colisiones de clave duplicada (`E11000`) si el endpoint ya existía, y se heredan de inmediato las preferencias existentes del usuario para nuevos dispositivos.
-  - *Despacho Concurrente Simultáneo (`WebPushService.ts`, `WebPushClient.ts`):*
-    - `PushSubscriptionRepository.findActiveSubscriptions` recupera todos los endpoints activos (`is_active: { $ne: false }`) del usuario que coincidan con las preferencias de la categoría.
-    - `WebPushService.sendPushToUser` despacha en paralelo a todos los dispositivos registrados utilizando `Promise.all`.
-    - En `WebPushClient.ts`, se evalúa mediante parseo de URL seguro si el endpoint corresponde al servicio de Apple (`apple.com`), enviando cabeceras de alerta APNs (`apns-push-type`, `apns-priority`) exclusivamente a dispositivos iOS/macOS y omitiéndolas en FCM (Google/Android/PC) y Mozilla.
-  - *Aislamiento Estricto de Preferencias y Desuscripción por Dispositivo (`NotificationController.ts`, `PushSubscriptionRepository.ts`):*
-    - Cada suscripción (`endpoint`) almacena y gestiona sus propias preferencias de notificación (`PushPreferences`) de forma completamente independiente. Modificar preferencias en la PC (por ejemplo silenciar mensajes) no afecta ni altera las preferencias activas en el celular, permitiendo al usuario recibir mensajes en móvil mientras solo recibe respuestas o menciones en desktop.
-    - Desuscribirse o cerrar sesión en un dispositivo (`POST /api/notifications/unsubscribe` con `{ endpoint }`) desactiva única y exclusivamente el endpoint de ese dispositivo específico (`is_active: false`, `status: 'inactive'`).
-    - Las suscripciones activas en los demás dispositivos del usuario permanecen 100% activas y continúan recibiendo notificaciones sin interrupciones.
-    - Si una petición no provee un endpoint válido, se ignora de forma segura en lugar de desactivar globalmente todos los dispositivos del usuario.
-  - *Prevención de Falsas Alarmas en Cliente (`AppPwaSettingsTab.tsx`):*
-    - En `AppPwaSettingsTab.tsx`, se corrigió la verificación del estado de suscripción para evitar que el banner de aviso de desconexión parpadee mientras el endpoint se encuentra cargando en el cliente.
-  - *Verificación y Calidad de Código (`multi-device-push-subscriptions.test.ts`):*
-    - Nueva suite de integración en `@oomfy/api` que valida el ciclo completo multidispositivo: suscripción concurrente en PC y móvil, recepción simultánea, desuscripción aislada de PC con persistencia activa en móvil y preferencias estrictamente independientes por dispositivo.
-    - 60 suites de prueba en `@oomfy/web` (170 tests) y 45 suites en `@oomfy/api` (150 tests) pasando al 100%, 0 errores en `pnpm build`, cumplimiento estricto de **RNF-01** (< 100 LOC) y 0 trazas residuales en MongoDB (**RNF-08**).
+- **Hito 70: Aislamiento de Ramas en Subhilos y Erradicación de Falsos Ancestros en Citas al Cargar Detalle (Completado):**
+  - *Aislamiento y Trazado de Cadena Única en Subhilos (`SubthreadGraphHelper.ts`, `ReplyThreadGroup.tsx`, `subthread-graph-helper.test.ts`, `thread-line-continuity.test.tsx`):*
+    - Se corrigió `buildOrderedSubthread` para construir una cadena estrictamente lineal paso a paso seleccionando el mejor camino (priorizando la rama que involucra al autor original del hilo `rootAuthor` y al autor de la respuesta `starter.author`), erradicando la concatenación plana de ramas hermanas disjuntas mediante DFS.
+    - Se robusteció `ReplyThreadGroup` en el frontend con la comprobación `isChildOf` evaluando relaciones directas de parentesco (`parent_publication_id` / `target_publication_id`) para `connectTop`, `connectBottom` y `hideBottomBorder`, garantizando que dos respuestas hermanas independientes dirigidas a un mismo padre nunca queden unidas visualmente por una línea conectora vertical errónea.
+  - *Erradicación de Falsos Ancestros en Citas durante Carga Inicial (`PublicationCacheService.ts`, `PublicationCacheService.test.ts`):*
+    - En `PublicationCacheService.getPlaceholderDetailData`, se condicionó la generación de ancestros iniciales exclusivamente a publicaciones de tipo respuesta (`resolved.type === 'reply'`).
+    - Al ingresar al detalle de una publicación de tipo cita (`type: 'quote'`), su `target_publication` ya no se inyecta falsamente en `ancestors` durante los primeros instantes de revalidación en segundo plano, erradicando el parpadeo de jerarquía invertida y mostrando de inmediato la estructura correcta.
+  - *Verificación y Calidad de Código:*
+    - Nuevas pruebas unitarias en `@oomfy/api` (`subthread-graph-helper.test.ts`) y `@oomfy/web` (`PublicationCacheService.test.ts`, `thread-line-continuity.test.tsx`), compilación completa (`pnpm build`) y pruebas pasando al 100% con estricto cumplimiento de **RNF-01** (< 100 LOC) y **RNF-08**.
 
 
 

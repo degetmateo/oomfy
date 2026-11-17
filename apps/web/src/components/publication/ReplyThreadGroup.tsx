@@ -13,6 +13,12 @@ interface Props {
   onDelete?: (id: string) => void;
 }
 
+const isChildOf = (child?: Publication | null, parent?: Publication | null): boolean => {
+  if (!child || !parent?.id) return false;
+  const pId = child.parent_publication_id || (child as any).target_publication_id || child.target_publication?.id;
+  return Boolean(pId && String(pId).toLowerCase() === String(parent.id).toLowerCase());
+};
+
 export const ReplyThreadGroup: React.FC<Props> = ({ reply, rootAuthorId, rootAuthorUsername, onDelete }) => {
   const [items, setItems] = useState<Publication[]>(reply.subthread_preview || []);
   const [remaining, setRemaining] = useState<number>(reply.subthread_remaining_count || 0);
@@ -55,15 +61,15 @@ export const ReplyThreadGroup: React.FC<Props> = ({ reply, rootAuthorId, rootAut
           <span>Respondido por @{rootAuthorUsername} en este hilo</span>
         </div>
       )}
-      <PublicationCard post={reply} onDelete={onDelete} hideBottomBorder={hasSubthread} />
+      <PublicationCard post={reply} onDelete={onDelete} hideBottomBorder={hasSubthread && isChildOf(items[0], reply)} />
       {hasSubthread && (
         <section aria-label={`Subhilo de respuestas de @${reply.author.username}`} className="bg-dark-bg/25">
           {items.map((sub, idx) => (
             <SubthreadPreviewItem
               key={sub.id}
               item={sub}
-              connectTop
-              connectBottom={idx < items.length - 1 || remaining > 0}
+              connectTop={idx === 0 ? isChildOf(sub, reply) : isChildOf(sub, items[idx - 1])}
+              connectBottom={idx < items.length - 1 ? isChildOf(items[idx + 1], sub) : remaining > 0}
               isRootAuthor={sub.author.id === rootAuthorId}
               avatarSizeClass="w-8 h-8"
             />

@@ -42,33 +42,42 @@ export function traceAuthorChain(rootPost: Publication, allReplies: Publication[
   return chain;
 }
 
+function branchHasAuthor(nodeId: string, byParent: Map<string, Publication[]>, target?: Partial<AuthorSnapshot> | null, visited = new Set<string>()): boolean {
+  if (!target) return false;
+  for (const child of byParent.get(nodeId.toLowerCase()) || []) {
+    const k = child.id.toLowerCase();
+    if (visited.has(k)) continue;
+    visited.add(k);
+    if (sameAuthor(child.author, target) || branchHasAuthor(child.id, byParent, target, visited)) return true;
+  }
+  return false;
+}
+
 export function buildOrderedSubthread(
   starter: Publication,
   byParent: Map<string, Publication[]>,
   rootAuthor?: Partial<AuthorSnapshot> | null
 ): Publication[] {
   const visited = new Set<string>([starter.id.toLowerCase()]);
-  const ordered: Publication[] = [];
+  const chain: Publication[] = [];
+  let curr: Publication = starter;
 
-  const rankChild = (c: Publication) => {
-    if (sameAuthor(c.author, rootAuthor)) return 0;
+  const rank = (c: Publication) => {
+    if (sameAuthor(c.author, rootAuthor) || branchHasAuthor(c.id, byParent, rootAuthor)) return 0;
     if (sameAuthor(c.author, starter.author)) return 1;
     return 2;
   };
 
-  const visit = (nodeId: string) => {
-    const children = [...(byParent.get(nodeId.toLowerCase()) || [])].sort((a, b) => rankChild(a) - rankChild(b));
-    for (const child of children) {
-      const cKey = child.id.toLowerCase();
-      if (visited.has(cKey)) continue;
-      visited.add(cKey);
-      ordered.push(child);
-      visit(child.id);
-    }
-  };
-
-  visit(starter.id);
-  return ordered;
+  while (chain.length < 30) {
+    const unvisited = (byParent.get(curr.id.toLowerCase()) || []).filter((c) => !visited.has(c.id.toLowerCase()));
+    if (unvisited.length === 0) break;
+    unvisited.sort((a, b) => (rank(a) - rank(b)) || (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
+    const best = unvisited[0];
+    visited.add(best.id.toLowerCase());
+    chain.push(best);
+    curr = best;
+  }
+  return chain;
 }
 
 export function sortDirectReplies(replies: Publication[], rootAuthor?: Partial<AuthorSnapshot> | null): Publication[] {
