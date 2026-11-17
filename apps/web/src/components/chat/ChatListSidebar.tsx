@@ -38,12 +38,15 @@ export const ChatListSidebar: React.FC<Props> = ({
               key={chat.id}
               onClick={() => onSelectChat(chat.id)}
               data-selected={isSelected ? 'true' : 'false'}
-              className={`p-3 sm:p-3.5 cursor-pointer transition-colors flex items-center gap-3 border-b border-b-dark-border ${
-                isSelected ? 'bg-brand-500/15 border-l-4 border-l-brand-500' : 'hover:bg-dark-card/50'
-              }`}
+              className={`p-3 sm:p-3.5 cursor-pointer transition-colors flex items-center gap-3 border-b border-b-dark-border ${isSelected ? 'bg-brand-500/15 border-l-4 border-l-brand-500' : 'hover:bg-dark-card/50'
+                }`}
             >
               <div className="relative flex-shrink-0">
-                <PixelAvatar src={part.icon_url} username={part.username} sizeClass="w-12 h-12 md:w-11 md:h-11" />
+                <PixelAvatar
+                  src={part.icon_url}
+                  username={part.username}
+                  sizeClass="w-12 h-12 md:w-11 md:h-11"
+                />
                 {hasUnread && <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-400 border border-black rounded-full animate-pulse" />}
               </div>
               <div className="flex-1 min-w-0">

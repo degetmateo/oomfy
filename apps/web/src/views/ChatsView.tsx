@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MessageSquare, ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore.js';
 import { useChatsList } from '../hooks/useChatsList.js';
@@ -14,6 +14,8 @@ export const ChatsView: React.FC = () => {
   const queryChatId = searchParams.get('id') || searchParams.get('chatId');
   const [selectedChatId, setSelectedChatId] = useState<string | null>(queryChatId || null);
   const [isStartOpen, setIsStartOpen] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (queryChatId && queryChatId !== selectedChatId) setSelectedChatId(queryChatId);
@@ -58,7 +60,7 @@ export const ChatsView: React.FC = () => {
               >
                 <ArrowLeft className="w-6 h-6" />
               </button>
-              <PixelAvatar src={other.icon_url} username={other.username} sizeClass="w-11 h-11 md:w-12 md:h-12" />
+              <PixelAvatar onClick={() => navigate(`/${other.username}`)} src={other.icon_url} username={other.username} sizeClass="w-11 h-11 md:w-12 md:h-12 hover:cursor-pointer" />
               <div className="flex-1 min-w-0">
                 <h2 className="text-base md:text-lg font-bold text-white truncate leading-tight">{other.name}</h2>
                 <p className="text-xs md:text-sm text-dark-muted truncate leading-tight">@{other.username}</p>
