@@ -5,7 +5,7 @@ import { SocketClient } from '../services/socket.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { OutgoingChatPayload } from '../components/chat/ChatInputBar.js';
 
-export function useChatMessages(chatId: string, currentUserId: string, scrollToBottom: (b?: ScrollBehavior) => void) {
+export function useChatMessages(chatId: string, currentUserId: string, scrollToBottom: (b?: ScrollBehavior, force?: boolean) => void) {
   const queryClient = useQueryClient();
   const currentUser = useAuthStore((s) => s.user);
   const [messages, setMessages] = useState<any[]>([]);
@@ -27,7 +27,7 @@ export function useChatMessages(chatId: string, currentUserId: string, scrollToB
         if (!active) return;
         const list = res.data || [];
         setMessages(list); setHasMore(list.length >= 30);
-        if (initial) setTimeout(() => scrollToBottom('instant'), 30);
+        if (initial) setTimeout(() => scrollToBottom('instant', true), 30);
         void markRead();
       }).finally(() => { if (initial && active) setIsLoading(false); });
     };
@@ -40,28 +40,28 @@ export function useChatMessages(chatId: string, currentUserId: string, scrollToB
       setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
       setTypingUser(null);
       if (typingAutoClearTimerRef.current) clearTimeout(typingAutoClearTimerRef.current);
-      setTimeout(() => scrollToBottom('smooth'), 30);
-      if (msg.sender_id !== currentUserId) void markRead();
+      const isMine = msg.sender_id === currentUserId;
+      setTimeout(() => scrollToBottom('smooth', isMine), 30);
+      if (!isMine) void markRead();
       else queryClient.invalidateQueries({ queryKey: ['chats'] });
     };
     const handleTyping = (d: { chatId: string; userId: string; username: string }) => {
       if (d.chatId?.toLowerCase() !== chatId.toLowerCase() || d.userId === currentUserId) return;
-      setTypingUser(d.username); scrollToBottom('smooth');
+      setTypingUser(d.username);
       if (typingAutoClearTimerRef.current) clearTimeout(typingAutoClearTimerRef.current);
       typingAutoClearTimerRef.current = setTimeout(() => setTypingUser(null), 4000);
     };
     const handleStopTyping = (d: { chatId: string; userId: string }) => { if (d.chatId?.toLowerCase() === chatId.toLowerCase() && d.userId !== currentUserId) setTypingUser(null); };
     const handleDelete = ({ messageId }: { messageId: string }) => { setMessages((p) => p.filter((m) => m.id !== messageId)); queryClient.invalidateQueries({ queryKey: ['chats'] }); };
-    const syncIfVisible = () => { if (document.visibilityState === 'visible') void fetchAndMark(false); };
-    const onFocus = () => { void fetchAndMark(false); };
+    const onSync = () => { if (document.visibilityState === 'visible') void fetchAndMark(false); };
     socket.on('connect', joinAndSync); socket.on('new-message', handleMessage); socket.on('user-typing', handleTyping);
     socket.on('user-stop-typing', handleStopTyping); socket.on('delete-message', handleDelete);
-    document.addEventListener('visibilitychange', syncIfVisible); window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onSync); window.addEventListener('focus', onSync);
     return () => {
       active = false;
       socket.off('connect', joinAndSync); socket.off('new-message', handleMessage); socket.off('user-typing', handleTyping);
       socket.off('user-stop-typing', handleStopTyping); socket.off('delete-message', handleDelete);
-      document.removeEventListener('visibilitychange', syncIfVisible); window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onSync); window.removeEventListener('focus', onSync);
       if (lastTypingSentRef.current > 0) socket.emit('typing-stop', { chatId });
     };
   }, [chatId, currentUserId, queryClient]);
@@ -78,7 +78,7 @@ export function useChatMessages(chatId: string, currentUserId: string, scrollToB
       reply_to: payload.replyTo ? { id: payload.replyTo.id, content: payload.replyTo.content, sender_username: payload.replyTo.sender?.username, sender_name: payload.replyTo.sender?.name } : null,
     };
     setMessages((prev) => existingTempId ? prev.map((m) => (m.id === tempId ? { ...m, deliveryState: 'sending' } : m)) : [...prev, optimisticMsg]);
-    setTimeout(() => scrollToBottom('smooth'), 20);
+    setTimeout(() => scrollToBottom('smooth', true), 20);
     try {
       const fd = new FormData();
       if (payload.files.length > 0) {

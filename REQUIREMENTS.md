@@ -919,6 +919,32 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Se creó la suite de pruebas unitarias y de integración `apps/web/tests/thread-line-continuity.test.tsx` validando la columna `w-12`, el espaciado `gap-3`, la continuidad responsive y los márgenes negativos de las líneas conectoras.
     - 56 suites de prueba de `@oomfy/web` (152 tests) y 42 suites de `@oomfy/api` (142 tests) pasando al 100%, con 0 errores de compilación (`pnpm build`), estricto cumplimiento de **RNF-01** (< 100 LOC) y 0 trazas de pruebas en base de datos (**RNF-08**).
 
+- **Hito 65: Experiencia de Usuario Avanzada en Chats (Auto-Scroll Inteligente, Botón Flotante, Viaje a Mensaje Respondido, Gesto Físico de Swipe-to-Reply y Slot Estable de Escribiendo):**
+  - *Control Inteligente de Auto-Scroll y Estado de Vista (`useChatScroll.ts`, `ChatThread.tsx`, `useChatMessages.ts`):*
+    - Al ingresar al chat, el scroll automático inicia activado (`isAutoScrollEnabled = true`) desplazándose al final del historial.
+    - Se detecta dinámicamente si el usuario hace scroll hacia arriba ($distancia > 48\text{px}$ del fondo), desactivando el scroll automático para permitir la lectura tranquila de mensajes anteriores sin saltos involuntarios ante nuevos mensajes entrantes.
+    - Si el usuario vuelve a deslizar hasta el fondo o envía un mensaje propio (`sendOptimisticMessage`), el auto-scroll se reactiva automáticamente.
+  - *Navegación / Salto Rápido al Mensaje Respondido con Resaltado Temporal (`ChatMessageReplyPreview.tsx`, `ChatMessageItem.tsx`, `useChatScroll.ts`):*
+    - Al presionar la preview del mensaje citado sobre cualquier réplica, se ejecuta un desplazamiento suave (`scrollIntoView({ behavior: 'smooth', block: 'center' })`) hasta el mensaje original referenciado (`data-message-id`).
+    - Esta acción desactiva el auto-scroll para conservar la posición del mensaje consultado y activa un destello visual temporal (`bg-brand-500/25 ring-1 ring-brand-500/60` durante 1.5s).
+  - *Botón Flotante con Flecha hacia Abajo para Volver al Fondo (`ChatScrollBottomButton.tsx`, `ChatThread.tsx`):*
+    - Al encontrarse fuera del fondo (tras subir en el historial o tras viajar a un mensaje respondido), emerge un botón flotante con flecha hacia abajo (`ArrowDown`) en la esquina inferior derecha del área de mensajes.
+    - Se encapsuló dentro de un contenedor relativo dedicado al scroll (`flex-1 min-h-0 relative`), posicionándolo a `bottom-3 right-4` suspendido sobre los mensajes sin obstruir en absoluto la caja de entrada de texto, los controles de adjuntos ni el botón de enviar.
+    - Al hacer clic, ejecuta un desplazamiento suave al último mensaje y restablece de inmediato el auto-scroll (`isAutoScrollEnabled = true`), ocultando el botón.
+  - *Autofocus Inmediato al Responder un Mensaje (`ChatInputBar.tsx`, `ChatInputBar.test.tsx`):*
+    - Al seleccionar la acción de responder (ya sea por swipe táctil o clic en acción de mensaje), se detecta la activación de `replyingTo` y se enfoca automáticamente el textarea de entrada (`focus({ preventScroll: true })`), permitiendo al usuario comenzar a escribir su respuesta de inmediato sin requerir un toque adicional.
+  - *Feedback Físico y Transición Visual en Deslizamiento hacia la Izquierda para Responder (`useSwipeReply.ts`, `ChatMessageItem.tsx`):*
+    - El gesto táctil traslada físicamente el mensaje hacia la izquierda (`transform: translateX(-Xpx)`) en tiempo real conforme el usuario desliza el dedo.
+    - Se implementó amortiguación suave (resistencia elástica a partir de 48px con tope en 68px) revelando en el lateral derecho un indicador circular con icono de respuesta (`CornerDownRight`).
+    - Al superar el umbral de activación (44px), el indicador se ilumina y escala en color de marca (`bg-brand-500 text-black scale-110`). Al soltar, dispara la acción de responder y el mensaje regresa elásticamente a su posición inicial con transición CSS cúbica.
+  - *Slot Asignado y Estable para el Indicador de "Usuario está escribiendo" (`ChatTypingIndicator.tsx`, `ChatThread.tsx`, `useChatMessages.ts`):*
+    - Se reservó un contenedor dedicado de altura fija inmutable (`h-6`) sobre la barra de entrada de texto.
+    - Cuando un participante escribe, el texto y pulso se muestran dentro de dicho espacio sin alterar la altura del scroll ni mover la caja de mensajes. Al cesar la escritura, el espacio permanece invariable sin generar layout shifts ni alterar el scroll.
+  - *Cobertura de Pruebas y Cumplimiento Normativo (`chat-scroll-and-swipe.test.tsx`):*
+    - Nueva suite de pruebas verificando el ciclo de auto-scroll, botón flotante, salto a mensaje respondido, física de deslizamiento táctil y altura fija del indicador de escritura.
+    - 57 suites de prueba de `@oomfy/web` (156 tests) y 42 suites de `@oomfy/api` (142 tests) en verde al 100%, con 0 errores en `pnpm build`, 0 trazas en MongoDB Atlas (**RNF-08**) y estricto cumplimiento de **RNF-01** (< 100 LOC por archivo).
+
+
 
 
 

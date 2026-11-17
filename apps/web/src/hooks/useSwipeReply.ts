@@ -1,31 +1,56 @@
-import { useRef } from 'react';
+import { useState, useRef } from 'react';
 
 export function useSwipeReply(onReply?: () => void) {
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isTriggered, setIsTriggered] = useState(false);
+  const startRef = useRef<{ x: number; y: number } | null>(null);
+  const isHorizontalRef = useRef<boolean | null>(null);
   const longPressTimerRef = useRef<any>(null);
 
   const onTouchStart = (e: React.TouchEvent) => {
-    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    startRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    isHorizontalRef.current = null;
+    setIsDragging(true);
+    setIsTriggered(false);
     if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
-    longPressTimerRef.current = setTimeout(() => onReply?.(), 500);
+    longPressTimerRef.current = setTimeout(() => { onReply?.(); reset(); }, 500);
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    if (!touchStartRef.current) return;
-    if (Math.abs(touchStartRef.current.x - e.touches[0].clientX) > 10 || Math.abs(touchStartRef.current.y - e.touches[0].clientY) > 10) {
+    if (!startRef.current) return;
+    const dx = startRef.current.x - e.touches[0].clientX;
+    const dy = startRef.current.y - e.touches[0].clientY;
+
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
     }
-  };
 
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
-    if (!touchStartRef.current) return;
-    if (touchStartRef.current.x - e.changedTouches[0].clientX > 50 && Math.abs(touchStartRef.current.y - e.changedTouches[0].clientY) < 30) {
-      onReply?.();
+    if (isHorizontalRef.current === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      isHorizontalRef.current = Math.abs(dx) > Math.abs(dy);
     }
-    touchStartRef.current = null;
+
+    if (isHorizontalRef.current && dx > 0) {
+      const dampened = dx <= 48 ? dx : 48 + (dx - 48) * 0.25;
+      const finalOffset = Math.min(68, dampened);
+      setOffset(finalOffset);
+      setIsTriggered(finalOffset >= 44);
+    }
   };
 
-  return { onTouchStart, onTouchMove, onTouchEnd };
-}
+  const reset = () => {
+    setOffset(0);
+    setIsDragging(false);
+    setIsTriggered(false);
+    startRef.current = null;
+    isHorizontalRef.current = null;
+  };
 
+  const onTouchEnd = () => {
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    if (isTriggered) onReply?.();
+    reset();
+  };
+
+  return { offset, isDragging, isTriggered, onTouchStart, onTouchMove, onTouchEnd, onTouchCancel: reset };
+}

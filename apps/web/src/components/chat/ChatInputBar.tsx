@@ -38,6 +38,10 @@ export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSen
     if (el) { el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 112)}px`; }
   }, [content, media.textareaRef]);
 
+  useEffect(() => {
+    if (replyingTo) requestAnimationFrame(() => media.textareaRef.current?.focus({ preventScroll: true }));
+  }, [replyingTo, media.textareaRef]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.nativeEvent.isComposing || e.keyCode === 229 || (ac.isOpen && ac.items.length > 0)) return;
     const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
@@ -50,11 +54,8 @@ export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSen
     if (e) e.preventDefault();
     if (!hasPayload) return;
     const payload: OutgoingChatPayload = {
-      content: content.trim(),
-      files: [...media.files],
-      gifUrl: media.gifs[0] || null,
-      replyToId: replyingTo?.id || null,
-      replyTo: replyingTo,
+      content: content.trim(), files: [...media.files], gifUrl: media.gifs[0] || null,
+      replyToId: replyingTo?.id || null, replyTo: replyingTo,
     };
     setContent(''); media.clearMedia(); onCancelReply();
     if (media.textareaRef.current) media.textareaRef.current.style.height = 'auto';
