@@ -7,7 +7,7 @@ export class MongoMigrationRunner {
     try {
       await col.createIndex(spec, options);
     } catch (err: any) {
-      if (err.code !== 85 && err.code !== 86) throw err;
+      if (err.code !== 85 && err.code !== 86 && err.code !== 11000) throw err;
     }
   }
 
@@ -52,6 +52,10 @@ export class MongoMigrationRunner {
     await this.safeCreateIndex(emotes, { name_lower: 1 });
     await this.safeCreateIndex(emotes, { creator_id: 1 });
     await this.safeCreateIndex(emotes, { created_at: -1 });
+
+    const pushSubs = db.collection('push_subscriptions');
+    await this.safeCreateIndex(pushSubs, { endpoint: 1 }, { unique: true });
+    await this.safeCreateIndex(pushSubs, { user_id: 1, is_active: 1 });
   }
 
   public static async run(): Promise<void> {
@@ -73,9 +77,7 @@ export class MongoMigrationRunner {
     const stringDocs = await publications.find({ created_at: { $type: 'string' } }).toArray();
     for (const doc of stringDocs) {
       const d = new Date(doc.created_at);
-      if (!isNaN(d.getTime())) {
-        await publications.updateOne({ _id: doc._id }, { $set: { created_at: d } });
-      }
+      if (!isNaN(d.getTime())) await publications.updateOne({ _id: doc._id }, { $set: { created_at: d } });
     }
 
     await UuidMigrationService.migrateAll();

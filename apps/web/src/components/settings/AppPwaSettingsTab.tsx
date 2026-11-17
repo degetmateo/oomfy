@@ -12,14 +12,16 @@ export const AppPwaSettingsTab: React.FC = () => {
   const [notificationsGranted, setNotificationsGranted] = useState(PushNotificationService.isPermissionGranted());
   const [endpoint, setEndpoint] = useState<string | null>(null);
   const [status, setStatus] = useState<'active' | 'inactive' | 'expired'>('active');
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (notificationsGranted) {
       PushNotificationService.getEndpoint().then((ep) => {
         setEndpoint(ep);
-        PushNotificationService.getPreferences(ep || undefined).then((res) => setStatus(res.status as any)).catch(() => {});
+        setLoaded(true);
+        if (ep) PushNotificationService.getPreferences(ep).then((res) => setStatus(res.status as any)).catch(() => {});
       });
-    }
+    } else setLoaded(true);
   }, [notificationsGranted]);
 
   const handleSubscribeOrRenew = async () => {
@@ -31,9 +33,7 @@ export const AppPwaSettingsTab: React.FC = () => {
         setStatus('active');
         setEndpoint(await PushNotificationService.getEndpoint());
         dialog.alert('¡Suscripción push activada y renovada con éxito!', 'Notificaciones');
-      } else {
-        dialog.alert('Permiso no concedido. Puedes habilitarlo en los ajustes de tu navegador.', 'Aviso');
-      }
+      } else dialog.alert('Permiso no concedido. Puedes habilitarlo en los ajustes de tu navegador.', 'Aviso');
     } catch (err: any) {
       dialog.alert(err.message || 'Error al procesar suscripción.', 'Aviso');
     } finally {
@@ -57,7 +57,7 @@ export const AppPwaSettingsTab: React.FC = () => {
           <Bell className="w-3.5 h-3.5 text-brand-400" />
           <span>Notificaciones Push</span>
         </h4>
-        {notificationsGranted && (!endpoint || status === 'expired') && (
+        {notificationsGranted && loaded && endpoint && status === 'expired' && (
           <div className="p-3 bg-amber-950/30 border border-amber-500/40 text-xs text-amber-300 flex items-center justify-between gap-3 mb-2">
             <span>⚠️ Tu suscripción push se desconectó o caducó en este dispositivo.</span>
             <button

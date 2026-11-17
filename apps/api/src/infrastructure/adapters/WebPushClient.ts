@@ -50,11 +50,15 @@ export class WebPushClient {
     dataString: string
   ): Promise<void> {
     this.ensureInitialized();
+    let isApns = false;
+    try {
+      const parsed = new URL(subscription.endpoint);
+      isApns = parsed.hostname.endsWith('.apple.com') || parsed.hostname === 'apple.com';
+    } catch {}
     await webpush.sendNotification(subscription, dataString, {
       TTL: 86400,
       urgency: 'high',
-      headers: { 'apns-push-type': 'alert', 'apns-priority': '10' },
+      ...(isApns ? { headers: { 'apns-push-type': 'alert', 'apns-priority': '10' } } : {}),
     });
   }
 }
-

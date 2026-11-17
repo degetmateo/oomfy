@@ -8,7 +8,7 @@ describe('UrlHelper Open-Redirect & Protocol Security', () => {
     expect(UrlHelper.isInternalUrl('\\evil.com')).toBe(false);
     expect(UrlHelper.isInternalUrl('https://oomfy.online.evil.com')).toBe(false);
     expect(UrlHelper.isInternalUrl('https://evil-oomfy.online')).toBe(false);
-    expect(UrlHelper.isInternalUrl('https://api.oomfy.online/health')).toBe(false);
+    expect(UrlHelper.isInternalUrl('https://api-oomfy.onrender.com/health')).toBe(false);
     expect(UrlHelper.isInternalUrl('javascript:alert(1)')).toBe(false);
     expect(UrlHelper.isSafeHttpUrl('javascript:alert(1)')).toBe(false);
     expect(UrlHelper.isSafeHttpUrl('data:text/html,<script>')).toBe(false);

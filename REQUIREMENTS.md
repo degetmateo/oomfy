@@ -970,6 +970,26 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Nuevas suites de pruebas unitarias y de integración que verifican la inclusión de cabeceras APNs, el marcado de expiración en 400/403/404/410, la auto-renovación silenciosa en cliente y el ruteo de iconos dinámicos.
     - 60 suites de prueba en `@oomfy/web` (170 tests) y 44 suites en `@oomfy/api` (149 tests) pasando al 100%, con estricto cumplimiento de **RNF-01** (< 100 LOC) y 0 trazas de prueba en base de datos (**RNF-08**).
 
+- **Hito 69: Suscripciones Push Multidispositivo Simultáneas e Independencia de Desuscripción por Endpoint (Completado):**
+  - *Suscripciones Múltiples Concurrentes por Usuario (`PushSubscriptionRepository.ts`, `MongoMigrationRunner.ts`):*
+    - Cada usuario puede poseer múltiples suscripciones activas concurrentemente en la colección `push_subscriptions`, una por cada dispositivo o perfil de navegador físico registrado (PC, celular, tablet, etc.).
+    - Se incorporaron en `MongoMigrationRunner` el índice único por `{ endpoint: 1 }` y el índice compuesto `{ user_id: 1, is_active: 1 }` para garantizar integridad y búsquedas ultrarrápidas de suscripciones activas.
+    - En `upsertSubscription`, se maneja la actualización atómica evitando colisiones de clave duplicada (`E11000`) si el endpoint ya existía, y se heredan de inmediato las preferencias existentes del usuario para nuevos dispositivos.
+  - *Despacho Concurrente Simultáneo (`WebPushService.ts`, `WebPushClient.ts`):*
+    - `PushSubscriptionRepository.findActiveSubscriptions` recupera todos los endpoints activos (`is_active: { $ne: false }`) del usuario que coincidan con las preferencias de la categoría.
+    - `WebPushService.sendPushToUser` despacha en paralelo a todos los dispositivos registrados utilizando `Promise.all`.
+    - En `WebPushClient.ts`, se evalúa mediante parseo de URL seguro si el endpoint corresponde al servicio de Apple (`apple.com`), enviando cabeceras de alerta APNs (`apns-push-type`, `apns-priority`) exclusivamente a dispositivos iOS/macOS y omitiéndolas en FCM (Google/Android/PC) y Mozilla.
+  - *Aislamiento Estricto de Desuscripción por Dispositivo (`NotificationController.ts`, `PushSubscriptionRepository.ts`):*
+    - Desuscribirse o cerrar sesión en un dispositivo (`POST /api/notifications/unsubscribe` con `{ endpoint }`) desactiva única y exclusivamente el endpoint de ese dispositivo específico (`is_active: false`, `status: 'inactive'`).
+    - Las suscripciones activas en los demás dispositivos del usuario permanecen 100% activas y continúan recibiendo notificaciones sin interrupciones.
+    - Si una petición no provee un endpoint válido, se ignora de forma segura en lugar de desactivar globalmente todos los dispositivos del usuario.
+  - *Sincronización de Preferencias y Prevención de Falsas Alarmas (`AppPwaSettingsTab.tsx`, `PushSubscriptionRepository.ts`):*
+    - `updatePreferences` propaga las actualizaciones de configuración a todas las suscripciones del usuario, garantizando que el filtrado de categorías de notificación se mantenga sincronizado entre PC y móvil.
+    - En `AppPwaSettingsTab.tsx`, se corrigió la verificación del estado de suscripción para evitar que el banner de aviso de desconexión parpadee mientras el endpoint se encuentra cargando en el cliente.
+  - *Verificación y Calidad de Código (`multi-device-push-subscriptions.test.ts`):*
+    - Nueva suite de integración en `@oomfy/api` que valida el ciclo completo multidispositivo: suscripción concurrente en PC y móvil, recepción simultánea, desuscripción aislada de PC con persistencia activa en móvil y sincronización de preferencias.
+    - 60 suites de prueba en `@oomfy/web` (170 tests) y 45 suites en `@oomfy/api` (150 tests) pasando al 100%, 0 errores en `pnpm build`, cumplimiento estricto de **RNF-01** (< 100 LOC) y 0 trazas residuales en MongoDB (**RNF-08**).
+
 
 
 
