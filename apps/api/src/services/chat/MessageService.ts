@@ -5,6 +5,7 @@ import { MongoChatRepository } from '../../infrastructure/repositories/mongo/Mon
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
 import { WebPushService } from '../notifications/WebPushService.js';
+import { NotificationIconHelper } from '../notifications/NotificationIconHelper.js';
 import { MentionNotificationHelper } from '../publications/MentionNotificationHelper.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../../errors/AppError.js';
@@ -57,7 +58,7 @@ export class MessageService {
     const snippet = content || (data.gif_url ? 'GIF' : data.media_urls?.length ? 'Imagen' : 'Mensaje');
     await MongoChatRepository.updateLastMessage(chatId, { id: messageId, content: snippet, sender_id: sender.id, created_at: (message as any).created_at });
     SocketGateway.broadcastChatMessage(chatId, message);
-    const chatIcon = senderObj.icon_url || `/members/${sender.username}/icon`;
+    const chatIcon = await NotificationIconHelper.resolveSenderIcon(senderObj);
     for (const p of participants) {
       SocketGateway.sendToUser(p, 'new_chat_message', message);
       if (p !== sender.id) {

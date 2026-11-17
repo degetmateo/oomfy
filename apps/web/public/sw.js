@@ -95,10 +95,14 @@ function resolveNotificationIcon(rawIcon) {
   if (trimmed.startsWith('https://') || trimmed.startsWith('http://') || trimmed.startsWith('data:')) {
     return trimmed;
   }
-  if (trimmed.startsWith('/members/') || trimmed.startsWith('/api/')) {
-    return `${getApiBase()}${trimmed}`;
+  if (trimmed.startsWith('/assets/')) {
+    return trimmed;
   }
-  if (trimmed.startsWith('/')) {
+  if (trimmed.startsWith('/members/') || trimmed.startsWith('/api/')) {
+    const apiBase = getApiBase();
+    return apiBase ? `${apiBase}${trimmed}` : '/assets/oomfy-logo-black-bg.png';
+  }
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
     return trimmed;
   }
   return '/assets/oomfy-logo-black-bg.png';

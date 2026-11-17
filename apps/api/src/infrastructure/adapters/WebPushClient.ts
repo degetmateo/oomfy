@@ -35,10 +35,15 @@ export class WebPushClient {
   }
 
   public static formatPayload(payload: WebPushPayload): string {
+    const rawIcon = typeof payload.icon === 'string' ? payload.icon.trim() : '';
+    const isExternal = /^(https?:\/\/|data:)/i.test(rawIcon);
+    const isAppAsset = rawIcon.startsWith('/assets/');
+    const safeIcon = isExternal || isAppAsset ? rawIcon : '/assets/oomfy-logo-black-bg.png';
+
     return JSON.stringify({
       title: payload.title || 'oomfy',
       body: payload.body || '',
-      icon: payload.icon || '/assets/oomfy-logo-black-bg.png',
+      icon: safeIcon,
       image: payload.image || undefined,
       url: payload.url || '/notifications',
       tag: payload.tag || undefined,

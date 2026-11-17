@@ -45,11 +45,10 @@ export class MongoMemberRepository {
     return docs.map(MongoMemberMapper.toDomain);
   }
 
-  public static async getRawMediaUrls(username: string): Promise<{ icon_url: string | null; banner_url: string | null }> {
-    const doc = await this.getCollection().findOne(
-      { username: { $regex: new RegExp(`^${MongoIdHelper.escapeRegex(username)}$`, 'i') }, ...ACTIVE_MEMBER_FILTER },
-      { projection: { icon_url: 1, 'icon.url': 1, banner_url: 1, 'banner.url': 1 } }
-    );
+  public static async getRawMediaUrls(identifier: string): Promise<{ icon_url: string | null; banner_url: string | null }> {
+    const isId = /^[0-9a-f-]{36}$/i.test(identifier) || /^\d+$/.test(identifier);
+    const filter = isId ? { ...MongoIdHelper.idFilter(identifier), ...ACTIVE_MEMBER_FILTER } : { username: { $regex: new RegExp(`^${MongoIdHelper.escapeRegex(identifier)}$`, 'i') }, ...ACTIVE_MEMBER_FILTER };
+    const doc = await this.getCollection().findOne(filter, { projection: { icon_url: 1, 'icon.url': 1, banner_url: 1, 'banner.url': 1 } });
     return { icon_url: doc?.icon_url || doc?.icon?.url || null, banner_url: doc?.banner_url || doc?.banner?.url || null };
   }
 

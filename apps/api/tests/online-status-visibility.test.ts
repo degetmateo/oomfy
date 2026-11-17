@@ -68,7 +68,6 @@ describe('Online status visibility / Invisible mode', () => {
     const map = (SocketGateway as any).userSockets as Map<string, Set<string>>;
     const fakeSocket = { id: 'sock-b-2', user: userB, join: vi.fn(), on: vi.fn() } as any;
     registerSocketHandlers(fakeSocket, map);
-    await new Promise((r) => setTimeout(r, 80));
-    expect(SocketGateway.isUserOnline(userB.id)).toBe(false);
+    await vi.waitFor(() => expect(SocketGateway.isUserOnline(userB.id)).toBe(false), { timeout: 1000 });
   });
 });

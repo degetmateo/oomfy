@@ -970,15 +970,21 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Nuevas suites de pruebas unitarias y de integración que verifican la inclusión de cabeceras APNs, el marcado de expiración en 400/403/404/410, la auto-renovación silenciosa en cliente y el ruteo de iconos dinámicos.
     - 60 suites de prueba en `@oomfy/web` (170 tests) y 44 suites en `@oomfy/api` (149 tests) pasando al 100%, con estricto cumplimiento de **RNF-01** (< 100 LOC) y 0 trazas de prueba en base de datos (**RNF-08**).
 
-- **Hito 70: Aislamiento de Ramas en Subhilos y Erradicación de Falsos Ancestros en Citas al Cargar Detalle (Completado):**
-  - *Aislamiento y Trazado de Cadena Única en Subhilos (`SubthreadGraphHelper.ts`, `ReplyThreadGroup.tsx`, `subthread-graph-helper.test.ts`, `thread-line-continuity.test.tsx`):*
-    - Se corrigió `buildOrderedSubthread` para construir una cadena estrictamente lineal paso a paso seleccionando el mejor camino (priorizando la rama que involucra al autor original del hilo `rootAuthor` y al autor de la respuesta `starter.author`), erradicando la concatenación plana de ramas hermanas disjuntas mediante DFS.
-    - Se robusteció `ReplyThreadGroup` en el frontend con la comprobación `isChildOf` evaluando relaciones directas de parentesco (`parent_publication_id` / `target_publication_id`) para `connectTop`, `connectBottom` y `hideBottomBorder`, garantizando que dos respuestas hermanas independientes dirigidas a un mismo padre nunca queden unidas visualmente por una línea conectora vertical errónea.
-  - *Erradicación de Falsos Ancestros en Citas durante Carga Inicial (`PublicationCacheService.ts`, `PublicationCacheService.test.ts`):*
-    - En `PublicationCacheService.getPlaceholderDetailData`, se condicionó la generación de ancestros iniciales exclusivamente a publicaciones de tipo respuesta (`resolved.type === 'reply'`).
-    - Al ingresar al detalle de una publicación de tipo cita (`type: 'quote'`), su `target_publication` ya no se inyecta falsamente en `ancestors` durante los primeros instantes de revalidación en segundo plano, erradicando el parpadeo de jerarquía invertida y mostrando de inmediato la estructura correcta.
-  - *Verificación y Calidad de Código:*
-    - Nuevas pruebas unitarias en `@oomfy/api` (`subthread-graph-helper.test.ts`) y `@oomfy/web` (`PublicationCacheService.test.ts`, `thread-line-continuity.test.tsx`), compilación completa (`pnpm build`) y pruebas pasando al 100% con estricto cumplimiento de **RNF-01** (< 100 LOC) y **RNF-08**.
+- **Hito 71: Resolución Robusta de Foto de Perfil en Push Notifications y Fallback Determinista a Logo de la App (Completado):**
+  - *Extracción de `NotificationIconHelper` y Resolución Directa de Avatar (`NotificationIconHelper.ts`, `NotificationDispatcher.ts`, `MessageService.ts`):*
+    - Se creó `NotificationIconHelper` con responsabilidad única (SRP) para resolver de forma segura la URL directa de imagen del usuario que provocó la notificación (`resolveSenderIcon`).
+    - Si el usuario cuenta con foto de perfil (`https://...` o `data:`), se utiliza de forma directa evitando redirecciones virtuales intermedias (`/members/.../icon`) que provocaban fallos de carga o caídas al logo por defecto en clientes móviles y navegadores.
+    - Si el usuario no tiene avatar personalizado o la foto no está disponible por cualquier motivo, se utiliza de manera determinista el logo oficial de la app (`/assets/oomfy-logo-black-bg.png`).
+    - Para notificaciones del sistema o que no involucran usuarios (como emisiones globales de administración), se utiliza el logo oficial de la app.
+  - *Fallback Híbrido PostgreSQL/MongoDB en Media de Perfil (`ProfileMediaService.ts`, `MongoMemberRepository.ts`):*
+    - `ProfileMediaService.getUserIcon` y `getUserBanner` ahora admiten búsqueda polimórfica por nombre de usuario o ID y cuentan con consulta secundaria en PostgreSQL (`icon` / `banner`), sincronizando automáticamente con MongoDB si la colección no tenía la URL persistida o si contenía rutas relativas virtuales.
+  - *Sanitización en Borde en WebPush y Service Worker (`WebPushClient.ts`, `sw.js`):*
+    - En `WebPushClient.formatPayload`, se valida en el límite que el icono sea una URL externa válida o un asset estático seguro (`/assets/...`), degradando a `/assets/oomfy-logo-black-bg.png` ante rutas virtuales o valores nulos.
+    - En `sw.js`, `resolveNotificationIcon` normaliza los iconos preservando la URL directa de la foto de perfil del usuario causante y asegurando fallback robusto.
+  - *Verificación y Calidad de Código (`notification-icon-helper.test.ts`, `web-push-ios-and-icons.test.ts`, `service-worker-push-icons.test.ts`):*
+    - Nuevas pruebas unitarias en backend y frontend verificando la resolución de avatar, fallback al logo de la app ante ausencia de avatar y notificaciones sin usuario.
+    - 61 suites en `@oomfy/web` (176 tests) y 47 suites en `@oomfy/api` (158 tests) en verde al 100%, con estricto cumplimiento de **RNF-01** (< 100 LOC) y **RNF-08**.
+
 
 
 

@@ -54,16 +54,28 @@ describe('WebPush APNs Headers, Icon Resolution & Expiration Lifecycle', () => {
       push: { title: 'Carol te respondió', body: 'Excelente post!', url: '/publication/pub-999', category: 'replies' },
     });
 
-    expect(pushSpy).toHaveBeenCalledWith(
-      'recipient-123',
-      expect.objectContaining({
-        title: 'Carol te respondió',
-        icon: 'https://i.ibb.co/sender-pic.jpg',
-        url: '/publication/pub-999',
-        tag: 'notif-comment-sender-456',
-      }),
-      'replies'
-    );
+    expect(pushSpy).toHaveBeenCalledWith('recipient-123', expect.objectContaining({
+      title: 'Carol te respondió', icon: 'https://i.ibb.co/sender-pic.jpg', url: '/publication/pub-999', tag: 'notif-comment-sender-456',
+    }), 'replies');
+  });
+
+  it('falls back to default app logo when user avatar is unavailable in NotificationDispatcher', async () => {
+    vi.spyOn(MongoNotificationRepository, 'create').mockResolvedValue(undefined as any);
+    vi.spyOn(SocketGateway, 'sendNotification').mockReturnValue(undefined as any);
+    vi.spyOn(ProfileMediaService, 'getUserIcon').mockResolvedValue(null);
+    const pushSpy = vi.spyOn(WebPushService, 'sendPushToUser').mockResolvedValue(1);
+
+    await NotificationDispatcher.dispatch({
+      recipientId: 'recipient-123',
+      sender: { id: 'sender-789', username: 'noavatar', name: 'No Avatar User', role: 'member', icon_url: null },
+      type: 'comment',
+      targetPublicationId: 'pub-100',
+      push: { title: 'No Avatar te respondió', body: 'Hola!', url: '/publication/pub-100', category: 'replies' },
+    });
+
+    expect(pushSpy).toHaveBeenCalledWith('recipient-123', expect.objectContaining({
+      title: 'No Avatar te respondió', icon: '/assets/oomfy-logo-black-bg.png', url: '/publication/pub-100',
+    }), 'replies');
   });
 
   it('marks subscription as expired when gateway returns 400, 403, 404 or 410', async () => {
