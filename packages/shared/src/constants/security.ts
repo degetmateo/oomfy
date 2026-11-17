@@ -14,6 +14,8 @@ export const CSP_DIRECTIVES: Record<string, string[]> = {
     'wss://api.oomfy.online',
     'https://*.oomfy.online',
     'wss://*.oomfy.online',
+    'https://oomfy.onrender.com',
+    'https://*.onrender.com',
     'https://cloudflareinsights.com',
     'https://*.cloudflareinsights.com',
   ],

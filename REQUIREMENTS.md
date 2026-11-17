@@ -897,6 +897,16 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Cada emote se renderiza con su imagen `object-contain`, tooltip descriptivo y `aria-label` en formato `:${emote.name}:`. Al hacer clic, inserta directamente el token `:${emote.name}: ` en el cursor del compositor o chat.
     - Componentes desacoplados en `< 100` LOC con cobertura total de pruebas unitarias y de integración.
 
+- **Hito 63: Diagnóstico de Accesibilidad de Red (ERR_CONNECTION_TIMED_OUT), Optimización de Dominio Apex vs CDN Anycast y Blueprint de Render (`render.yaml`):**
+  - *Diagnóstico y Causa Raíz de `ERR_CONNECTION_TIMED_OUT`:*
+    - Se aisló la causa raíz del timeout intermitente en `oomfy.online`: el dominio en Namecheap BasicDNS (`dns1.registrar-servers.com`, `dns2.registrar-servers.com`) apuntaba la raíz `@` mediante un registro estático `A` a la IP `216.24.57.1` (balanceador estático legado de Render en EE.UU.), provocando cuelgues de handshake TCP SYN en múltiples ISPs y operadores móviles que sufren de cuellos de botella de enrutamiento o IPv6/CGNAT hacia esa IP única, mientras que `www.oomfy.online` (`oomfy.onrender.com`) resuelve por Anycast de Cloudflare (`216.24.57.16` / `216.24.57.18`).
+  - *Resolución de Dominio en DNS (Namecheap ALIAS o Cloudflare CNAME Flattening):*
+    - Se establece la configuración recomendada por la documentación oficial de Render y Namecheap: reemplazar el `A Record` hacia `216.24.57.1` por un `ALIAS Record` en el host `@` apuntando a `oomfy.onrender.com` (o migrar a Cloudflare con CNAME flattening), permitiendo que la raíz resuelva dinámicamente a la red de borde global Anycast de Cloudflare en cientos de PoPs con baja latencia y sin timeout.
+  - *Infraestructura como Código y Cabeceras en Render (`render.yaml`, `security.ts`, `_headers`, `Environment.ts`, `apiBase.ts`):*
+    - Dado que Render Static Site no interpreta archivos `_headers` ni `_redirects` en repositorios, se introduce `render.yaml` declarando el servicio estático `oomfy-web` con su `staticPublishPath: ./apps/web/dist`, cabeceras de seguridad estrictas (`Strict-Transport-Security` con preload, `Content-Security-Policy`, etc.), directivas de caché para `index.html` / `sw.js` (`no-cache`) y `/assets/*` (`immutable`), así como la regla de rewrite `/*` -> `/index.html`.
+    - Se amplía `connectSrc` en `CSP_DIRECTIVES` y `_headers`, y `ALLOWED_ORIGINS` en `Environment.ts` y `resolveApiBaseUrl` en `apiBase.ts` para autorizar orígenes `*.onrender.com`.
+
+
 
 
 

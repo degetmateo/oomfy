@@ -8,7 +8,7 @@ export function resolveApiBaseUrl(requireOomfyHost = true): string {
   if (!requireOomfyHost) return API_PROD_URL;
   if (typeof window !== 'undefined') {
     const h = window.location.hostname.toLowerCase();
-    if (h === 'oomfy.online' || h.endsWith('.oomfy.online')) return API_PROD_URL;
+    if (h === 'oomfy.online' || h.endsWith('.oomfy.online') || h.endsWith('.onrender.com')) return API_PROD_URL;
   }
   return '';
 }

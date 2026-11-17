@@ -32,6 +32,7 @@ export class Environment {
       [
         'https://oomfy.online',
         'https://www.oomfy.online',
+        'https://oomfy.onrender.com',
         ...(process.env.ALLOWED_ORIGINS || '').split(',').map((s) => s.trim()),
         ...((process.env.NODE_ENV || process.env.ENV) === 'production' ? [] : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000']),
         process.env.FRONTEND_URL || '',
@@ -42,19 +43,13 @@ export class Environment {
   public static readonly JWT_SECRET: string = process.env.JWT_SECRET || 'default_jwt_secret_dev';
   public static readonly JWT_REFRESH_SECRET: string = process.env.JWT_REFRESH_SECRET || 'default_refresh_secret_dev';
 
-  public static readonly PG_URI: string | undefined =
-    process.env.PG_DATABASE_URI || process.env.DATABASE_URL;
+  public static readonly PG_URI: string | undefined = process.env.PG_DATABASE_URI || process.env.DATABASE_URL;
   public static readonly PG_CA: string | undefined = process.env.PG_DATABASE_CA;
-  public static readonly PG_HOST: string =
-    process.env.POSTGRES_URL || process.env.PG_HOST || 'localhost';
-  public static readonly PG_PORT: number =
-    Number(process.env.POSTGRES_PORT || process.env.PG_PORT) || 5432;
-  public static readonly PG_DATABASE: string =
-    process.env.POSTGRES_DB_NAME || process.env.PG_DATABASE || 'oomfy';
-  public static readonly PG_USER: string =
-    process.env.POSTGRES_USERNAME || process.env.PG_USER || 'postgres';
-  public static readonly PG_PASSWORD: string =
-    process.env.POSTGRES_PASSWORD || process.env.PG_PASSWORD || '';
+  public static readonly PG_HOST: string = process.env.POSTGRES_URL || process.env.PG_HOST || 'localhost';
+  public static readonly PG_PORT: number = Number(process.env.POSTGRES_PORT || process.env.PG_PORT) || 5432;
+  public static readonly PG_DATABASE: string = process.env.POSTGRES_DB_NAME || process.env.PG_DATABASE || 'oomfy';
+  public static readonly PG_USER: string = process.env.POSTGRES_USERNAME || process.env.PG_USER || 'postgres';
+  public static readonly PG_PASSWORD: string = process.env.POSTGRES_PASSWORD || process.env.PG_PASSWORD || '';
 
   public static readonly MONGODB_URI: string =
     process.env.MONGODB_DATABASE_KEY || process.env.MONGODB_URI || 'mongodb://localhost:27017';
@@ -78,10 +73,8 @@ export class Environment {
   public static assertProductionSecrets(): void {
     if (!this.isProduction()) return;
     const insecure = new Set([
-      'default_jwt_secret_dev',
-      'default_refresh_secret_dev',
-      'change_me_dev_access_secret_min_32_chars',
-      'change_me_dev_refresh_secret_min_32_chars',
+      'default_jwt_secret_dev', 'default_refresh_secret_dev',
+      'change_me_dev_access_secret_min_32_chars', 'change_me_dev_refresh_secret_min_32_chars',
     ]);
     if (!this.JWT_SECRET || this.JWT_SECRET.length < 32 || insecure.has(this.JWT_SECRET)) {
       throw new Error('FATAL: JWT_SECRET debe configurarse con al menos 32 caracteres seguros en producción.');
