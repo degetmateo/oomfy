@@ -71,7 +71,7 @@ describe('Dynamic Thread Preview & Inline Sub-Thread UI', () => {
     expect(screen.getByText(/Respondido por @orig_author en este hilo/i)).toBeInTheDocument();
     expect(screen.getByText('Autor')).toBeInTheDocument();
     expect(screen.getByText('Respuesta del autor original')).toBeInTheDocument();
-    const moreBtn = screen.getByRole('button', { name: /Mostrar más respuestas \(Y 1 respuesta más\.\.\.\)/i });
+    const moreBtn = screen.getByRole('button', { name: /Mostrar más respuestas/i });
     fireEvent.click(moreBtn);
 
     await waitFor(() => expect(screen.getByText('Tercera respuesta del subhilo')).toBeInTheDocument());

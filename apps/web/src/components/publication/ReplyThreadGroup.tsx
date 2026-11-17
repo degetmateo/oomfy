@@ -80,7 +80,7 @@ export const ReplyThreadGroup: React.FC<Props> = ({ reply, rootAuthorId, rootAut
                 className="text-xs font-bold text-brand-400 hover:text-white bg-dark-card/70 border border-dark-border hover:border-brand-500 px-3 py-1.5 flex items-center gap-1.5 transition-colors disabled:opacity-50"
               >
                 {isLoadingMore && <RefreshCw className="w-3 h-3 animate-spin" aria-hidden="true" />}
-                <span>Mostrar más respuestas (Y {remaining} {remaining === 1 ? 'respuesta' : 'respuestas'} más...)</span>
+                <span>Mostrar más respuestas</span>
               </button>
             </div>
           )}

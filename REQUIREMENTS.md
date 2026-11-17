@@ -883,7 +883,7 @@ Para asegurar la robustez de la aplicación y evitar regresiones:
     - Se expone el endpoint paginado `GET /publications/:id/subthread?mode=author|subthread&offset=...&limit=...` para cargar el resto de respuestas del hilo o subhilo en línea sin navegar hoja por hoja.
   - *Interfaz Conectada y Expansión Progresiva (`PublicationCard`, `AuthorThreadPreview`, `ReplyThreadGroup`, `SubthreadPreviewItem`, `PublicationDetailView`, `entityMergeHelpers`):*
     - Conector vertical en hilo desde el avatar original hasta las continuaciones del autor en el feed con el botón de expansión `Y X respuesta(s) más...` sobre trazo discontinuo.
-    - En `PublicationDetailView`, las respuestas con subhilos muestran indicador `Respondido por @autor en este hilo`, etiqueta `Autor` en respuestas del creador original y botón `Mostrar más respuestas (Y X respuesta(s) más...)` sincronizando las entidades en `publicationIdentityMap`.
+    - En `PublicationDetailView`, las respuestas con subhilos muestran indicador `Respondido por @autor en este hilo`, etiqueta `Autor` en respuestas del creador original y botón `Mostrar más respuestas` sincronizando las entidades en `publicationIdentityMap`.
     - Cobertura de pruebas en `apps/api/tests/thread-preview.test.ts` y `apps/web/tests/dynamic-thread-preview.test.tsx` con limpieza verificada en BD (**RNF-08**).
 
 - **Hito 62: Tipografía de Subhilos en Mobile, Supresión de Hilos en Pestaña "Me gusta" y Emotes Propios en el Selector de Emojis:**
