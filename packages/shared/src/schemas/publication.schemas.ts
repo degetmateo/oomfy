@@ -49,6 +49,7 @@ export const QueryPublicationSchema = z.object({
   target_id: z.preprocess(emptyToNull, safeEntityIdSchema.nullable().optional()),
   liked_by: z.preprocess(emptyToNull, z.string().trim().max(60).nullable().optional()),
   query: z.preprocess(emptyToNull, z.string().trim().max(LIMITS.SEARCH_QUERY_MAX).nullable().optional()),
+  feed: z.preprocess(emptyToNull, z.enum(['global', 'following']).nullable().optional()),
   since: z.preprocess(emptyToNull, z.string().max(40).nullable().optional()),
   until: z.preprocess(emptyToNull, z.string().max(40).nullable().optional()),
   has_media: z.union([z.boolean(), z.enum(['true', 'false'])]).optional().transform((v) => v === true || v === 'true'),

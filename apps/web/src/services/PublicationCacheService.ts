@@ -52,9 +52,10 @@ export class PublicationCacheService {
     };
   }
 
-  public static applyPatch(queryClient: QueryClient, id: string, updater: (p: Publication) => Publication, fallback?: Publication): void {
+  public static applyPatch(queryClient: QueryClient | null | undefined, id: string, updater: (p: Publication) => Publication, fallback?: Publication): void {
     if (!publicationIdentityMap.get(id) && fallback) publicationIdentityMap.seed([fallback]);
     publicationIdentityMap.patch(id, updater);
+    if (!queryClient) return;
 
     for (const prefix of PUBLICATION_LIST_KEYS) {
       queryClient.setQueriesData({ queryKey: [prefix] }, (old: any) => {

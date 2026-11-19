@@ -1,5 +1,5 @@
 import { v7 as uuidv7 } from 'uuid';
-import { PushPreferences } from '@oomfy/shared';
+import { Publication, PushPreferences } from '@oomfy/shared';
 import { MongoNotificationRepository } from '../../infrastructure/repositories/mongo/MongoNotificationRepository.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
 import { NotificationIconHelper } from './NotificationIconHelper.js';
@@ -10,6 +10,7 @@ export interface DispatchNotificationInput {
   sender: { id: string; username: string; name: string; role: any; icon_url?: string | null };
   type: 'upvote' | 'share' | 'comment' | 'quote' | 'follow' | 'mention';
   targetPublicationId?: string | null;
+  targetPublication?: Publication | null;
   push: {
     title: string;
     body: string;
@@ -47,7 +48,8 @@ export class NotificationDispatcher {
     };
 
     await MongoNotificationRepository.create(notif);
-    SocketGateway.sendNotification(input.recipientId, notif);
+    const socketPayload = input.targetPublication ? { ...notif, target_publication: input.targetPublication } : notif;
+    SocketGateway.sendNotification(input.recipientId, socketPayload);
     WebPushService.sendPushToUser(
       input.recipientId,
       {

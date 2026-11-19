@@ -6,6 +6,9 @@ import { FormattedText } from '../common/FormattedText.js';
 import { MediaGrid } from './MediaGrid.js';
 import { LinkPreviewCard } from './LinkPreviewCard.js';
 import { PublicationHeader } from './PublicationHeader.js';
+import { PublicationActions } from './PublicationActions.js';
+import { useAuthStore } from '../../stores/authStore.js';
+import { useUIStore } from '../../stores/uiStore.js';
 import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
 import { usePublicationSnapshot } from '../../hooks/usePublicationSnapshot.js';
 
@@ -18,6 +21,8 @@ interface Props {
 export const ThreadAncestorCard: React.FC<Props> = ({ post: rawPost, showTopLine = false, showBottomLine = true }) => {
   const post = usePublicationSnapshot(rawPost);
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
+  const { openPostModal } = useUIStore();
   const cardHandlers = useCardClickGuard(() => navigate(`/publication/${post.id}`));
 
   return (
@@ -37,6 +42,20 @@ export const ThreadAncestorCard: React.FC<Props> = ({ post: rawPost, showTopLine
         {post.content && <FormattedText text={post.content} authorId={post.author.id} className="text-xs text-dark-text whitespace-pre-line leading-relaxed font-sans block mb-2" />}
         <MediaGrid images={post.images || []} />
         <LinkPreviewCard embeds={post.embeds} targetPublication={(post.type === 'quote' || post.type === 'shared') ? post.target_publication : undefined} />
+        <div className="mt-2" onClick={(e) => e.stopPropagation()} data-no-card-nav="true">
+          <PublicationActions
+            postId={post.id}
+            initialUpvotes={Math.max(0, post.upvotes_count || 0, post.is_upvoted ? 1 : 0)}
+            initialIsUpvoted={Boolean(post.is_upvoted)}
+            initialShares={Math.max(0, post.shares_count || 0)}
+            initialIsShared={Boolean(post.is_shared)}
+            initialIsQuoted={Boolean(post.is_quoted)}
+            quotesCount={Math.max(0, post.quotes_count || 0)}
+            commentsCount={Math.max(0, post.comments_count || 0)}
+            onCommentClick={() => navigate(`/publication/${post.id}`)}
+            onQuoteClick={() => (isAuthenticated ? openPostModal(post) : navigate('/signin'))}
+          />
+        </div>
       </div>
     </article>
   );

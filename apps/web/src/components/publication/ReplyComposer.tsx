@@ -5,14 +5,15 @@ import { useAuthStore } from '../../stores/authStore.js';
 import { ComposerAttachmentPreviews } from '../common/ComposerAttachmentPreviews.js';
 import { PublicationComposerToolbar } from './PublicationComposerToolbar.js';
 import { useComposerMedia } from '../../hooks/useComposerMedia.js';
+import type { OptimisticMeta } from '../../controllers/optimisticPublicationHelpers.js';
 
 interface Props {
   targetId: string;
-  onSubmit: (data: FormData) => void;
-  isSubmitting: boolean;
+  onSubmit: (data: FormData, meta: OptimisticMeta) => void;
+  isSubmitting?: boolean;
 }
 
-export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmitting }) => {
+export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmitting = false }) => {
   const inputId = useId();
   const { isAuthenticated, user } = useAuthStore();
   const [content, setContent] = useState('');
@@ -40,15 +41,17 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
     e.preventDefault();
     if (!hasContent || isSubmitting || submittingRef.current || media.cropQueue.isCropping || isGifOpen) return;
     submittingRef.current = true;
+    const trimmed = content.trim();
     const formData = new FormData();
     formData.append('type', 'reply');
     formData.append('target_id', targetId);
-    if (content.trim()) formData.append('content', content.trim());
+    if (trimmed) formData.append('content', trimmed);
     media.files.forEach((img) => formData.append('images', img));
     if (media.gifs.length > 0) formData.append('tenor', JSON.stringify(media.gifs.map((src, index) => ({ src, index }))));
-    onSubmit(formData);
+    onSubmit(formData, { content: trimmed, files: [...media.files], gifs: [...media.gifs] });
     setContent('');
     media.clearMedia();
+    submittingRef.current = false;
   };
 
   return (

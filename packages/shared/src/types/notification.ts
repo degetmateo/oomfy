@@ -1,4 +1,4 @@
-import { AuthorSnapshot } from './publication.js';
+import { AuthorSnapshot, Publication } from './publication.js';
 
 export type NotificationType = 'upvote' | 'comment' | 'follow' | 'quote' | 'share' | 'mention';
 export type NotificationStatus = 'pending' | 'seen';
@@ -9,6 +9,7 @@ export interface Notification {
   sender: AuthorSnapshot;
   type: NotificationType;
   target_publication_id: string | null;
+  target_publication?: Publication | null;
   status: NotificationStatus;
   created_at: string;
 }

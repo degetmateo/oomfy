@@ -6,6 +6,7 @@ import { PublicationInteractionDecorator } from './PublicationInteractionDecorat
 import { PublicationTargetPopulator } from './PublicationTargetPopulator.js';
 import { PublicationSubthreadResolver } from './PublicationSubthreadResolver.js';
 import { MongoPublicationLikedHelper } from './MongoPublicationLikedHelper.js';
+import { MongoFollowRepository } from './MongoFollowRepository.js';
 import type { FeedParams } from './MongoPublicationRepository.js';
 
 export class MongoPublicationFeedHelper {
@@ -29,6 +30,16 @@ export class MongoPublicationFeedHelper {
     if (params.authorUsername) {
       const safeAuthor = MongoIdHelper.escapeRegex(params.authorUsername);
       query['author.username'] = { $regex: new RegExp(`^${safeAuthor}$`, 'i') };
+    }
+    if (params.feed === 'following') {
+      if (!params.userId) return [];
+      const followedIds = await MongoFollowRepository.getFollowedUserIds(params.userId);
+      if (followedIds.length === 0) return [];
+      const authorVariants = followedIds.flatMap((id) => MongoIdHelper.idVariants(id));
+      query.$and = [
+        ...(query.$and || []),
+        { $or: [{ 'author.id': { $in: authorVariants } }, { 'author._id': { $in: authorVariants } }] },
+      ];
     }
     if (params.type === 'posts') query.type = { $in: ['default', 'quote', 'shared'] };
     else if (params.type) query.type = params.type;

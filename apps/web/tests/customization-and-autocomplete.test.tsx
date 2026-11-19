@@ -79,7 +79,7 @@ describe('Customization Tab, Composer Autocomplete & Mention Notifications', () 
       type: 'mention' as const, target_publication_id: 'pub-1', status: 'pending' as const, created_at: new Date().toISOString(),
     };
     const { rerender } = render(<MemoryRouter><NotificationItem notif={baseNotif} isUnread={true} /></MemoryRouter>);
-    expect(screen.getByText(/te mencionó en una publicación\./i)).toBeInTheDocument();
+    expect(screen.getByText(/te mencionó:/i)).toBeInTheDocument();
 
     rerender(<MemoryRouter><NotificationItem notif={{ ...baseNotif, target_publication_id: null }} isUnread={false} /></MemoryRouter>);
     expect(screen.getByText(/te mencionó en un mensaje\./i)).toBeInTheDocument();

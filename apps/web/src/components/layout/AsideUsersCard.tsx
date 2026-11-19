@@ -41,17 +41,56 @@ const SuggestedMemberRow: React.FC<{ member: PublicUser; isAuthenticated: boolea
 };
 
 interface Props {
+  onlineMembers?: PublicUser[];
+  showOnlineBanner?: boolean;
   suggestedMembers: PublicUser[];
   isAuthenticated: boolean;
 }
 
-export const AsideUsersCard: React.FC<Props> = ({ suggestedMembers, isAuthenticated }) => (
-  <div className="p-3 border border-dark-border bg-dark-card/50">
-    <h3 className="font-bold text-xs uppercase tracking-wider text-white mb-3">A quién seguir</h3>
-    <div className="flex flex-col gap-3">
-      {suggestedMembers.slice(0, 4).map((m) => (
-        <SuggestedMemberRow key={m.id} member={m} isAuthenticated={isAuthenticated} />
-      ))}
+export const AsideUsersCard: React.FC<Props> = ({
+  onlineMembers = [],
+  showOnlineBanner = false,
+  suggestedMembers,
+  isAuthenticated,
+}) => (
+  <div className="flex flex-col gap-4">
+    {showOnlineBanner && onlineMembers.length > 0 && (
+      <section aria-label="Miembros en línea" className="p-3 border border-dark-border bg-dark-card/50">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-xs uppercase tracking-wider text-white flex items-center gap-2">
+            <span className="w-2 h-2 bg-brand-500 animate-pulse inline-block" aria-hidden="true" />
+            <span>Miembros en línea</span>
+          </h3>
+          <span className="text-[10px] text-brand-400 font-bold">{Math.min(onlineMembers.length, 6)}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {onlineMembers.slice(0, 6).map((m) => (
+            <Link
+              key={m.id}
+              to={`/${m.username}`}
+              title={`${m.name} (@${m.username})`}
+              className="flex flex-col items-center gap-1 p-1.5 hover:bg-dark-bg border border-transparent hover:border-dark-border transition-colors min-w-0"
+            >
+              <div className="relative flex-shrink-0">
+                <PixelAvatar src={m.icon_url} username={m.username} sizeClass="w-9 h-9" />
+                <span className="w-2.5 h-2.5 bg-brand-500 border border-dark-bg absolute -bottom-0.5 -right-0.5" aria-hidden="true" />
+              </div>
+              <span className="text-[10px] text-dark-muted hover:text-white truncate w-full text-center">
+                @{m.username}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <div className="p-3 border border-dark-border bg-dark-card/50">
+      <h3 className="font-bold text-xs uppercase tracking-wider text-white mb-3">A quién seguir</h3>
+      <div className="flex flex-col gap-3">
+        {suggestedMembers.slice(0, 4).map((m) => (
+          <SuggestedMemberRow key={m.id} member={m} isAuthenticated={isAuthenticated} />
+        ))}
+      </div>
     </div>
   </div>
 );

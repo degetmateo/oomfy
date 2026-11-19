@@ -36,7 +36,7 @@ export const KlipyGifModal: React.FC<Props> = ({ isOpen, onClose, onSelect }) =>
       role="dialog" aria-modal="true" aria-labelledby="klipy-gif-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 font-mono"
     >
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-[#1a1a1a] border-2 border-dark-border shadow-pixel flex flex-col max-h-[85vh] overflow-hidden">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-[#1a1a1a] border-2 border-dark-border shadow-pixel flex flex-col h-[34rem] max-h-[85vh] overflow-hidden">
         <div className="flex items-center justify-between p-3 border-b-2 border-dark-border bg-[#141414]">
           <h2 id="klipy-gif-modal-title" className="font-bold text-white text-xs tracking-wider uppercase">Seleccionar GIF (Klipy)</h2>
           <button type="button" onClick={onClose} aria-label="Cerrar" className="p-1 hover:bg-dark-border text-white">
@@ -59,7 +59,7 @@ export const KlipyGifModal: React.FC<Props> = ({ isOpen, onClose, onSelect }) =>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 grid grid-cols-2 sm:grid-cols-3 gap-2 content-start">
           {isLoading ? (
             <div className="col-span-full py-12 text-center text-xs text-dark-muted">Cargando GIFs...</div>
           ) : data?.data && data.data.length > 0 ? (

@@ -5,7 +5,7 @@ import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
 
 export class PublicationController {
-  public static async toggleUpvote(postId: string, queryClient: QueryClient, onAuthRequired: () => void): Promise<void> {
+  public static async toggleUpvote(postId: string, queryClient: QueryClient | null | undefined, onAuthRequired: () => void): Promise<void> {
     if (!useAuthStore.getState().isAuthenticated) { onAuthRequired(); return; }
     const current = publicationIdentityMap.get(postId);
     const wasUpvoted = Boolean(current?.is_upvoted);
@@ -30,7 +30,7 @@ export class PublicationController {
     }
   }
 
-  public static async toggleShare(postId: string, queryClient: QueryClient, onAuthRequired: () => void): Promise<void> {
+  public static async toggleShare(postId: string, queryClient: QueryClient | null | undefined, onAuthRequired: () => void): Promise<void> {
     if (!useAuthStore.getState().isAuthenticated) { onAuthRequired(); return; }
     const current = publicationIdentityMap.get(postId);
     const wasShared = Boolean(current?.is_shared);

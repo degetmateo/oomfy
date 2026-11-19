@@ -9,6 +9,7 @@ import { NotificationItem } from '../components/notifications/NotificationItem.j
 import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
+import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 
 export const NotificationsView: React.FC = () => {
   const queryClient = useQueryClient();
@@ -19,8 +20,14 @@ export const NotificationsView: React.FC = () => {
   const { data, isLoading, isError, refetch, isFetchingNextPage, hasNextPage, fetchNextPage } =
     useInfiniteQuery<{ success: boolean; data: { notifications: Notification[]; pendingCount: number } }>({
       queryKey: ['notifications-infinite-list'],
-      queryFn: ({ pageParam }) =>
-        ApiClient.get(`/notifications${pageParam ? `?older_id=${encodeURIComponent(String(pageParam))}&limit=20` : '?limit=20'}`),
+      queryFn: async ({ pageParam }) => {
+        const res = await ApiClient.get<{ success: boolean; data: { notifications: Notification[]; pendingCount: number } }>(
+          `/notifications${pageParam ? `?older_id=${encodeURIComponent(String(pageParam))}&limit=20` : '?limit=20'}`
+        );
+        const targetPubs = (res?.data?.notifications || []).map((n) => n.target_publication).filter(Boolean);
+        if (targetPubs.length > 0) publicationIdentityMap.ingest(targetPubs, Date.now());
+        return res;
+      },
       initialPageParam: '' as string,
       getNextPageParam: (lastPage) => {
         const notifs = lastPage?.data?.notifications;

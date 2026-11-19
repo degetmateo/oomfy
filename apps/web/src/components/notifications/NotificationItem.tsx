@@ -5,6 +5,8 @@ import { Notification } from '@oomfy/shared';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { formatNotificationTime, formatExactDateTime } from '../../utils/formatTime.js';
 import { useUserModel } from '../../hooks/useUserModel.js';
+import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
+import { NotificationPublicationCard } from './NotificationPublicationCard.js';
 
 interface Props {
   notif: Notification;
@@ -23,6 +25,18 @@ const renderIcon = (type: string) => {
   }
 };
 
+function getActionLabel(notif: Notification): string {
+  switch (notif.type) {
+    case 'upvote': return 'indicó que le gusta tu publicación.';
+    case 'share': return 'compartió tu publicación.';
+    case 'comment': return 'te respondió:';
+    case 'quote': return 'te citó:';
+    case 'follow': return 'comenzó a seguirte.';
+    case 'mention': return notif.target_publication_id ? 'te mencionó:' : 'te mencionó en un mensaje.';
+    default: return '';
+  }
+}
+
 export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
   const navigate = useNavigate();
   const liveSender = useUserModel(notif.sender?.username);
@@ -31,15 +45,19 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
     ...(liveSender ? { name: liveSender.name, username: liveSender.username, icon_url: liveSender.icon_url } : {}),
   };
 
-  const handleClick = () => {
+  const hasEmbeddedPub = Boolean(
+    notif.target_publication_id && (notif.type === 'comment' || notif.type === 'quote' || notif.type === 'mention')
+  );
+
+  const cardHandlers = useCardClickGuard(() => {
     if (notif.target_publication_id) navigate(`/publication/${notif.target_publication_id}`);
     else if (notif.type === 'mention') navigate('/chats');
     else navigate(`/${sender.username}`);
-  };
+  });
 
   return (
     <div
-      onClick={handleClick}
+      {...cardHandlers}
       className={`p-4 hover:bg-dark-card/50 transition-colors flex gap-3.5 items-start cursor-pointer ${
         isUnread ? 'bg-brand-500/15 border-l-4 border-l-brand-400' : ''
       }`}
@@ -58,23 +76,18 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
               <Link to={`/${sender.username}`} onClick={(e) => e.stopPropagation()} className="text-dark-muted font-mono hover:underline">
                 @{sender.username}
               </Link>{' '}
-              <span className="text-dark-text font-sans">
-                {notif.type === 'upvote' && 'indicó que le gusta tu publicación.'}
-                {notif.type === 'share' && 'compartió tu publicación.'}
-                {notif.type === 'comment' && 'respondió a tu publicación.'}
-                {notif.type === 'quote' && 'citó tu publicación.'}
-                {notif.type === 'follow' && 'comenzó a seguirte.'}
-                {notif.type === 'mention' && (notif.target_publication_id ? 'te mencionó en una publicación.' : 'te mencionó en un mensaje.')}
-              </span>
+              <span className="text-dark-text font-sans">{getActionLabel(notif)}</span>
             </p>
             {isUnread && <span className="px-1.5 py-0.5 text-[10px] font-bold bg-brand-500 text-black font-mono flex-shrink-0">NUEVO</span>}
           </div>
           <time dateTime={notif.created_at} title={formatExactDateTime(notif.created_at)} className="text-[10px] text-dark-muted mt-1 block font-mono">
             {formatNotificationTime(notif.created_at)}
           </time>
+          {hasEmbeddedPub && (
+            <NotificationPublicationCard publication={notif.target_publication} targetId={notif.target_publication_id!} />
+          )}
         </div>
       </div>
     </div>
   );
 };
-

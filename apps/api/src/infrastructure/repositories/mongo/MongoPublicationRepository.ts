@@ -12,6 +12,7 @@ export interface FeedParams {
   olderId?: string | null;
   authorUsername?: string | null;
   query?: string | null;
+  feed?: 'global' | 'following' | null;
   type?: string | null;
   likedBy?: string | null;
   since?: string | null;
@@ -37,6 +38,14 @@ export class MongoPublicationRepository {
     const [populated] = await PublicationTargetPopulator.populate([PublicationMapper.toDomain(doc)]);
     const [decorated] = await PublicationInteractionDecorator.decorate([populated], userId);
     return decorated;
+  }
+
+  public static async findManyByIds(ids: string[], userId?: string): Promise<Publication[]> {
+    if (ids.length === 0) return [];
+    const filters = ids.flatMap((id) => MongoIdHelper.idFilter(id).$or);
+    const docs = await this.getCollection().find({ $or: filters }).toArray();
+    const populated = await PublicationTargetPopulator.populate(docs.map(PublicationMapper.toDomain));
+    return PublicationInteractionDecorator.decorate(populated, userId);
   }
 
   public static findFeed(params: FeedParams): Promise<Publication[]> {

@@ -9,6 +9,7 @@ import { registerSocketHandlers } from './SocketHandlers.js';
 export class SocketGateway {
   private static io: Server | null = null;
   private static userSockets = new Map<string, Set<string>>();
+  private static invisibleUsers = new Set<string>();
 
   public static initialize(server: HttpServer): void {
     this.io = new Server(server, { cors: { origin: corsOriginHandler, credentials: true } });
@@ -31,6 +32,23 @@ export class SocketGateway {
   public static disconnectUser(userId: string): void {
     this.io?.in(`user:${userId}`).disconnectSockets(true);
     this.userSockets.delete(userId);
+    this.broadcastOnlineMembersUpdated();
+  }
+  public static setUserInvisible(userId: string, invisible: boolean): void {
+    if (invisible) this.invisibleUsers.add(userId);
+    else this.invisibleUsers.delete(userId);
+    this.broadcastOnlineMembersUpdated();
+  }
+  public static getOnlineUserIds(): string[] {
+    return Array.from(this.userSockets.keys()).filter(
+      (uid) => (this.userSockets.get(uid)?.size ?? 0) > 0 && !this.invisibleUsers.has(uid)
+    );
+  }
+  public static isUserOnline(userId: string): boolean {
+    return (this.userSockets.get(userId)?.size ?? 0) > 0 && !this.invisibleUsers.has(userId);
+  }
+  public static broadcastOnlineMembersUpdated(): void {
+    this.io?.emit('online-members-updated');
   }
   public static disconnectSession(sessionId: string): void {
     this.io?.in(`session:${sessionId}`).disconnectSockets(true);

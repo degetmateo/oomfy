@@ -42,5 +42,15 @@ export class SettingsController {
       next(err);
     }
   }
+
+  public static async updateOnlineStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { show_online_status } = req.body;
+      const result = await SettingsService.updateOnlineStatus(req.user!.id, Boolean(show_online_status));
+      res.status(200).json({ success: true, message: 'Visibilidad de estado en línea actualizada.', data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useParams, useNavigate, useNavigationType, useLocation } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
 import { Publication, PublicUser } from '@oomfy/shared';
 import { Header } from '../components/layout/Header.js';
@@ -16,6 +16,7 @@ import { useUIStore } from '../stores/uiStore.js';
 import { useDialogStore } from '../stores/dialogStore.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
 import { PublicationController } from '../controllers/PublicationController.js';
+import { submitOptimisticReply } from '../controllers/optimisticPublicationHelpers.js';
 import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { RouteScrollStore } from '../stores/routeScrollStore.js';
@@ -50,14 +51,6 @@ export const PublicationDetailView: React.FC = () => {
     enabled: Boolean(id),
   });
 
-  const replyMutation = useMutation({
-    mutationFn: (formData: FormData) => ApiClient.post('/publications', formData),
-    onSuccess: () => {
-      if (id) PublicationCacheService.applyPatch(queryClient, id, (p) => ({ ...p, comments_count: (p.comments_count || 0) + 1 }));
-      queryClient.invalidateQueries({ queryKey: ['publication', id] });
-    },
-  });
-
   const rawPub: Publication | undefined = data?.publication;
   const publication = usePublicationModel(rawPub || id) || rawPub;
   const ancestors: Publication[] = data?.ancestors || [];
@@ -87,7 +80,7 @@ export const PublicationDetailView: React.FC = () => {
         <Header title="Publicación" onRefresh={() => refetch()} isRefreshing={isFetching} />
         <ThreadAncestorsList publicationId={publication.id} initialAncestors={ancestors} hasMoreInitial={Boolean(data?.has_more_ancestors)} totalAncestors={data?.total_ancestors || ancestors.length} />
         <PublicationDetailArticle publication={publication} repliesCount={replies.length} canDelete={canDelete} isAuthenticated={isAuthenticated} articleRef={targetArticleRef} onDelete={handleDelete} onQuote={() => (isAuthenticated ? openPostModal(publication) : navigate('/signin'))} />
-        {isAuthenticated && <ReplyComposer targetId={id!} onSubmit={(fd) => replyMutation.mutate(fd)} isSubmitting={replyMutation.isPending} />}
+        {isAuthenticated && <ReplyComposer targetId={id!} onSubmit={(fd, meta) => submitOptimisticReply(queryClient, fd, user, publication, meta)} />}
         <div>
           {replies.length > 0 ? replies.map((c) => <ReplyThreadGroup key={c.id} reply={c} rootAuthorId={publication.author.id} rootAuthorUsername={publication.author.username} />) : isFetching ? (
             <div className="p-8 text-center text-xs text-dark-muted flex items-center justify-center gap-2"><RefreshCw className="w-4 h-4 animate-spin text-brand-400" /><span>Cargando respuestas...</span></div>

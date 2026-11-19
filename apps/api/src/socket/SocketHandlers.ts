@@ -1,6 +1,7 @@
 import { Socket } from 'socket.io';
 import { LIMITS } from '@oomfy/shared';
 import { MongoChatRepository } from '../infrastructure/repositories/mongo/MongoChatRepository.js';
+import { MongoMemberRepository } from '../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MessageService } from '../services/chat/MessageService.js';
 import { SocketGateway } from './SocketGateway.js';
 
@@ -23,8 +24,17 @@ export function registerSocketHandlers(socket: Socket, userSockets: Map<string, 
   if (!user) return;
   socket.join(`user:${user.id}`);
   if (user.sessionId) socket.join(`session:${user.sessionId}`);
+  const wasOffline = !userSockets.has(user.id) || userSockets.get(user.id)!.size === 0;
   if (!userSockets.has(user.id)) userSockets.set(user.id, new Set());
   userSockets.get(user.id)!.add(socket.id);
+  if (wasOffline) {
+    MongoMemberRepository.findById(user.id)
+      .then((member) => {
+        if (member) SocketGateway.setUserInvisible(user.id, member.show_online_status === false);
+        else SocketGateway.broadcastOnlineMembersUpdated();
+      })
+      .catch(() => SocketGateway.broadcastOnlineMembersUpdated());
+  }
 
   socket.on('join-chat', async (chatId: string) => {
     if (isWithinSocketQuota(socket) && await hasChatAccess(socket, chatId, user.id)) socket.join(`chat:${chatId}`);
@@ -57,7 +67,10 @@ export function registerSocketHandlers(socket: Socket, userSockets: Map<string, 
   });
   socket.on('disconnect', () => {
     userSockets.get(user.id)?.delete(socket.id);
-    if (userSockets.get(user.id)?.size === 0) userSockets.delete(user.id);
+    if (userSockets.get(user.id)?.size === 0) {
+      userSockets.delete(user.id);
+      SocketGateway.broadcastOnlineMembersUpdated();
+    }
   });
 }
 

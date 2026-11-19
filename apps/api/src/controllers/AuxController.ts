@@ -3,6 +3,7 @@ import { KlipyAdapter } from '../infrastructure/adapters/KlipyAdapter.js';
 import { UrlPreviewAdapter } from '../infrastructure/adapters/UrlPreviewAdapter.js';
 import { MongoMemberRepository } from '../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MongoFollowRepository } from '../infrastructure/repositories/mongo/MongoFollowRepository.js';
+import { SocketGateway } from '../socket/SocketGateway.js';
 import { isSafePublicHttpUrl } from '../utils/UrlSecurityHelper.js';
 
 export class AuxController {
@@ -22,6 +23,32 @@ export class AuxController {
       if (!(await isSafePublicHttpUrl(url))) { res.status(400).json({ success: false, message: 'URL no permitida o insegura.' }); return; }
       const preview = await UrlPreviewAdapter.getPreview(url);
       res.status(200).json({ success: true, data: preview });
+    } catch (err) { next(err); }
+  }
+
+  public static async getOnlineMembers(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const limit = Math.min(Math.max(1, Number(req.query.limit) || 6), 6);
+      const onlineIds = SocketGateway.getOnlineUserIds();
+      if (onlineIds.length === 0) {
+        res.status(200).json({ success: true, data: [] });
+        return;
+      }
+      const members = (await MongoMemberRepository.findManyByIds(onlineIds)).filter(
+        (m) => m.show_online_status !== false
+      );
+      for (let i = members.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [members[i], members[j]] = [members[j], members[i]];
+      }
+      const selected = members.slice(0, limit);
+      const currentUserId = req.user?.id;
+      if (currentUserId) {
+        for (const m of selected) {
+          if (m.id !== currentUserId) m.is_following = await MongoFollowRepository.isFollowing(currentUserId, m.id);
+        }
+      }
+      res.status(200).json({ success: true, data: selected });
     } catch (err) { next(err); }
   }
 

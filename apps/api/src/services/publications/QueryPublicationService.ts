@@ -10,6 +10,7 @@ export class QueryPublicationService {
       type: input.type,
       likedBy: input.liked_by,
       query: input.query,
+      feed: input.feed,
       since: input.since,
       until: input.until,
       hasMedia: input.has_media,

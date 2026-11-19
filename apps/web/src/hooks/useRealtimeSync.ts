@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { SocketClient } from '../services/socket.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
+import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 
 export function useRealtimeSync(): void {
   const queryClient = useQueryClient();
@@ -28,6 +29,7 @@ export function useRealtimeSync(): void {
     };
 
     const onNotification = (notif: any) => {
+      if (notif?.target_publication) publicationIdentityMap.ingest([notif.target_publication], Date.now());
       queryClient.setQueryData(['notifications-unread-count'], (old: any) =>
         old ? { ...old, count: (old.count || 0) + 1 } : { success: true, count: 1 }
       );

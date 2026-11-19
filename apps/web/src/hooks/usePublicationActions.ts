@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { QueryClientContext } from '@tanstack/react-query';
 import { usePublicationModel } from './usePublicationModel.js';
 import { PublicationController } from '../controllers/PublicationController.js';
 
@@ -16,7 +16,7 @@ export interface InteractionFallback {
 
 export function usePublicationActions(postId: string, fallback: InteractionFallback) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const queryClient = useContext(QueryClientContext);
   const live = usePublicationModel(postId);
 
   const isUpvoted = Boolean(live?.is_upvoted ?? fallback.is_upvoted);

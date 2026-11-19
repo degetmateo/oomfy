@@ -14,7 +14,7 @@ interface UseCursorFeedOptions {
 
 function getCursorPlaceholder(queryKey: QueryKey, limit: number): { pages: { success: boolean; data: Publication[] }[]; pageParams: (string | null)[] } | undefined {
   const prefix = Array.isArray(queryKey) ? queryKey[0] : '';
-  if (prefix === 'feed') {
+  if (prefix === 'feed' && queryKey[1] !== 'following') {
     const cached = publicationIdentityMap.getAll()
       .filter((p) => p.type !== 'reply')
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())

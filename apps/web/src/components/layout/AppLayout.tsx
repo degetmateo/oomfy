@@ -7,6 +7,7 @@ import { MobileFloatingButton } from './MobileFloatingButton.js';
 import { GuestBottomBanner } from './GuestBottomBanner.js';
 import { CreatePostModal } from '../publication/CreatePostModal.js';
 import { PixelDialogModal } from '../common/PixelDialogModal.js';
+import { PublicationToastBanner } from '../common/PublicationToastBanner.js';
 import { TermsAcceptanceModal } from '../legal/TermsAcceptanceModal.js';
 import { PushReconnectBanner } from '../notifications/PushReconnectBanner.js';
 import { useUIStore } from '../../stores/uiStore.js';
@@ -49,6 +50,7 @@ export const AppLayout: React.FC = () => {
       <CreatePostModal isOpen={isPostModalOpen} onClose={closePostModal} />
       <TermsAcceptanceModal />
       <PixelDialogModal />
+      <PublicationToastBanner />
     </div>
   );
 };

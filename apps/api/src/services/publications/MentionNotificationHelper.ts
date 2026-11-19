@@ -33,6 +33,7 @@ export class MentionNotificationHelper {
         sender: newPublication.author,
         type: pubType === 'quote' ? 'quote' : 'comment',
         targetPublicationId: newPublication.id,
+        targetPublication: newPublication,
         push: {
           title: pubType === 'quote' ? `${user.name} te citó` : `${user.name} te respondió`,
           body: snippet,
@@ -53,6 +54,7 @@ export class MentionNotificationHelper {
         sender: newPublication.author,
         type: 'mention',
         targetPublicationId: newPublication.id,
+        targetPublication: newPublication,
         push: {
           title: `${user.name} te mencionó`,
           body: snippet,

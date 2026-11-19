@@ -1,16 +1,12 @@
 import React, { useState, useId, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { LIMITS, Publication } from '@oomfy/shared';
-import { ApiClient } from '../../services/api.js';
 import { useAuthStore } from '../../stores/authStore.js';
-import { useDialogStore } from '../../stores/dialogStore.js';
 import { ComposerAttachmentPreviews } from '../common/ComposerAttachmentPreviews.js';
 import { PublicationQuotedPreview } from './PublicationQuotedPreview.js';
 import { PublicationComposerToolbar } from './PublicationComposerToolbar.js';
-import { PublicationCacheService } from '../../services/PublicationCacheService.js';
 import { useComposerMedia } from '../../hooks/useComposerMedia.js';
-import { publicationIdentityMap } from '../../models/PublicationIdentityMap.js';
-import { userIdentityMap } from '../../models/UserIdentityMap.js';
+import { submitOptimisticPublication } from '../../controllers/optimisticPublicationHelpers.js';
 
 interface Props {
   onCreated?: () => void;
@@ -23,9 +19,7 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
   const queryClient = useQueryClient();
   const inputId = useId();
   const { isAuthenticated, user } = useAuthStore();
-  const dialog = useDialogStore();
   const [content, setContent] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGifOpen, setIsGifOpen] = useState(false);
   const submittingRef = useRef(false);
   const maxLen = user?.role === 'admin' ? undefined : LIMITS.POST_CONTENT_MAX;
@@ -35,38 +29,29 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
 
   const hasContent = Boolean(content.trim() || media.files.length > 0 || media.gifs.length > 0 || quotedPublication);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hasContent || isSubmitting || submittingRef.current || media.cropQueue.isCropping || isGifOpen) return;
+    if (!hasContent || submittingRef.current || media.cropQueue.isCropping || isGifOpen) return;
     submittingRef.current = true;
-    setIsSubmitting(true);
-    try {
-      const formData = new FormData();
-      if (content.trim()) formData.append('content', content.trim());
-      media.files.forEach((img) => formData.append('images', img));
-      if (media.gifs.length > 0) formData.append('tenor', JSON.stringify(media.gifs.map((src, index) => ({ src, index }))));
-      if (quotedPublication) { formData.append('target_id', quotedPublication.id); formData.append('type', 'quote'); }
-      const res = await ApiClient.post<{ success?: boolean; data?: Publication }>('/publications', formData);
-      if (res?.data) {
-        publicationIdentityMap.ingest([res.data], Date.now());
-        if (user?.username) {
-          userIdentityMap.patch(user.username, (u) => ({ ...u, publication_count: (u.publication_count || 0) + 1 }));
-        }
-      }
-      if (quotedPublication) {
-        PublicationCacheService.applyPatch(queryClient, quotedPublication.id, (p) => ({ ...p, is_quoted: true, quotes_count: (p.quotes_count || 0) + 1 }), quotedPublication);
-      }
-      setContent('');
-      media.clearMedia();
-      onRemoveQuoted?.();
-      PublicationCacheService.invalidatePublicationLists(queryClient);
-      onCreated?.();
-    } catch (err) {
-      dialog.alert((err as Error).message, 'Error al publicar');
-    } finally {
-      submittingRef.current = false;
-      setIsSubmitting(false);
-    }
+    const trimmed = content.trim();
+    const formData = new FormData();
+    if (trimmed) formData.append('content', trimmed);
+    media.files.forEach((img) => formData.append('images', img));
+    if (media.gifs.length > 0) formData.append('tenor', JSON.stringify(media.gifs.map((src, index) => ({ src, index }))));
+    if (quotedPublication) { formData.append('target_id', quotedPublication.id); formData.append('type', 'quote'); }
+
+    submitOptimisticPublication(
+      queryClient,
+      formData,
+      user,
+      { content: trimmed, files: [...media.files], gifs: [...media.gifs] },
+      quotedPublication
+    );
+    setContent('');
+    media.clearMedia();
+    onRemoveQuoted?.();
+    onCreated?.();
+    submittingRef.current = false;
   };
 
   return (
@@ -91,7 +76,7 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
       {quotedPublication && <PublicationQuotedPreview quotedPublication={quotedPublication} onRemove={onRemoveQuoted} />}
       <ComposerAttachmentPreviews files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
       <PublicationComposerToolbar
-        content={content} onChangeContent={setContent} media={media} isSubmitting={isSubmitting}
+        content={content} onChangeContent={setContent} media={media} isSubmitting={false}
         hasContent={hasContent} submitLabel="Publicar" submittingLabel="Publicando..." cropTitle="Recortar imagen"
         onGifModalChange={setIsGifOpen}
       />
