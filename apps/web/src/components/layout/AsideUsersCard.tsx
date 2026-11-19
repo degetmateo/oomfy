@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { PublicUser } from '@oomfy/shared';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { useFollowMutation } from '../../hooks/useFollowMutation.js';
+import { useUserModel } from '../../hooks/useUserModel.js';
 
 const SuggestedMemberRow: React.FC<{ member: PublicUser; isAuthenticated: boolean }> = ({
-  member,
+  member: rawMember,
   isAuthenticated,
 }) => {
+  const member = useUserModel(rawMember) || rawMember;
   const { isFollowing, isLoadingFollow, toggleFollow } = useFollowMutation(member);
 
   return (
@@ -39,46 +41,17 @@ const SuggestedMemberRow: React.FC<{ member: PublicUser; isAuthenticated: boolea
 };
 
 interface Props {
-  onlineMembers: PublicUser[];
   suggestedMembers: PublicUser[];
   isAuthenticated: boolean;
 }
 
-export const AsideUsersCard: React.FC<Props> = ({ onlineMembers, suggestedMembers, isAuthenticated }) => (
-  <>
-    <div className="p-3 border border-dark-border bg-dark-card/50">
-      <h3 className="font-bold text-xs uppercase tracking-wider text-brand-400 mb-3 flex items-center justify-between">
-        <span>Miembros en línea</span>
-        <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
-      </h3>
-      <div className="flex flex-col gap-2.5">
-        {onlineMembers.length > 0 ? (
-          onlineMembers.slice(0, 5).map((m) => (
-            <Link key={m.id} to={`/${m.username}`} className="flex items-center gap-2.5 hover:bg-dark-card p-1 transition-colors">
-              <div className="relative flex-shrink-0">
-                <PixelAvatar src={m.icon_url} username={m.username} sizeClass="w-9 h-9" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-brand-500 rounded-full border border-black" />
-              </div>
-              <div className="truncate text-xs">
-                <p className="font-bold text-white hover:text-brand-400 truncate">{m.name}</p>
-                <p className="text-dark-muted text-[10px] truncate">@{m.username}</p>
-              </div>
-            </Link>
-          ))
-        ) : (
-          <p className="text-[11px] text-dark-muted">No hay miembros conectados ahora.</p>
-        )}
-      </div>
+export const AsideUsersCard: React.FC<Props> = ({ suggestedMembers, isAuthenticated }) => (
+  <div className="p-3 border border-dark-border bg-dark-card/50">
+    <h3 className="font-bold text-xs uppercase tracking-wider text-white mb-3">A quién seguir</h3>
+    <div className="flex flex-col gap-3">
+      {suggestedMembers.slice(0, 4).map((m) => (
+        <SuggestedMemberRow key={m.id} member={m} isAuthenticated={isAuthenticated} />
+      ))}
     </div>
-
-    <div className="p-3 border border-dark-border bg-dark-card/50">
-      <h3 className="font-bold text-xs uppercase tracking-wider text-white mb-3">A quién seguir</h3>
-      <div className="flex flex-col gap-3">
-        {suggestedMembers.slice(0, 4).map((m) => (
-          <SuggestedMemberRow key={m.id} member={m} isAuthenticated={isAuthenticated} />
-        ))}
-      </div>
-    </div>
-  </>
+  </div>
 );
-

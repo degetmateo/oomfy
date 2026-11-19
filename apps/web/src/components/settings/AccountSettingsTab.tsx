@@ -4,7 +4,6 @@ import { ApiClient } from '../../services/api.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 import { EmailSettingsSection } from './EmailSettingsSection.js';
-import { OnlineStatusSettingsSection } from './OnlineStatusSettingsSection.js';
 import { AccountLifecycleSection } from './AccountLifecycleSection.js';
 
 export const AccountSettingsTab: React.FC = () => {
@@ -78,7 +77,6 @@ export const AccountSettingsTab: React.FC = () => {
         {savingUsername ? 'Guardando...' : 'Actualizar @'}
       </button>
     </form>
-    <OnlineStatusSettingsSection />
     <EmailSettingsSection />
     <AccountLifecycleSection />
     </div>

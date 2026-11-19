@@ -5,12 +5,14 @@ import { PixelBadge } from '../icons/PixelBadge.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useFollowMutation } from '../../hooks/useFollowMutation.js';
+import { useUserModel } from '../../hooks/useUserModel.js';
 
 interface Props {
   user: PublicUser;
 }
 
-export const UserSearchCard: React.FC<Props> = ({ user }) => {
+export const UserSearchCard: React.FC<Props> = ({ user: rawUser }) => {
+  const user = useUserModel(rawUser) || rawUser;
   const { isAuthenticated, user: currentUser } = useAuthStore();
   const { isFollowing, isLoadingFollow, toggleFollow } = useFollowMutation(user);
   const isSelf = currentUser?.id === user.id || currentUser?.username === user.username;

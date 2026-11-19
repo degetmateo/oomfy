@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PublicUser } from '@oomfy/shared';
 import { ApiClient } from '../../services/api.js';
 import { useAuthStore } from '../../stores/authStore.js';
+import { userIdentityMap } from '../../models/UserIdentityMap.js';
 import { AsideUsersCard } from './AsideUsersCard.js';
 
 export const Aside: React.FC = () => {
@@ -12,17 +13,13 @@ export const Aside: React.FC = () => {
   const { isAuthenticated, user: currentUser } = useAuthStore();
   const [search, setSearch] = useState('');
 
-  const { data: onlineData } = useQuery<{ success: boolean; data: PublicUser[] }>({
-    queryKey: ['online-members'],
-    queryFn: () => ApiClient.get('/aux/online-members'),
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: false,
-  });
-
   const { data: suggestedData } = useQuery<{ success: boolean; data: PublicUser[] }>({
     queryKey: ['suggested-members'],
-    queryFn: () => ApiClient.get('/aux/suggested-members?limit=4'),
+    queryFn: async () => {
+      const res = await ApiClient.get<{ success: boolean; data: PublicUser[] }>('/aux/suggested-members?limit=4');
+      if (res?.data?.length) userIdentityMap.ingest(res.data, Date.now());
+      return res;
+    },
     staleTime: 2 * 60 * 1000,
   });
 
@@ -31,9 +28,6 @@ export const Aside: React.FC = () => {
     if (search.trim()) navigate(`/explore?q=${encodeURIComponent(search.trim())}`);
   };
 
-  const onlineMembers = (onlineData?.data || []).filter(
-    (m) => !(currentUser?.id === m.id && currentUser.show_online_status === false)
-  );
   const suggestedMembers = (suggestedData?.data || []).filter((m) => !currentUser || m.id !== currentUser.id);
 
   return (
@@ -57,7 +51,6 @@ export const Aside: React.FC = () => {
       )}
 
       <AsideUsersCard
-        onlineMembers={onlineMembers}
         suggestedMembers={suggestedMembers}
         isAuthenticated={isAuthenticated}
       />

@@ -4,6 +4,7 @@ import { PublicUser } from '@oomfy/shared';
 import { UserSearchCard } from '../profile/UserSearchCard.js';
 import { ApiClient } from '../../services/api.js';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll.js';
+import { userIdentityMap } from '../../models/UserIdentityMap.js';
 
 interface Props {
   publicationId: string;
@@ -13,8 +14,11 @@ interface Props {
 export const PublicationInteractionsUsersTab: React.FC<Props> = ({ publicationId, type }) => {
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery<{ success: boolean; data: PublicUser[] }>({
     queryKey: ['publication-interactions-users', publicationId, type],
-    queryFn: ({ pageParam = 0 }) =>
-      ApiClient.get(`/publications/${publicationId}/interactions/${type}?limit=20&offset=${String(pageParam)}`),
+    queryFn: async ({ pageParam = 0 }) => {
+      const res = await ApiClient.get<{ success: boolean; data: PublicUser[] }>(`/publications/${publicationId}/interactions/${type}?limit=20&offset=${String(pageParam)}`);
+      if (res?.data?.length) userIdentityMap.ingest(res.data, Date.now());
+      return res;
+    },
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => (lastPage?.data?.length >= 20 ? allPages.length * 20 : undefined),
     staleTime: 5 * 60 * 1000,

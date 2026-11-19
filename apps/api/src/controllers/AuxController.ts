@@ -3,7 +3,6 @@ import { KlipyAdapter } from '../infrastructure/adapters/KlipyAdapter.js';
 import { UrlPreviewAdapter } from '../infrastructure/adapters/UrlPreviewAdapter.js';
 import { MongoMemberRepository } from '../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MongoFollowRepository } from '../infrastructure/repositories/mongo/MongoFollowRepository.js';
-import { SocketGateway } from '../socket/SocketGateway.js';
 import { isSafePublicHttpUrl } from '../utils/UrlSecurityHelper.js';
 
 export class AuxController {
@@ -23,23 +22,6 @@ export class AuxController {
       if (!(await isSafePublicHttpUrl(url))) { res.status(400).json({ success: false, message: 'URL no permitida o insegura.' }); return; }
       const preview = await UrlPreviewAdapter.getPreview(url);
       res.status(200).json({ success: true, data: preview });
-    } catch (err) { next(err); }
-  }
-
-  public static async getOnlineMembers(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const onlineIds = SocketGateway.getOnlineUserIds();
-      const members = [];
-      const currentUserId = req.user?.id;
-      for (const id of onlineIds) {
-        const m = await MongoMemberRepository.findById(id);
-        if (!m) continue;
-        if (m.show_online_status === false) { SocketGateway.setUserInvisible(m.id, true); continue; }
-        if (currentUserId) m.is_following = await MongoFollowRepository.isFollowing(currentUserId, m.id);
-        members.push(m);
-        if (members.length >= 10) break;
-      }
-      res.status(200).json({ success: true, data: members });
     } catch (err) { next(err); }
   }
 

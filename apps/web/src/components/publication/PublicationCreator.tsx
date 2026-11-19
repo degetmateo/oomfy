@@ -9,6 +9,8 @@ import { PublicationQuotedPreview } from './PublicationQuotedPreview.js';
 import { PublicationComposerToolbar } from './PublicationComposerToolbar.js';
 import { PublicationCacheService } from '../../services/PublicationCacheService.js';
 import { useComposerMedia } from '../../hooks/useComposerMedia.js';
+import { publicationIdentityMap } from '../../models/PublicationIdentityMap.js';
+import { userIdentityMap } from '../../models/UserIdentityMap.js';
 
 interface Props {
   onCreated?: () => void;
@@ -44,7 +46,13 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
       media.files.forEach((img) => formData.append('images', img));
       if (media.gifs.length > 0) formData.append('tenor', JSON.stringify(media.gifs.map((src, index) => ({ src, index }))));
       if (quotedPublication) { formData.append('target_id', quotedPublication.id); formData.append('type', 'quote'); }
-      await ApiClient.post('/publications', formData);
+      const res = await ApiClient.post<{ success?: boolean; data?: Publication }>('/publications', formData);
+      if (res?.data) {
+        publicationIdentityMap.ingest([res.data], Date.now());
+        if (user?.username) {
+          userIdentityMap.patch(user.username, (u) => ({ ...u, publication_count: (u.publication_count || 0) + 1 }));
+        }
+      }
       if (quotedPublication) {
         PublicationCacheService.applyPatch(queryClient, quotedPublication.id, (p) => ({ ...p, is_quoted: true, quotes_count: (p.quotes_count || 0) + 1 }), quotedPublication);
       }

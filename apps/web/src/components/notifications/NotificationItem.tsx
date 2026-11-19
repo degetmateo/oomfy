@@ -4,6 +4,7 @@ import { Bell, Heart, UserPlus, Repeat, MessageSquare, Quote, AtSign } from 'luc
 import { Notification } from '@oomfy/shared';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { formatNotificationTime, formatExactDateTime } from '../../utils/formatTime.js';
+import { useUserModel } from '../../hooks/useUserModel.js';
 
 interface Props {
   notif: Notification;
@@ -24,11 +25,16 @@ const renderIcon = (type: string) => {
 
 export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
   const navigate = useNavigate();
+  const liveSender = useUserModel(notif.sender?.username);
+  const sender = {
+    ...notif.sender,
+    ...(liveSender ? { name: liveSender.name, username: liveSender.username, icon_url: liveSender.icon_url } : {}),
+  };
 
   const handleClick = () => {
     if (notif.target_publication_id) navigate(`/publication/${notif.target_publication_id}`);
     else if (notif.type === 'mention') navigate('/chats');
-    else navigate(`/${notif.sender.username}`);
+    else navigate(`/${sender.username}`);
   };
 
   return (
@@ -40,17 +46,17 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
     >
       {renderIcon(notif.type)}
       <div className="flex items-start gap-3 flex-1 min-w-0">
-        <Link to={`/${notif.sender.username}`} onClick={(e) => e.stopPropagation()} aria-label={`Perfil de @${notif.sender.username}`} className="flex-shrink-0">
-          <PixelAvatar src={notif.sender.icon_url || `/members/${notif.sender.username}/icon`} username={notif.sender.username} sizeClass="w-9 h-9" />
+        <Link to={`/${sender.username}`} onClick={(e) => e.stopPropagation()} aria-label={`Perfil de @${sender.username}`} className="flex-shrink-0">
+          <PixelAvatar src={sender.icon_url || `/members/${sender.username}/icon`} username={sender.username} sizeClass="w-9 h-9" />
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-white">
-              <Link to={`/${notif.sender.username}`} onClick={(e) => e.stopPropagation()} className="font-bold hover:underline mr-1.5">
-                {notif.sender.name || notif.sender.username}
+              <Link to={`/${sender.username}`} onClick={(e) => e.stopPropagation()} className="font-bold hover:underline mr-1.5">
+                {sender.name || sender.username}
               </Link>
-              <Link to={`/${notif.sender.username}`} onClick={(e) => e.stopPropagation()} className="text-dark-muted font-mono hover:underline">
-                @{notif.sender.username}
+              <Link to={`/${sender.username}`} onClick={(e) => e.stopPropagation()} className="text-dark-muted font-mono hover:underline">
+                @{sender.username}
               </Link>{' '}
               <span className="text-dark-text font-sans">
                 {notif.type === 'upvote' && 'indicó que le gusta tu publicación.'}

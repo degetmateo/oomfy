@@ -35,15 +35,6 @@ describe('Chat and Notifications Endpoints', () => {
     expect(res.body.success).toBe(false);
   });
 
-  it('should return online members as array with authentication', async () => {
-    const res = await request(server.app)
-      .get('/aux/online-members')
-      .set('Authorization', `Bearer ${userToken}`);
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(Array.isArray(res.body.data)).toBe(true);
-  });
-
   it('should return 200 with chatId and data for existing private chat', async () => {
     vi.spyOn(ChatService, 'getOrCreatePrivateChat').mockResolvedValueOnce({
       id: '019e-existing-chat-id',

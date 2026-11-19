@@ -4,13 +4,16 @@ import { Publication } from '@oomfy/shared';
 import { formatRelativeTime, formatExactDateTime } from '../../utils/formatTime.js';
 import { FormattedText } from '../common/FormattedText.js';
 import { resolveMediaUrl } from '../../utils/mediaUrl.js';
+import { usePublicationModel } from '../../hooks/usePublicationModel.js';
 
 interface Props {
   quotedPublication: Publication;
   onRemove?: () => void;
 }
 
-export const PublicationQuotedPreview: React.FC<Props> = ({ quotedPublication, onRemove }) => {
+export const PublicationQuotedPreview: React.FC<Props> = ({ quotedPublication: rawQuoted, onRemove }) => {
+  const quotedPublication = usePublicationModel(rawQuoted) || rawQuoted;
+
   return (
     <div className="relative mb-3 border border-dark-border p-2.5 bg-dark-card/50 text-xs font-mono">
       {onRemove && (
@@ -43,4 +46,3 @@ export const PublicationQuotedPreview: React.FC<Props> = ({ quotedPublication, o
     </div>
   );
 };
-

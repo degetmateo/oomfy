@@ -6,6 +6,7 @@ import { SocketClient } from '../services/socket.js';
 import { setAccessToken } from '../services/sessionTokenMemory.js';
 import { RouteScrollStore } from './routeScrollStore.js';
 import { useEntityRegistryStore } from './entityRegistryStore.js';
+import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { safeLocalGet, safeLocalRemove, safeLocalSet } from '../utils/safeStorage.js';
 
 interface AuthState {
@@ -32,6 +33,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     setAccessToken(token);
     if (refreshToken) safeLocalSet('oomfy_refresh_token', refreshToken);
     if (refreshToken || safeLocalGet('oomfy_refresh_token')) safeLocalSet('oomfy_cached_user', JSON.stringify(user));
+    userIdentityMap.ingest([user], Date.now());
     set({ user, token, isAuthenticated: true, isLoading: false });
   },
 
@@ -43,6 +45,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setUser: (user) => {
     if (safeLocalGet('oomfy_refresh_token')) safeLocalSet('oomfy_cached_user', JSON.stringify(user));
+    userIdentityMap.ingest([user], Date.now());
     set({ user, isAuthenticated: true, isLoading: false });
   },
 

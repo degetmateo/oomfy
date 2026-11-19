@@ -145,6 +145,12 @@ dialog::backdrop {
   }
 }
 
+@media (max-width: 767px) {
+  .chat-sidebar-resizable {
+    width: 100% !important;
+  }
+}
+
 /* Preserved SPA sub-tab state caching & below-the-fold feed rendering optimization */
 .spa-tab-panel-inactive {
   content-visibility: hidden;

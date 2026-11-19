@@ -8,6 +8,7 @@ import { ChatMessageActions } from './ChatMessageActions.js';
 import { ChatMessageReplyPreview } from './ChatMessageReplyPreview.js';
 import { useSwipeReply } from '../../hooks/useSwipeReply.js';
 import { formatMessageTimestamp, formatExactDateTime } from '../../utils/formatTime.js';
+import { useUserModel } from '../../hooks/useUserModel.js';
 
 interface Props {
   message: any; isMe?: boolean; isFirstInGroup?: boolean; isHighlighted?: boolean;
@@ -20,7 +21,9 @@ export const ChatMessageItem: React.FC<Props> = ({
   message, isMe = false, isFirstInGroup = true, isHighlighted = false,
   onReply, onReport, onDelete, onRetry, onDismissError, onImageClick, onJumpToMessage,
 }) => {
-  const sender = message.sender || {};
+  const rawSender = message.sender || {};
+  const liveSender = useUserModel(rawSender.username);
+  const sender = liveSender ? { ...rawSender, name: liveSender.name, username: liveSender.username, icon_url: liveSender.icon_url } : rawSender;
   const senderName = sender.name || (isMe ? 'Tú' : 'Usuario');
   const senderUsername = sender.username || '';
   const iconUrl = sender.icon_url || (senderUsername ? `/members/${senderUsername}/icon` : null);

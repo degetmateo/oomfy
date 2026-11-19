@@ -60,13 +60,8 @@ export const ConfirmEmailChangeSchema = z.object({
   token: z.string().trim().min(1, { error: 'Token de verificación requerido.' }),
 });
 
-export const UpdateOnlineStatusSchema = z.object({
-  show_online_status: z.boolean({ error: 'El estado de visibilidad en línea debe ser booleano.' }),
-});
-
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 export type UpdateUsernameInput = z.infer<typeof UpdateUsernameSchema>;
 export type UpdatePasswordInput = z.infer<typeof UpdatePasswordSchema>;
 export type RequestEmailChangeInput = z.infer<typeof RequestEmailChangeSchema>;
 export type ConfirmEmailChangeInput = z.infer<typeof ConfirmEmailChangeSchema>;
-export type UpdateOnlineStatusInput = z.infer<typeof UpdateOnlineStatusSchema>;

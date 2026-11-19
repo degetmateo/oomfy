@@ -19,10 +19,6 @@ export class MongoMemberRepository {
     await this.getCollection().updateOne(MongoIdHelper.idFilter(id), { $set: { pinned_publication_id: publicationId } });
   }
 
-  public static async setOnlineStatusVisibility(id: string, showOnlineStatus: boolean): Promise<void> {
-    await this.getCollection().updateOne(MongoIdHelper.idFilter(id), { $set: { show_online_status: showOnlineStatus } });
-  }
-
   public static async acceptTerms(userId: string): Promise<PublicUser | null> {
     await this.getCollection().updateOne(MongoIdHelper.idFilter(userId), { $set: { terms_accepted: true, terms_accepted_at: new Date().toISOString() } });
     return this.findById(userId);

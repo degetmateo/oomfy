@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MessageSquare, ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore.js';
 import { useChatsList } from '../hooks/useChatsList.js';
+import { useResizableChatSidebar } from '../hooks/useResizableChatSidebar.js';
+import { useUserModel } from '../hooks/useUserModel.js';
+import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { StartChatModal } from '../components/chat/StartChatModal.js';
 import { ChatListSidebar } from '../components/chat/ChatListSidebar.js';
 import { ChatThread } from '../components/chat/ChatThread.js';
@@ -14,7 +17,8 @@ export const ChatsView: React.FC = () => {
   const queryChatId = searchParams.get('id') || searchParams.get('chatId');
   const [selectedChatId, setSelectedChatId] = useState<string | null>(queryChatId || null);
   const [isStartOpen, setIsStartOpen] = useState(false);
-
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { sidebarWidth, isResizing, startResizing, handleDividerKeyDown } = useResizableChatSidebar(containerRef);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,35 +34,35 @@ export const ChatsView: React.FC = () => {
     markChatOpened(chatId);
   };
 
-  const getOtherParticipant = (chat: any) =>
-    chat?.participants?.find((p: any) => (p.user_id || p.id) !== user?.id) || {
+  const getOtherParticipant = (chat: any) => {
+    const raw = chat?.participants?.find((p: any) => (p.user_id || p.id) !== user?.id) || {
       name: 'Usuario de oomfy', username: 'oomfy_user', icon_url: null,
     };
+    const live = raw?.username ? userIdentityMap.get(raw.username) : undefined;
+    return live ? { ...raw, name: live.name, username: live.username, icon_url: live.icon_url } : raw;
+  };
 
-  const other = selectedChat ? getOtherParticipant(selectedChat) : null;
+  const rawOther = selectedChat ? getOtherParticipant(selectedChat) : null;
+  const liveOther = useUserModel(rawOther?.username);
+  const other = rawOther && liveOther ? { ...rawOther, ...liveOther } : rawOther;
 
   return (
-    <div className="flex flex-1 w-full h-full overflow-hidden font-mono bg-dark-bg">
+    <div ref={containerRef} className={`flex flex-1 w-full h-full overflow-hidden font-mono bg-dark-bg ${isResizing ? 'select-none' : ''}`}>
       <ChatListSidebar
-        chats={chats}
-        isLoading={isLoading}
-        selectedChatId={selectedChatId}
-        typingChats={typingChats}
-        getOtherParticipant={getOtherParticipant}
-        onSelectChat={handleSelectChat}
-        onOpenNewChat={() => setIsStartOpen(true)}
+        chats={chats} isLoading={isLoading} selectedChatId={selectedChatId} typingChats={typingChats}
+        width={sidebarWidth} getOtherParticipant={getOtherParticipant} onSelectChat={handleSelectChat} onOpenNewChat={() => setIsStartOpen(true)}
       />
-
+      <div
+        role="separator" aria-orientation="vertical" aria-label="Redimensionar panel de chats"
+        aria-valuenow={sidebarWidth} aria-valuemin={220} aria-valuemax={600} tabIndex={0}
+        data-testid="chat-split-resizer" onMouseDown={startResizing} onKeyDown={handleDividerKeyDown}
+        className="hidden md:flex w-1.5 cursor-col-resize items-center justify-center bg-dark-border/60 hover:bg-brand-500 active:bg-brand-400 transition-colors flex-shrink-0 select-none z-30"
+      />
       <div className={`${!selectedChatId ? 'hidden md:flex' : 'fixed inset-0 z-50 md:relative md:inset-auto md:z-auto'} flex-1 flex flex-col h-full min-w-0 bg-dark-bg overflow-hidden mobile-chat-container`}>
         {selectedChat && other && user ? (
           <>
             <header className="sticky top-0 z-20 bg-dark-bg/95 border-b border-dark-border px-3 sm:px-4 py-2.5 flex items-center gap-3 select-none flex-shrink-0">
-              <button
-                onClick={() => { setSelectedChatId(null); setSearchParams({}, { replace: true }); }}
-                className="md:hidden p-2 -ml-1.5 text-dark-muted hover:text-brand-400 hover:bg-dark-border/40 transition-colors rounded select-none flex-shrink-0"
-                title="Volver"
-                aria-label="Volver atrás"
-              >
+              <button onClick={() => { setSelectedChatId(null); setSearchParams({}, { replace: true }); }} className="md:hidden p-2 -ml-1.5 text-dark-muted hover:text-brand-400 hover:bg-dark-border/40 transition-colors rounded select-none flex-shrink-0" title="Volver" aria-label="Volver atrás">
                 <ArrowLeft className="w-6 h-6" />
               </button>
               <PixelAvatar onClick={() => navigate(`/${other.username}`)} src={other.icon_url} username={other.username} sizeClass="w-11 h-11 md:w-12 md:h-12 hover:cursor-pointer" />
@@ -85,7 +89,6 @@ export const ChatsView: React.FC = () => {
           </div>
         )}
       </div>
-
       <StartChatModal isOpen={isStartOpen} onClose={() => setIsStartOpen(false)} onChatSelected={handleSelectChat} />
     </div>
   );

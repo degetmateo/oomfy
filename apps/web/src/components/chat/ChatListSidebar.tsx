@@ -8,15 +8,19 @@ interface Props {
   isLoading: boolean;
   selectedChatId: string | null;
   typingChats?: Record<string, string>;
+  width?: number;
   getOtherParticipant: (chat: any) => any;
   onSelectChat: (chatId: string) => void;
   onOpenNewChat: () => void;
 }
 
 export const ChatListSidebar: React.FC<Props> = ({
-  chats, isLoading, selectedChatId, typingChats, getOtherParticipant, onSelectChat, onOpenNewChat,
+  chats, isLoading, selectedChatId, typingChats, width, getOtherParticipant, onSelectChat, onOpenNewChat,
 }) => (
-  <div className={`${selectedChatId ? 'hidden md:flex' : 'flex'} w-full md:w-80 flex-col border-r border-dark-border bg-dark-bg flex-shrink-0 h-full overflow-hidden`}>
+  <div
+    style={width ? { width: `${width}px` } : undefined}
+    className={`${selectedChatId ? 'hidden md:flex' : 'flex'} w-full md:w-80 chat-sidebar-resizable flex-col border-r border-dark-border bg-dark-bg flex-shrink-0 h-full overflow-hidden`}
+  >
     <div className="p-3 border-b border-dark-border flex items-center justify-between bg-dark-bg select-none flex-shrink-0">
       <h1 className="text-sm font-bold text-white tracking-wider uppercase">Mensajes</h1>
       <button onClick={onOpenNewChat} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border border-brand-500 text-brand-400 hover:bg-brand-500 hover:text-black transition-colors pixel-button">

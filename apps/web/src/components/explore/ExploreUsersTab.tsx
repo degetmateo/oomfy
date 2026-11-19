@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PublicUser } from '@oomfy/shared';
 import { ApiClient } from '../../services/api.js';
 import { UserSearchCard } from '../profile/UserSearchCard.js';
+import { userIdentityMap } from '../../models/UserIdentityMap.js';
 
 interface Props {
   searchTerm: string;
@@ -11,7 +12,11 @@ interface Props {
 export const ExploreUsersTab: React.FC<Props> = ({ searchTerm }) => {
   const { data, isLoading } = useQuery<{ success: boolean; data: PublicUser[] }>({
     queryKey: ['explore-users', searchTerm],
-    queryFn: () => ApiClient.get(`/aux/search-users?q=${encodeURIComponent(searchTerm)}`),
+    queryFn: async () => {
+      const res = await ApiClient.get<{ success: boolean; data: PublicUser[] }>(`/aux/search-users?q=${encodeURIComponent(searchTerm)}`);
+      if (res?.data?.length) userIdentityMap.ingest(res.data, Date.now());
+      return res;
+    },
     staleTime: 2 * 60 * 1000,
   });
 
@@ -24,4 +29,3 @@ export const ExploreUsersTab: React.FC<Props> = ({ searchTerm }) => {
     </>
   );
 };
-

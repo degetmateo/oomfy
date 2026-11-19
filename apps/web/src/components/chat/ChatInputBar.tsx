@@ -44,6 +44,11 @@ export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSen
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.nativeEvent.isComposing || e.keyCode === 229 || (ac.isOpen && ac.items.length > 0)) return;
+    if (e.key === 'Escape' && replyingTo && !isEmojiOpen && !isGifModalOpen) {
+      e.preventDefault();
+      onCancelReply();
+      return;
+    }
     const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
     if (e.key === 'Enter' && !isTouch && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
   };

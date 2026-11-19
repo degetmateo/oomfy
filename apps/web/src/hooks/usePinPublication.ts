@@ -3,6 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDialogStore } from '../stores/dialogStore.js';
 import { ApiClient } from '../services/api.js';
+import { userIdentityMap } from '../models/UserIdentityMap.js';
+import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 
 export function usePinPublication(postId: string) {
   const { user, isAuthenticated, setUser } = useAuthStore();
@@ -28,9 +30,12 @@ export function usePinPublication(postId: string) {
       if (isPinned) {
         await ApiClient.delete(`/publications/${postId}/pin`);
         setUser({ ...user, pinned_publication_id: null, pinned_publication: null });
+        userIdentityMap.patch(user.username, (u) => ({ ...u, pinned_publication_id: null, pinned_publication: null }));
       } else {
         await ApiClient.post(`/publications/${postId}/pin`);
+        const pinnedPub = publicationIdentityMap.get(postId) || null;
         setUser({ ...user, pinned_publication_id: postId });
+        userIdentityMap.patch(user.username, (u) => ({ ...u, pinned_publication_id: postId, pinned_publication: pinnedPub }));
       }
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       queryClient.invalidateQueries({ queryKey: ['user-posts'] });

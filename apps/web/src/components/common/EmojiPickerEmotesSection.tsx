@@ -1,12 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
+import { CustomEmote } from '@oomfy/shared';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useEmoteStore } from '../../stores/emoteStore.js';
+import { normalizeEmojiQuery } from '../../utils/emojiData.js';
 
-interface Props {
-  onSelectEmote: (token: string) => void;
-}
-
-export const EmojiPickerEmotesSection: React.FC<Props> = ({ onSelectEmote }) => {
+export function useFilteredUserEmotes(searchQuery = ''): CustomEmote[] {
   const user = useAuthStore((s) => s.user);
   const { emotes, isLoaded, isLoading, fetchEmotes } = useEmoteStore();
 
@@ -14,8 +12,21 @@ export const EmojiPickerEmotesSection: React.FC<Props> = ({ onSelectEmote }) => 
     if (!isLoaded && !isLoading) void fetchEmotes();
   }, [isLoaded, isLoading, fetchEmotes]);
 
-  const userEmotes = user ? emotes.filter((e) => e.creator_id === user.id) : [];
-  if (userEmotes.length === 0) return null;
+  return useMemo(() => {
+    const mine = user ? emotes.filter((e) => e.creator_id === user.id) : [];
+    const norm = normalizeEmojiQuery(searchQuery);
+    if (!norm) return mine;
+    return mine.filter((e) => normalizeEmojiQuery(e.name).includes(norm));
+  }, [user, emotes, searchQuery]);
+}
+
+interface Props {
+  onSelectEmote: (token: string) => void;
+  emotes: CustomEmote[];
+}
+
+export const EmojiPickerEmotesSection: React.FC<Props> = ({ onSelectEmote, emotes }) => {
+  if (emotes.length === 0) return null;
 
   return (
     <div className="mb-2">
@@ -23,7 +34,7 @@ export const EmojiPickerEmotesSection: React.FC<Props> = ({ onSelectEmote }) => 
         Tus Emotes
       </div>
       <div className="grid grid-cols-6 sm:grid-cols-7 gap-1">
-        {userEmotes.map((emote) => (
+        {emotes.map((emote) => (
           <button
             key={emote.id}
             type="button"

@@ -6,6 +6,8 @@ import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDialogStore } from '../stores/dialogStore.js';
 import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
+import { userIdentityMap } from '../models/UserIdentityMap.js';
+import { useUserModel } from './useUserModel.js';
 
 export function useFollowMutation(user: PublicUser) {
   const navigate = useNavigate();
@@ -15,14 +17,14 @@ export function useFollowMutation(user: PublicUser) {
   const [isLoading, setIsLoading] = useState(false);
 
   const key = user.username.toLowerCase();
-  const liveUser = useEntityRegistryStore((s) => s.usersByUsername[key]);
+  const modelUser = useUserModel(user);
   const { seedUser, patchUser } = useEntityRegistryStore();
 
   useEffect(() => {
     seedUser(user);
   }, [user.username, seedUser]);
 
-  const isFollowing = Boolean(liveUser?.is_following ?? user.is_following);
+  const isFollowing = Boolean(modelUser?.is_following ?? user.is_following);
 
   const syncUserCaches = (nextFollowing: boolean, deltaFollowers: number) => {
     patchUser(user.username, (prev) => ({
@@ -30,12 +32,15 @@ export function useFollowMutation(user: PublicUser) {
       is_following: nextFollowing,
       follower_count: Math.max(0, (prev.follower_count || 0) + deltaFollowers),
     }));
+    if (!userIdentityMap.get(user.username)) {
+      userIdentityMap.seed({ ...user, is_following: nextFollowing, follower_count: Math.max(0, (user.follower_count || 0) + deltaFollowers) });
+    }
     queryClient.setQueryData(['profile', user.username], (old: any) =>
       old?.data
         ? { ...old, data: { ...old.data, is_following: nextFollowing, follower_count: Math.max(0, (old.data.follower_count || 0) + deltaFollowers) } }
         : old
     );
-    ['suggested-members', 'online-members', 'user-follows'].forEach((prefix) => {
+    ['suggested-members', 'user-follows'].forEach((prefix) => {
       queryClient.setQueriesData({ queryKey: [prefix] }, (old: any) => {
         const updateList = (list: any[]) =>
           list.map((m) => (m?.username?.toLowerCase() === key ? { ...m, is_following: nextFollowing } : m));

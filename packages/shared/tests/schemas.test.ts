@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   SignupSchema, CreatePublicationSchema, CreatePublicationAdminFormSchema,
-  SendMessageSchema, SendMessageAdminSchema, UsernameSchema, UpdateOnlineStatusSchema, LIMITS,
+  SendMessageSchema, SendMessageAdminSchema, UsernameSchema, LIMITS,
 } from '../src/index.js';
 
 describe('Shared Schemas Validation', () => {
@@ -81,12 +81,5 @@ describe('Shared Schemas Validation', () => {
         );
       }
     }
-  });
-
-  it('should validate UpdateOnlineStatusSchema boolean values only', () => {
-    expect(UpdateOnlineStatusSchema.safeParse({ show_online_status: true }).success).toBe(true);
-    expect(UpdateOnlineStatusSchema.safeParse({ show_online_status: false }).success).toBe(true);
-    expect(UpdateOnlineStatusSchema.safeParse({ show_online_status: 'false' }).success).toBe(false);
-    expect(UpdateOnlineStatusSchema.safeParse({}).success).toBe(false);
   });
 });

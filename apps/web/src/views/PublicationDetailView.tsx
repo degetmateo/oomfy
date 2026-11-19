@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { useParams, useNavigate, useNavigationType, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
-import { Publication } from '@oomfy/shared';
+import { Publication, PublicUser } from '@oomfy/shared';
 import { Header } from '../components/layout/Header.js';
 import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { ApiClient } from '../services/api.js';
@@ -15,7 +15,9 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useUIStore } from '../stores/uiStore.js';
 import { useDialogStore } from '../stores/dialogStore.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
-import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
+import { PublicationController } from '../controllers/PublicationController.js';
+import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
+import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { RouteScrollStore } from '../stores/routeScrollStore.js';
 import { usePublicationModel } from '../hooks/usePublicationModel.js';
 
@@ -35,11 +37,16 @@ export const PublicationDetailView: React.FC = () => {
     queryFn: async () => {
       const fetchedAt = Date.now();
       const d = (await ApiClient.get<any>(`/publications/${id}`)).data;
-      if (d) useEntityRegistryStore.getState().ingestPublications([d.publication, ...(d.ancestors || []), ...(d.replies || d.thread || [])], fetchedAt);
+      if (d) {
+        const items = [d.publication, ...(d.ancestors || []), ...(d.replies || d.thread || [])];
+        publicationIdentityMap.ingest(items, fetchedAt);
+        const authors = items.flatMap((p) => [p?.author, p?.target_publication?.author]).filter(Boolean) as unknown as PublicUser[];
+        if (authors.length > 0) userIdentityMap.ingest(authors, fetchedAt);
+      }
       return d;
     },
     placeholderData: () => PublicationCacheService.getPlaceholderDetailData(queryClient, id),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 60 * 1000,
     enabled: Boolean(id),
   });
 
@@ -52,8 +59,7 @@ export const PublicationDetailView: React.FC = () => {
   });
 
   const rawPub: Publication | undefined = data?.publication;
-  const livePub = usePublicationModel(rawPub || id);
-  const publication = livePub || rawPub;
+  const publication = usePublicationModel(rawPub || id) || rawPub;
   const ancestors: Publication[] = data?.ancestors || [];
   const replies: Publication[] = data?.replies || data?.thread || [];
 
@@ -70,11 +76,8 @@ export const PublicationDetailView: React.FC = () => {
   const canDelete = Boolean(user && (user.id === publication.author.id || ['admin', 'mod'].includes(user.role)));
   const handleDelete = async () => {
     if (!(await dialog.confirm({ title: 'Eliminar publicación', message: '¿Estás seguro de que deseas eliminar esta publicación? Esta acción no se puede deshacer.', isDanger: true }))) return;
-    try {
-      await ApiClient.delete(`/publications/${publication.id}`);
-      PublicationCacheService.invalidatePublicationLists(queryClient);
-      navigate(-1);
-    } catch (err: any) { dialog.alert(err.message, 'Error al eliminar'); }
+    try { await PublicationController.deletePublication(publication.id, queryClient); navigate(-1); }
+    catch (err: any) { dialog.alert(err.message, 'Error al eliminar'); }
   };
 
   return (

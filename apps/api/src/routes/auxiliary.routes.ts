@@ -13,7 +13,6 @@ const searchLimiter = createRateLimiter({ windowMs: 60_000, max: 60, prefix: 'au
 router.get('/gifs', AuthGuard.requireAuth, searchLimiter, ValidateRequest.query(SearchQuerySchema), AuxController.searchGifs);
 router.get('/emotes', AuthGuard.optionalAuth, searchLimiter, EmoteController.listEmotes);
 router.get('/preview-url', AuthGuard.optionalAuth, previewLimiter, ValidateRequest.query(LinkPreviewQuerySchema), AuxController.getLinkPreview);
-router.get('/online-members', AuthGuard.optionalAuth, AuxController.getOnlineMembers);
 router.get('/suggested-members', AuthGuard.optionalAuth, ValidateRequest.query(PaginationQuerySchema), AuxController.getSuggestedMembers);
 router.get('/search-users', AuthGuard.optionalAuth, searchLimiter, ValidateRequest.query(SearchQuerySchema), AuxController.searchUsers);
 

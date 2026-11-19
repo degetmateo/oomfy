@@ -9,7 +9,6 @@ import { registerSocketHandlers } from './SocketHandlers.js';
 export class SocketGateway {
   private static io: Server | null = null;
   private static userSockets = new Map<string, Set<string>>();
-  private static invisibleUsers = new Set<string>();
 
   public static initialize(server: HttpServer): void {
     this.io = new Server(server, { cors: { origin: corsOriginHandler, credentials: true } });
@@ -54,15 +53,5 @@ export class SocketGateway {
   public static broadcastDeleteMessage(chatId: string, messageId: string, participants: string[] = []): void {
     this.io?.to(`chat:${chatId}`).emit('delete-message', { chatId, messageId });
     for (const p of participants) this.io?.to(`user:${p}`).emit('delete-message', { chatId, messageId });
-  }
-  public static setUserInvisible(userId: string, invisible: boolean): void {
-    if (invisible) this.invisibleUsers.add(userId);
-    else this.invisibleUsers.delete(userId);
-  }
-  public static getOnlineUserIds(): string[] {
-    return Array.from(this.userSockets.keys()).filter((id) => !this.invisibleUsers.has(id));
-  }
-  public static isUserOnline(userId: string): boolean {
-    return this.userSockets.has(userId) && !this.invisibleUsers.has(userId);
   }
 }

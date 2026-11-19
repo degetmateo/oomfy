@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ApiClient } from '../../services/api.js';
 import { SocketClient } from '../../services/socket.js';
@@ -21,6 +21,15 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const { scrollContainerRef, showScrollBottomButton, highlightedMessageId, handleScroll, scrollToBottom, scrollToMessage } = useChatScroll();
   const { messages, setMessages, isLoading, hasMore, setHasMore, loadingMore, setLoadingMore, typingUser, lastTypingSentRef, typingTimerRef, sendOptimisticMessage } = useChatMessages(chat.id, currentUserId, scrollToBottom);
+
+  useEffect(() => {
+    if (!replyingTo) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented && !reportingMessage && !activeImage) setReplyingTo(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [replyingTo, reportingMessage, activeImage]);
 
   const handleInputTyping = () => {
     const now = Date.now(), socket = SocketClient.getSocket();

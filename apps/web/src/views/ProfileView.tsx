@@ -14,8 +14,9 @@ import { resolveMediaUrl } from '../utils/mediaUrl.js';
 import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useCursorFeed } from '../hooks/useCursorFeed.js';
-import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
+import { useUserModel } from '../hooks/useUserModel.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
+import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
 import { RoutePrefetchService } from '../services/RoutePrefetchService.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
@@ -38,15 +39,19 @@ export const ProfileView: React.FC = () => {
   const { data: profile, refetch: refetchProfile } = useQuery<{ success: boolean; data: PublicUser }>({
     queryKey: ['profile', username],
     queryFn: async () => {
+      const fetchedAt = Date.now();
       const res = await ApiClient.get<{ success: boolean; data: PublicUser }>(`/members/${username}`);
-      if (res?.data) useEntityRegistryStore.getState().ingestUsers([res.data]);
+      if (res?.data) {
+        userIdentityMap.ingest([res.data], fetchedAt, true);
+        if (res.data.pinned_publication) publicationIdentityMap.ingest([res.data.pinned_publication], fetchedAt);
+      }
       return res;
     },
     placeholderData: () => {
       const cached = userIdentityMap.get(username) || (currentUser && username && currentUser.username.toLowerCase() === username.toLowerCase() ? currentUser : undefined);
       return cached ? { success: true, data: cached } : undefined;
     },
-    staleTime: 5 * 60 * 1000, enabled: Boolean(username),
+    staleTime: 60 * 1000, enabled: Boolean(username),
   });
 
   const { posts, isLoading: loadingPosts, isFetchingNextPage, refetch: refetchPosts, loadMoreRef } = useCursorFeed({
@@ -61,7 +66,7 @@ export const ProfileView: React.FC = () => {
     enabled: Boolean(username),
   });
 
-  const user = profile?.data;
+  const user = useUserModel(profile?.data || username) || profile?.data;
   const isOwnProfile = Boolean(currentUser && user && (currentUser.id === user.id || currentUser.username.toLowerCase() === user.username.toLowerCase()));
   const handleRefresh = async () => { await Promise.all([refetchProfile(), refetchPosts()]); };
   const isThinProfile = Boolean(user && !user.publication_count && !user.follower_count && !user.bio);
@@ -83,10 +88,7 @@ export const ProfileView: React.FC = () => {
         </div>
         {user && <ProfileInfo user={user} isOwnProfile={isOwnProfile} onEditClick={() => setIsEditOpen(true)} onAvatarClick={setZoomedImage} />}
         <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} onPrefetchTab={(tab) => username && RoutePrefetchService.prefetchProfileTab(queryClient, username, tab)} />
-        <ProfileFeed
-          activeTab={activeTab} posts={posts} pinnedPublication={user?.pinned_publication} pinnedByName={user?.name}
-          loadingPosts={loadingPosts} isFetchingNextPage={isFetchingNextPage} loadMoreRef={loadMoreRef}
-        />
+        <ProfileFeed activeTab={activeTab} posts={posts} pinnedPublication={user?.pinned_publication} pinnedByName={user?.name} loadingPosts={loadingPosts} isFetchingNextPage={isFetchingNextPage} loadMoreRef={loadMoreRef} />
         {isOwnProfile && isEditOpen && user && (
           <EditProfileModal key={user.id} user={user} isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} onUpdated={() => { queryClient.invalidateQueries({ queryKey: ['profile'] }); PublicationCacheService.invalidatePublicationLists(queryClient); }} />
         )}

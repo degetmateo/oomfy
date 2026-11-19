@@ -1,9 +1,12 @@
 import React from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Header } from '../components/layout/Header.js';
 import { CachedTabPanel } from '../components/common/CachedTabPanel.js';
 import { ApiClient } from '../services/api.js';
+import { PublicationCacheService } from '../services/PublicationCacheService.js';
+import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
+import { usePublicationModel } from '../hooks/usePublicationModel.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
 import {
   PublicationInteractionsTabs,
@@ -16,28 +19,29 @@ import { PublicationInteractionsUsersTab } from '../components/publication/Publi
 export const PublicationInteractionsView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const rawTab = searchParams.get('tab') as InteractionTab;
   const activeTab: InteractionTab = INTERACTION_TABS.includes(rawTab) ? rawTab : 'quotes';
+  const pub = usePublicationModel(id);
 
   const { data } = useQuery({
-    queryKey: ['publication-detail', id],
-    queryFn: () => ApiClient.get<any>(`/publications/${id}`),
+    queryKey: ['publication', id],
+    queryFn: async () => {
+      const fetchedAt = Date.now();
+      const d = (await ApiClient.get<any>(`/publications/${id}`)).data;
+      if (d?.publication) publicationIdentityMap.ingest([d.publication], fetchedAt);
+      return d;
+    },
+    placeholderData: () => PublicationCacheService.getPlaceholderDetailData(queryClient, id),
     enabled: Boolean(id),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
   });
 
-  const author = data?.data?.publication?.author?.username;
+  const author = pub?.author?.username || data?.publication?.author?.username;
   const subtitle = author ? `Publicación de @${author}` : undefined;
 
-  const handleTabChange = (tab: InteractionTab) => {
-    setSearchParams({ tab }, { replace: true });
-  };
-
-  const { touchHandlers } = useTabSwipe({
-    tabs: INTERACTION_TABS,
-    activeTab,
-    onTabChange: handleTabChange,
-  });
+  const handleTabChange = (tab: InteractionTab) => setSearchParams({ tab }, { replace: true });
+  const { touchHandlers } = useTabSwipe({ tabs: INTERACTION_TABS, activeTab, onTabChange: handleTabChange });
 
   if (!id) return null;
 
@@ -53,4 +57,3 @@ export const PublicationInteractionsView: React.FC = () => {
     </div>
   );
 };
-

@@ -3,12 +3,29 @@ import { Publication, PublicUser } from '@oomfy/shared';
 import { ApiClient } from '../services/api.js';
 import { useInfiniteScroll } from './useInfiniteScroll.js';
 import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
+import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 
 interface UseCursorFeedOptions {
   queryKey: QueryKey;
   buildUrl: (olderId: string | null) => string;
   limit?: number;
   enabled?: boolean;
+}
+
+function getCursorPlaceholder(queryKey: QueryKey, limit: number): { pages: { success: boolean; data: Publication[] }[]; pageParams: (string | null)[] } | undefined {
+  const prefix = Array.isArray(queryKey) ? queryKey[0] : '';
+  if (prefix === 'feed') {
+    const cached = publicationIdentityMap.getAll()
+      .filter((p) => p.type !== 'reply')
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, limit);
+    return cached.length > 0 ? { pages: [{ success: true, data: cached }], pageParams: [null] } : undefined;
+  }
+  if (prefix === 'user-posts' && queryKey[2] === 'posts' && typeof queryKey[1] === 'string') {
+    const authorPosts = publicationIdentityMap.getByAuthor(queryKey[1]).slice(0, limit);
+    return authorPosts.length > 0 ? { pages: [{ success: true, data: authorPosts }], pageParams: [null] } : undefined;
+  }
+  return undefined;
 }
 
 export function useCursorFeed({ queryKey, buildUrl, limit = 20, enabled = true }: UseCursorFeedOptions) {
@@ -26,12 +43,13 @@ export function useCursorFeed({ queryKey, buildUrl, limit = 20, enabled = true }
       if (authors.length > 0) registry.ingestUsers(authors as unknown as PublicUser[]);
       return res;
     },
+    placeholderData: () => getCursorPlaceholder(queryKey, limit),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => {
       const posts = lastPage?.data || [];
       return posts.length >= limit ? posts[posts.length - 1]?.id : undefined;
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     enabled,
   });
@@ -44,4 +62,3 @@ export function useCursorFeed({ queryKey, buildUrl, limit = 20, enabled = true }
 
   return { ...query, posts, loadMoreRef };
 }
-

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Publication, PublicUser } from '@oomfy/shared';
 import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
+import { chatIdentityMap } from '../models/ChatIdentityMap.js';
 
 interface EntityRegistryState {
   publications: Record<string, Publication>;
@@ -59,7 +60,8 @@ export const useEntityRegistryStore = create<EntityRegistryState>((set) => {
       set((state) => {
         const next = { ...state.usersByUsername };
         for (const u of items) {
-          if (u?.username) next[u.username.toLowerCase()] = u;
+          const canonical = u?.username ? userIdentityMap.get(u.username) : undefined;
+          if (canonical && u?.username) next[u.username.toLowerCase()] = canonical;
         }
         return { usersByUsername: next };
       });
@@ -68,7 +70,8 @@ export const useEntityRegistryStore = create<EntityRegistryState>((set) => {
     seedUser: (user) => {
       if (user?.username) {
         userIdentityMap.seed(user);
-        set((state) => ({ usersByUsername: { ...state.usersByUsername, [user.username.toLowerCase()]: user } }));
+        const canonical = userIdentityMap.get(user.username) || user;
+        set((state) => ({ usersByUsername: { ...state.usersByUsername, [user.username.toLowerCase()]: canonical } }));
       }
     },
 
@@ -82,6 +85,7 @@ export const useEntityRegistryStore = create<EntityRegistryState>((set) => {
     clearRegistry: () => {
       publicationIdentityMap.clear();
       userIdentityMap.clear();
+      chatIdentityMap.clear();
       set({ publications: {}, inFlightPubs: {}, mutatedAt: {}, usersByUsername: {} });
     },
   };

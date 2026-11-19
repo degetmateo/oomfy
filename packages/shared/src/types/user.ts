@@ -29,7 +29,6 @@ export interface User {
   terms_accepted?: boolean;
   terms_accepted_at?: string | null;
   pinned_publication_id?: string | null;
-  show_online_status?: boolean;
 }
 
 export interface PublicUser {
@@ -54,5 +53,4 @@ export interface PublicUser {
   has_blocked_viewer?: boolean;
   pinned_publication_id?: string | null;
   pinned_publication?: Publication | null;
-  show_online_status?: boolean;
 }

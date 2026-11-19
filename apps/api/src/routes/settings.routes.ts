@@ -5,7 +5,6 @@ import {
   UpdatePasswordSchema,
   RequestEmailChangeSchema,
   ConfirmEmailChangeSchema,
-  UpdateOnlineStatusSchema,
   CreateEmoteSchema,
   LIMITS,
 } from '@oomfy/shared';
@@ -27,8 +26,6 @@ router.use(AuthGuard.requireAuth, strictSettingsLimiter);
 
 router.put('/username', ValidateRequest.body(UpdateUsernameSchema), SettingsController.updateUsername);
 router.put('/password', ValidateRequest.body(UpdatePasswordSchema), SettingsController.updatePassword);
-router.put('/online-status', ValidateRequest.body(UpdateOnlineStatusSchema), SettingsController.updateOnlineStatus);
-router.patch('/online-status', ValidateRequest.body(UpdateOnlineStatusSchema), SettingsController.updateOnlineStatus);
 router.post('/email/request', ValidateRequest.body(RequestEmailChangeSchema), SettingsController.requestEmailChange);
 router.post('/emotes', emoteUpload.single('image'), validateUploadedImages, ValidateRequest.body(CreateEmoteSchema), EmoteController.createEmote);
 router.post('/emotes/import', EmoteController.importEmote);
