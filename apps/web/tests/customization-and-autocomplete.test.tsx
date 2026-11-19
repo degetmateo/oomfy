@@ -78,10 +78,11 @@ describe('Customization Tab, Composer Autocomplete & Mention Notifications', () 
       sender: { id: 'u2', username: 'mateo_dev', name: 'Mateo Dev', role: 'member' as const, icon_url: null, banner_url: null },
       type: 'mention' as const, target_publication_id: 'pub-1', status: 'pending' as const, created_at: new Date().toISOString(),
     };
-    const { rerender } = render(<MemoryRouter><NotificationItem notif={baseNotif} isUnread={true} /></MemoryRouter>);
-    expect(screen.getByText(/te mencionó:/i)).toBeInTheDocument();
+    const { rerender } = render(<QueryClientProvider client={queryClient}><MemoryRouter><NotificationItem notif={baseNotif} isUnread={true} /></MemoryRouter></QueryClientProvider>);
+    expect(screen.getByText('@mateo_dev')).toBeInTheDocument();
+    expect(screen.queryByText(/te mencionó:/i)).not.toBeInTheDocument();
 
-    rerender(<MemoryRouter><NotificationItem notif={{ ...baseNotif, target_publication_id: null }} isUnread={false} /></MemoryRouter>);
+    rerender(<QueryClientProvider client={queryClient}><MemoryRouter><NotificationItem notif={{ ...baseNotif, target_publication_id: null }} isUnread={false} /></MemoryRouter></QueryClientProvider>);
     expect(screen.getByText(/te mencionó en un mensaje\./i)).toBeInTheDocument();
   });
 });

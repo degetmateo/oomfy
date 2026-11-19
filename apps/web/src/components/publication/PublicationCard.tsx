@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { QueryClientContext } from '@tanstack/react-query';
 import { Publication } from '@oomfy/shared';
 import { MediaGrid } from './MediaGrid.js';
 import { LinkPreviewCard } from './LinkPreviewCard.js';
@@ -27,7 +27,7 @@ interface Props {
 const PublicationCardBase: React.FC<Props> = ({ post: rawPost, index, hideBottomBorder = false, hideThreadPreview = false, onDelete }) => {
   const post = usePublicationModel(rawPost) || rawPost;
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const queryClient = useContext(QueryClientContext);
   const { user, isAuthenticated } = useAuthStore();
   const { openPostModal } = useUIStore();
   const dialog = useDialogStore();
@@ -47,9 +47,10 @@ const PublicationCardBase: React.FC<Props> = ({ post: rawPost, index, hideBottom
 
   const threadItems = hideThreadPreview ? [] : (post.author_thread_preview || []);
   const hasThread = threadItems.length > 0;
-  const showLine = hasThread || hideBottomBorder;
+  const showLine = hasThread || (hideBottomBorder && !hideThreadPreview);
+  const hideBorder = hasThread || hideBottomBorder;
   const articleEl = (
-    <article {...cardHandlers} className={`${!hasThread && deferClass ? `${deferClass} ` : ''}p-3 sm:p-4 ${!showLine ? 'border-b border-dark-border ' : 'pb-2 sm:pb-2 '}hover:bg-dark-card/40 transition-colors flex gap-3 cursor-pointer font-mono relative`}>
+    <article {...cardHandlers} className={`${!hasThread && deferClass ? `${deferClass} ` : ''}p-3 sm:p-4 ${!hideBorder ? 'border-b border-dark-border ' : ''}${showLine ? 'pb-2 sm:pb-2 ' : ''}hover:bg-dark-card/40 transition-colors flex gap-3 cursor-pointer font-mono relative`}>
       <div className="w-12 flex flex-col items-center flex-shrink-0 cursor-pointer" data-no-card-nav="true" onClick={(e) => { e.stopPropagation(); navigate(`/publication/${post.id}`); }}>
         <PixelAvatar src={post.author.icon_url} username={post.author.username} sizeClass="w-12 h-12" onClick={(e) => { e.stopPropagation(); navigate(`/${post.author.username}`); }} />
         {showLine && <div className="w-0.5 flex-1 bg-dark-border mt-1.5 -mb-2" aria-hidden="true" />}

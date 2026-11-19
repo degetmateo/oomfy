@@ -55,10 +55,10 @@ export class PublicationController {
     }
   }
 
-  public static async deletePublication(postId: string, queryClient: QueryClient): Promise<void> {
+  public static async deletePublication(postId: string, queryClient?: QueryClient | null): Promise<void> {
     await ApiClient.delete(`/publications/${postId}`);
     publicationIdentityMap.remove(postId);
-    PublicationCacheService.invalidatePublicationLists(queryClient);
+    if (queryClient) PublicationCacheService.invalidatePublicationLists(queryClient);
   }
 }
 

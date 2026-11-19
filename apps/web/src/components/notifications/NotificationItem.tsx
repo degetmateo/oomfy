@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Heart, UserPlus, Repeat, MessageSquare, Quote, AtSign } from 'lucide-react';
+import { Bell, Heart, UserPlus, Repeat, AtSign } from 'lucide-react';
 import { Notification } from '@oomfy/shared';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { formatNotificationTime, formatExactDateTime } from '../../utils/formatTime.js';
@@ -17,8 +17,6 @@ const renderIcon = (type: string) => {
   switch (type) {
     case 'upvote': return <Heart className="w-5 h-5 text-red-500 fill-current mt-0.5 flex-shrink-0" aria-hidden="true" />;
     case 'share': return <Repeat className="w-5 h-5 text-brand-400 mt-0.5 flex-shrink-0" aria-hidden="true" />;
-    case 'comment': return <MessageSquare className="w-5 h-5 text-sky-400 mt-0.5 flex-shrink-0" aria-hidden="true" />;
-    case 'quote': return <Quote className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" aria-hidden="true" />;
     case 'follow': return <UserPlus className="w-5 h-5 text-brand-400 mt-0.5 flex-shrink-0" aria-hidden="true" />;
     case 'mention': return <AtSign className="w-5 h-5 text-brand-400 mt-0.5 flex-shrink-0" aria-hidden="true" />;
     default: return <Bell className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" aria-hidden="true" />;
@@ -29,10 +27,8 @@ function getActionLabel(notif: Notification): string {
   switch (notif.type) {
     case 'upvote': return 'indicó que le gusta tu publicación.';
     case 'share': return 'compartió tu publicación.';
-    case 'comment': return 'te respondió:';
-    case 'quote': return 'te citó:';
     case 'follow': return 'comenzó a seguirte.';
-    case 'mention': return notif.target_publication_id ? 'te mencionó:' : 'te mencionó en un mensaje.';
+    case 'mention': return 'te mencionó en un mensaje.';
     default: return '';
   }
 }
@@ -45,7 +41,7 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
     ...(liveSender ? { name: liveSender.name, username: liveSender.username, icon_url: liveSender.icon_url } : {}),
   };
 
-  const hasEmbeddedPub = Boolean(
+  const isDirectPublication = Boolean(
     notif.target_publication_id && (notif.type === 'comment' || notif.type === 'quote' || notif.type === 'mention')
   );
 
@@ -54,6 +50,10 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
     else if (notif.type === 'mention') navigate('/chats');
     else navigate(`/${sender.username}`);
   });
+
+  if (isDirectPublication) {
+    return <NotificationPublicationCard notif={notif} isUnread={isUnread} />;
+  }
 
   return (
     <div
@@ -83,9 +83,6 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
           <time dateTime={notif.created_at} title={formatExactDateTime(notif.created_at)} className="text-[10px] text-dark-muted mt-1 block font-mono">
             {formatNotificationTime(notif.created_at)}
           </time>
-          {hasEmbeddedPub && (
-            <NotificationPublicationCard publication={notif.target_publication} targetId={notif.target_publication_id!} />
-          )}
         </div>
       </div>
     </div>
