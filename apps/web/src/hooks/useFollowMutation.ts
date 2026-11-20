@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { PublicUser } from '@oomfy/shared';
-import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDialogStore } from '../stores/dialogStore.js';
 import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { useUserModel } from './useUserModel.js';
+import { ProfileController } from '../controllers/ProfileController.js';
 
 export function useFollowMutation(user: PublicUser) {
   const navigate = useNavigate();
@@ -18,34 +18,20 @@ export function useFollowMutation(user: PublicUser) {
 
   const key = user.username.toLowerCase();
   const modelUser = useUserModel(user);
-  const { seedUser, patchUser } = useEntityRegistryStore();
+  const { seedUser } = useEntityRegistryStore();
 
-  useEffect(() => {
-    seedUser(user);
-  }, [user.username, seedUser]);
-
+  useEffect(() => { seedUser(user); }, [user.username, seedUser]);
   const isFollowing = Boolean(modelUser?.is_following ?? user.is_following);
 
-  const syncUserCaches = (nextFollowing: boolean, deltaFollowers: number) => {
-    patchUser(user.username, (prev) => ({
-      ...prev,
-      is_following: nextFollowing,
-      follower_count: Math.max(0, (prev.follower_count || 0) + deltaFollowers),
-    }));
-    if (!userIdentityMap.get(user.username)) {
-      userIdentityMap.seed({ ...user, is_following: nextFollowing, follower_count: Math.max(0, (user.follower_count || 0) + deltaFollowers) });
-    }
+  const syncQueryLists = (nextFollowing: boolean, deltaFollowers: number) => {
     queryClient.setQueryData(['profile', user.username], (old: any) =>
-      old?.data
-        ? { ...old, data: { ...old.data, is_following: nextFollowing, follower_count: Math.max(0, (old.data.follower_count || 0) + deltaFollowers) } }
-        : old
+      old?.data ? { ...old, data: { ...old.data, is_following: nextFollowing, follower_count: Math.max(0, (old.data.follower_count || 0) + deltaFollowers) } } : old
     );
     ['suggested-members', 'user-follows'].forEach((prefix) => {
       queryClient.setQueriesData({ queryKey: [prefix] }, (old: any) => {
-        const updateList = (list: any[]) =>
-          list.map((m) => (m?.username?.toLowerCase() === key ? { ...m, is_following: nextFollowing } : m));
-        if (old?.pages) return { ...old, pages: old.pages.map((p: any) => ({ ...p, data: Array.isArray(p.data) ? updateList(p.data) : p.data })) };
-        if (Array.isArray(old?.data)) return { ...old, data: updateList(old.data) };
+        const mapList = (list: any[]) => list.map((m) => (m?.username?.toLowerCase() === key ? { ...m, is_following: nextFollowing } : m));
+        if (old?.pages) return { ...old, pages: old.pages.map((p: any) => ({ ...p, data: Array.isArray(p.data) ? mapList(p.data) : p.data })) };
+        if (Array.isArray(old?.data)) return { ...old, data: mapList(old.data) };
         return old;
       });
     });
@@ -55,15 +41,15 @@ export function useFollowMutation(user: PublicUser) {
     e?.stopPropagation();
     if (!isAuthenticated) { navigate('/signin'); return; }
     if (isLoading) return;
+    if (!userIdentityMap.get(user.username)) userIdentityMap.seed(user);
     const prev = isFollowing;
     const delta = prev ? -1 : 1;
     setIsLoading(true);
-    syncUserCaches(!prev, delta);
+    syncQueryLists(!prev, delta);
     try {
-      if (prev) await ApiClient.delete(`/follows/${user.username}`);
-      else await ApiClient.post(`/follows/${user.username}`);
+      await ProfileController.toggleFollow(user, prev);
     } catch (err: any) {
-      syncUserCaches(prev, -delta);
+      syncQueryLists(prev, -delta);
       dialog.alert(err.message || 'Error al actualizar seguimiento', 'Error');
     } finally {
       setIsLoading(false);
@@ -72,4 +58,3 @@ export function useFollowMutation(user: PublicUser) {
 
   return { isFollowing, isLoadingFollow: isLoading, toggleFollow };
 }
-

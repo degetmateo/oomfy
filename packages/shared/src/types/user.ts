@@ -30,6 +30,7 @@ export interface User {
   terms_accepted_at?: string | null;
   pinned_publication_id?: string | null;
   show_online_status?: boolean;
+  reports_count?: number;
 }
 
 export interface PublicUser {
@@ -55,4 +56,5 @@ export interface PublicUser {
   pinned_publication_id?: string | null;
   pinned_publication?: Publication | null;
   show_online_status?: boolean;
+  reports_count?: number;
 }

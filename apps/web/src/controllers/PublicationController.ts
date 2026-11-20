@@ -3,6 +3,7 @@ import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
+import { emitPublicationInteraction } from './publicationSocketHelper.js';
 
 export class PublicationController {
   public static async toggleUpvote(postId: string, queryClient: QueryClient | null | undefined, onAuthRequired: () => void): Promise<void> {
@@ -15,9 +16,13 @@ export class PublicationController {
     publicationIdentityMap.setInFlight(postId, 1);
     PublicationCacheService.applyPatch(queryClient, postId, (p) => ({ ...p, ...optimistic }));
     try {
-      const res = wasUpvoted
-        ? await ApiClient.delete<{ upvoted: boolean; upvotes_count: number }>(`/interactions/${postId}/upvote`)
-        : await ApiClient.post<{ upvoted: boolean; upvotes_count: number }>(`/interactions/${postId}/upvote`);
+      const res = await emitPublicationInteraction<{ upvoted: boolean; upvotes_count: number }>(
+        'publication:upvote',
+        { postId, action: wasUpvoted ? 'remove' : 'add' },
+        () => wasUpvoted
+          ? ApiClient.delete<{ upvoted: boolean; upvotes_count: number }>(`/interactions/${postId}/upvote`)
+          : ApiClient.post<{ upvoted: boolean; upvotes_count: number }>(`/interactions/${postId}/upvote`)
+      );
       if (typeof res?.upvoted === 'boolean') {
         PublicationCacheService.applyPatch(queryClient, postId, (p) => ({
           ...p, is_upvoted: res.upvoted, upvotes_count: Math.max(0, res.upvotes_count ?? optimistic.upvotes_count),
@@ -40,9 +45,13 @@ export class PublicationController {
     publicationIdentityMap.setInFlight(postId, 1);
     PublicationCacheService.applyPatch(queryClient, postId, (p) => ({ ...p, ...optimistic }));
     try {
-      const res = wasShared
-        ? await ApiClient.delete<{ shared: boolean; shares_count: number }>(`/interactions/${postId}/share`)
-        : await ApiClient.post<{ shared: boolean; shares_count: number }>(`/interactions/${postId}/share`);
+      const res = await emitPublicationInteraction<{ shared: boolean; shares_count: number }>(
+        'publication:share',
+        { postId, action: wasShared ? 'remove' : 'add' },
+        () => wasShared
+          ? ApiClient.delete<{ shared: boolean; shares_count: number }>(`/interactions/${postId}/share`)
+          : ApiClient.post<{ shared: boolean; shares_count: number }>(`/interactions/${postId}/share`)
+      );
       if (typeof res?.shared === 'boolean') {
         PublicationCacheService.applyPatch(queryClient, postId, (p) => ({
           ...p, is_shared: res.shared, shares_count: Math.max(0, res.shares_count ?? optimistic.shares_count),
@@ -55,10 +64,21 @@ export class PublicationController {
     }
   }
 
+  public static applyRealtimeInteraction(
+    data: { postId?: string; upvotes_count?: number; shares_count?: number },
+    queryClient: QueryClient | null | undefined
+  ): void {
+    if (!data?.postId) return;
+    PublicationCacheService.applyPatch(queryClient, data.postId, (p) => ({
+      ...p,
+      ...(typeof data.upvotes_count === 'number' ? { upvotes_count: Math.max(0, data.upvotes_count) } : {}),
+      ...(typeof data.shares_count === 'number' ? { shares_count: Math.max(0, data.shares_count) } : {}),
+    }));
+  }
+
   public static async deletePublication(postId: string, queryClient?: QueryClient | null): Promise<void> {
     await ApiClient.delete(`/publications/${postId}`);
     publicationIdentityMap.remove(postId);
     if (queryClient) PublicationCacheService.invalidatePublicationLists(queryClient);
   }
 }
-

@@ -7,14 +7,25 @@ export class MongoReportRepository {
     return MongoDatabase.getDb().collection<any>('reports');
   }
 
-  public static async create(report: Report): Promise<void> {
-    await this.getCollection().insertOne({
+  public static async create(report: Report): Promise<number> {
+    const col = this.getCollection();
+    const targetId = MongoIdHelper.toMongoId(report.target_id);
+    await col.insertOne({
       ...report,
       _id: MongoIdHelper.toMongoId(report.id),
       id: report.id,
       reporter_id: MongoIdHelper.toMongoId(report.reporter_id),
-      target_id: MongoIdHelper.toMongoId(report.target_id),
+      target_id: targetId,
+      target_reports_count: 1,
     });
+    const targetFilter = {
+      target_type: report.target_type,
+      target_id: { $in: MongoIdHelper.idVariants(report.target_id) },
+    };
+    const distinctReporters = await col.distinct('reporter_id', targetFilter);
+    const uniqueCount = Math.max(1, new Set(distinctReporters.map((r: any) => String(r))).size);
+    await col.updateMany(targetFilter, { $set: { target_reports_count: uniqueCount } });
+    return uniqueCount;
   }
 
   public static async list(status?: ReportStatus, page: number = 1, limit: number = 30): Promise<{ reports: Report[]; pendingCount: number }> {
@@ -25,7 +36,7 @@ export class MongoReportRepository {
     if (status) query.status = status;
 
     const [docs, pendingCount] = await Promise.all([
-      col.find(query).sort({ created_at: -1 }).skip(safeSkip).limit(safeLimit).toArray(),
+      col.find(query).sort({ target_reports_count: -1, created_at: -1 }).skip(safeSkip).limit(safeLimit).toArray(),
       col.countDocuments({ status: 'pending' }),
     ]);
 
@@ -40,6 +51,7 @@ export class MongoReportRepository {
       reason: d.reason,
       details: d.details || null,
       status: d.status || 'pending',
+      target_reports_count: Math.max(1, Number(d.target_reports_count) || 1),
       created_at: d.created_at instanceof Date ? d.created_at.toISOString() : String(d.created_at),
       resolved_at: d.resolved_at ? String(d.resolved_at) : null,
       resolved_by: d.resolved_by ? String(d.resolved_by) : null,
@@ -56,6 +68,7 @@ export class MongoReportRepository {
       id: String(doc.id || doc._id),
       reporter_id: String(doc.reporter_id),
       target_id: String(doc.target_id),
+      target_reports_count: Math.max(1, Number(doc.target_reports_count) || 1),
       created_at: doc.created_at instanceof Date ? doc.created_at.toISOString() : String(doc.created_at),
     };
   }

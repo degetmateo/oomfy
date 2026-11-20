@@ -127,6 +127,10 @@ self.addEventListener('push', (event) => {
         if (data.image) options.image = resolveNotificationIcon(data.image);
         if (data.url) options.data.url = toSafeInternalPath(data.url);
         if (data.tag) options.tag = String(data.tag);
+        if (typeof data.silent === 'boolean') {
+          options.silent = data.silent;
+          if (data.silent) options.renotify = false;
+        }
       } catch {
         try {
           const text = event.data.text();

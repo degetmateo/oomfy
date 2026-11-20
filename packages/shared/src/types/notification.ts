@@ -14,6 +14,8 @@ export interface Notification {
   created_at: string;
 }
 
+export type PushCategoryKey = 'messages' | 'replies' | 'quotes' | 'upvotes' | 'shares' | 'follows' | 'mentions';
+
 export interface PushPreferences {
   messages: boolean;
   replies: boolean;
@@ -22,6 +24,13 @@ export interface PushPreferences {
   shares: boolean;
   follows: boolean;
   mentions: boolean;
+  messages_silent?: boolean;
+  replies_silent?: boolean;
+  quotes_silent?: boolean;
+  upvotes_silent?: boolean;
+  shares_silent?: boolean;
+  follows_silent?: boolean;
+  mentions_silent?: boolean;
 }
 
 export const DEFAULT_PUSH_PREFERENCES: PushPreferences = {

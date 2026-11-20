@@ -8,43 +8,37 @@ describe('PushPreferencesList Component', () => {
     vi.clearAllMocks();
     vi.spyOn(PushNotificationService, 'getPreferences').mockResolvedValue({
       preferences: {
-        messages: true,
-        replies: true,
-        quotes: true,
-        upvotes: true,
-        shares: true,
-        follows: true,
-        mentions: true,
+        messages: true, replies: true, quotes: true, upvotes: true, shares: true, follows: true, mentions: true,
+        messages_silent: false, upvotes_silent: false,
       },
       is_active: true,
       status: 'active',
     });
     vi.spyOn(PushNotificationService, 'updatePreferences').mockResolvedValue({
-      messages: false,
-      replies: true,
-      quotes: true,
-      upvotes: true,
-      shares: true,
-      follows: true,
-      mentions: true,
+      messages: false, replies: true, quotes: true, upvotes: true, shares: true, follows: true, mentions: true,
     });
   });
 
-  it('renders preference toggles and updates preferences on click', async () => {
+  it('renders category toggles and silent alert-level controls and updates preferences', async () => {
     render(<PushPreferencesList endpoint="https://fcm.googleapis.com/fcm/send/test-endpoint" />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Notificaciones de mensajes')).toBeInTheDocument();
-      expect(screen.getByText('Notificaciones de respuestas')).toBeInTheDocument();
-      expect(screen.getByText('Notificaciones de citas')).toBeInTheDocument();
-      expect(screen.getByText('Notificaciones de menciones')).toBeInTheDocument();
-    });
+    await waitFor(() => expect(screen.getByText('Notificaciones de mensajes')).toBeInTheDocument());
 
     const activeButtons = screen.getAllByRole('button', { name: /Activado/i });
     expect(activeButtons.length).toBe(7);
 
-    fireEvent.click(activeButtons[0]);
+    const msgSilentBtn = screen.getByRole('button', { name: /Modo silencioso para Notificaciones de mensajes/i });
+    expect(msgSilentBtn).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(msgSilentBtn);
 
+    await waitFor(() => {
+      expect(PushNotificationService.updatePreferences).toHaveBeenCalledWith(
+        { messages_silent: true },
+        'https://fcm.googleapis.com/fcm/send/test-endpoint'
+      );
+    });
+
+    fireEvent.click(activeButtons[0]);
     await waitFor(() => {
       expect(PushNotificationService.updatePreferences).toHaveBeenCalledWith(
         { messages: false },
@@ -53,4 +47,3 @@ describe('PushPreferencesList Component', () => {
     });
   });
 });
-

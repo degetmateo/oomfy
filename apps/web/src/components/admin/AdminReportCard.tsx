@@ -20,11 +20,16 @@ export const AdminReportCard: React.FC<Props> = ({
 
   return (
     <div className="p-4 flex flex-col gap-2.5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-xs font-bold text-red-400">
           <Flag className="w-3.5 h-3.5" /><span>{report.reason}</span>
         </span>
-        <span className={`text-[10px] px-2 py-0.5 border font-bold uppercase ${badgeClass}`}>{statusLabel}</span>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className="text-[10px] px-1.5 py-0.5 border border-red-500/50 text-red-300 bg-red-950/30 font-bold">
+            {report.target_reports_count || 1} {(report.target_reports_count || 1) === 1 ? 'reporte' : 'reportes'}
+          </span>
+          <span className={`text-[10px] px-2 py-0.5 border font-bold uppercase ${badgeClass}`}>{statusLabel}</span>
+        </div>
       </div>
 
       <div className="text-xs text-dark-text/90 font-sans">

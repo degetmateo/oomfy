@@ -8,6 +8,7 @@ export interface WebPushPayload {
   image?: string;
   url?: string;
   tag?: string;
+  silent?: boolean;
 }
 
 export class WebPushClient {
@@ -47,12 +48,14 @@ export class WebPushClient {
       image: payload.image || undefined,
       url: payload.url || '/notifications',
       tag: payload.tag || undefined,
+      silent: Boolean(payload.silent),
     });
   }
 
   public static async send(
     subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
-    dataString: string
+    dataString: string,
+    options?: { silent?: boolean }
   ): Promise<void> {
     this.ensureInitialized();
     let isApns = false;
@@ -60,10 +63,11 @@ export class WebPushClient {
       const parsed = new URL(subscription.endpoint);
       isApns = parsed.hostname.endsWith('.apple.com') || parsed.hostname === 'apple.com';
     } catch {}
+    const isSilent = Boolean(options?.silent);
     await webpush.sendNotification(subscription, dataString, {
       TTL: 86400,
-      urgency: 'high',
-      ...(isApns ? { headers: { 'apns-push-type': 'alert', 'apns-priority': '10' } } : {}),
+      urgency: isSilent ? 'low' : 'high',
+      ...(isApns ? { headers: { 'apns-push-type': 'alert', 'apns-priority': isSilent ? '5' : '10' } } : {}),
     });
   }
 }

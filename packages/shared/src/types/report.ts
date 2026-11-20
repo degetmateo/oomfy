@@ -12,6 +12,7 @@ export interface Report {
   reason: string;
   details?: string | null;
   status: ReportStatus;
+  target_reports_count?: number;
   created_at: string;
   resolved_at?: string | null;
   resolved_by?: string | null;

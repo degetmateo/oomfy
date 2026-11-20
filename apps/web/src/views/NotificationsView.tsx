@@ -6,28 +6,22 @@ import { Notification } from '@oomfy/shared';
 import { Header } from '../components/layout/Header.js';
 import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { NotificationItem } from '../components/notifications/NotificationItem.js';
-import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
-import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
+import { NotificationController } from '../controllers/NotificationController.js';
+import { useNotificationModel } from '../hooks/useNotificationModel.js';
 
 export const NotificationsView: React.FC = () => {
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuthStore();
+  const { notifications: modelNotifications } = useNotificationModel();
   const [sessionUnreadIds, setSessionUnreadIds] = useState<Set<string>>(new Set());
   const hasAutoMarkedRef = useRef(false);
 
   const { data, isLoading, isError, refetch, isFetchingNextPage, hasNextPage, fetchNextPage } =
     useInfiniteQuery<{ success: boolean; data: { notifications: Notification[]; pendingCount: number } }>({
       queryKey: ['notifications-infinite-list'],
-      queryFn: async ({ pageParam }) => {
-        const res = await ApiClient.get<{ success: boolean; data: { notifications: Notification[]; pendingCount: number } }>(
-          `/notifications${pageParam ? `?older_id=${encodeURIComponent(String(pageParam))}&limit=20` : '?limit=20'}`
-        );
-        const targetPubs = (res?.data?.notifications || []).map((n) => n.target_publication).filter(Boolean);
-        if (targetPubs.length > 0) publicationIdentityMap.ingest(targetPubs, Date.now());
-        return res;
-      },
+      queryFn: ({ pageParam }) => NotificationController.fetchPage(pageParam ? String(pageParam) : undefined),
       initialPageParam: '' as string,
       getNextPageParam: (lastPage) => {
         const notifs = lastPage?.data?.notifications;
@@ -38,7 +32,8 @@ export const NotificationsView: React.FC = () => {
       enabled: isAuthenticated,
     });
 
-  const allNotifications = data?.pages?.flatMap((page) => page?.data?.notifications || []) || [];
+  const queryNotifications = data?.pages?.flatMap((page) => page?.data?.notifications || []) || [];
+  const allNotifications = modelNotifications.length > 0 ? modelNotifications : queryNotifications;
 
   useEffect(() => {
     if (!data?.pages?.length) return;
@@ -46,17 +41,14 @@ export const NotificationsView: React.FC = () => {
     if (newlyPending.length > 0) setSessionUnreadIds((prev) => new Set([...prev, ...newlyPending]));
     if (!hasAutoMarkedRef.current && (newlyPending.length > 0 || (data.pages[0]?.data?.pendingCount ?? 0) > 0)) {
       hasAutoMarkedRef.current = true;
-      ApiClient.post('/notifications/read')
-        .then(() => queryClient.setQueryData(['notifications-unread-count'], { success: true, count: 0 }))
-        .catch(() => {});
+      NotificationController.markAllAsRead(queryClient).catch(() => {});
     }
   }, [data, queryClient]);
 
   const markAllMutation = useMutation({
-    mutationFn: () => ApiClient.post('/notifications/read'),
+    mutationFn: () => NotificationController.markAllAsRead(queryClient),
     onSuccess: () => {
       setSessionUnreadIds(new Set());
-      queryClient.setQueryData(['notifications-unread-count'], { success: true, count: 0 });
       queryClient.invalidateQueries({ queryKey: ['notifications-infinite-list'] });
     },
   });

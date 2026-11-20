@@ -9,7 +9,10 @@ export interface PushSubscriptionData {
   keys: { p256dh: string; auth: string };
 }
 
-const PREF_KEYS = new Set(['messages', 'replies', 'quotes', 'upvotes', 'shares', 'follows', 'mentions']);
+const PREF_KEYS = new Set([
+  'messages', 'replies', 'quotes', 'upvotes', 'shares', 'follows', 'mentions',
+  'messages_silent', 'replies_silent', 'quotes_silent', 'upvotes_silent', 'shares_silent', 'follows_silent', 'mentions_silent',
+]);
 
 export class PushSubscriptionRepository {
   private static getCollection() {

@@ -1,5 +1,7 @@
 import { v7 as uuidv7 } from 'uuid';
 import { CreateReportInput, Report, ReportStatus } from '@oomfy/shared';
+import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
+import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { MongoReportRepository } from '../../infrastructure/repositories/mongo/MongoReportRepository.js';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
@@ -14,20 +16,24 @@ export class ReportService {
 
     let verifiedUsername: string | null = input.target_username || null;
     let verifiedContent: string | null = input.target_content || null;
+    let resolvedTargetId = input.target_id;
 
     if (input.target_type === 'publication') {
       const pub = await MongoPublicationRepository.findById(input.target_id);
       if (!pub) throw new NotFoundError('Publicación reportada no encontrada.');
+      resolvedTargetId = pub.id;
       verifiedUsername = pub.author.username;
       verifiedContent = pub.content ? pub.content.slice(0, 300) : null;
     } else if (input.target_type === 'user') {
       const member = await MongoMemberRepository.findById(input.target_id) || await MongoMemberRepository.findByUsername(input.target_id);
       if (!member) throw new NotFoundError('Usuario reportado no encontrado.');
+      resolvedTargetId = member.id;
       verifiedUsername = member.username;
       verifiedContent = member.bio ? member.bio.slice(0, 300) : null;
     } else if (input.target_type === 'message') {
       const msg = await MongoMessageRepository.findById(input.target_id);
       if (!msg) throw new NotFoundError('Mensaje reportado no encontrado.');
+      resolvedTargetId = msg.id;
       verifiedUsername = msg.sender?.username || null;
       verifiedContent = msg.content ? msg.content.slice(0, 300) : null;
     }
@@ -37,7 +43,7 @@ export class ReportService {
       reporter_id: reporter.id,
       reporter_username: reporter.username,
       target_type: input.target_type,
-      target_id: input.target_id,
+      target_id: resolvedTargetId,
       target_username: verifiedUsername,
       target_content: verifiedContent,
       reason: input.reason.trim(),
@@ -46,8 +52,14 @@ export class ReportService {
       created_at: new Date().toISOString(),
     };
 
-    await MongoReportRepository.create(report);
-    return report;
+    const count = await MongoReportRepository.create(report);
+    const db = MongoDatabase.getDb();
+    if (input.target_type === 'publication') {
+      await db.collection('publications').updateOne(MongoIdHelper.idFilter(resolvedTargetId), { $set: { reports_count: count } }).catch(() => {});
+    } else if (input.target_type === 'user') {
+      await db.collection('members').updateOne(MongoIdHelper.idFilter(resolvedTargetId), { $set: { reports_count: count } }).catch(() => {});
+    }
+    return { ...report, target_reports_count: count };
   }
 
   public static async listReports(status?: ReportStatus, page: number = 1, limit: number = 30) {

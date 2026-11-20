@@ -1,36 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
+import { QueryClientContext } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { LIMITS, PublicUser } from '@oomfy/shared';
 import { PixelField } from '../common/PixelField.js';
-import { ApiClient } from '../../services/api.js';
-import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 import { EditProfileMedia } from './EditProfileMedia.js';
+import { ProfileController, ProfileEditDraft } from '../../controllers/ProfileController.js';
 
 interface Props { user: PublicUser; isOpen: boolean; onClose: () => void; onUpdated: (user: PublicUser) => void; }
 
+function detachFileBuffer(file: File, apply: (cloned: File) => void): void {
+  if (typeof file.arrayBuffer !== 'function') return;
+  file.arrayBuffer().then((buf) => apply(new File([new Uint8Array(buf)], file.name, { type: file.type, lastModified: file.lastModified }))).catch(() => { });
+}
+
 export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpdated }) => {
-  const [name, setName] = useState(user.name || '');
-  const [bio, setBio] = useState(user.bio || '');
-  const [location, setLocation] = useState(user.location || '');
-  const [link, setLink] = useState(user.link || '');
-  const [bannerPreview, setBannerPreview] = useState(user.banner_url || null);
-  const [iconPreview, setIconPreview] = useState(user.icon_url || null);
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
-  const [iconFile, setIconFile] = useState<File | null>(null);
-  const [bannerAction, setBannerAction] = useState<'none' | 'update' | 'delete'>('none');
-  const [iconAction, setIconAction] = useState<'none' | 'update' | 'delete'>('none');
-  const [isSaving, setIsSaving] = useState(false);
-  const { setUser } = useAuthStore();
+  const queryClient = useContext(QueryClientContext);
   const dialog = useDialogStore();
+  const [draft, setDraft] = useState<ProfileEditDraft>(() => ProfileController.createDraft(user));
+  const [isSaving, setIsSaving] = useState(false);
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
-    if (isOpen) {
-      setName(user.name || ''); setBio(user.bio || ''); setLocation(user.location || ''); setLink(user.link || '');
-      setBannerPreview(user.banner_url || null); setIconPreview(user.icon_url || null);
-      setBannerFile(null); setIconFile(null); setBannerAction('none'); setIconAction('none');
-    }
-  }, [user, isOpen]);
+    if (isOpen && !wasOpenRef.current) setDraft(ProfileController.createDraft(user));
+    wasOpenRef.current = isOpen;
+  }, [isOpen, user]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -41,17 +35,33 @@ export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpd
 
   if (!isOpen) return null;
 
+  const setBanner = (file: File) => {
+    const preview = URL.createObjectURL(file);
+    setDraft((prev) => {
+      if (prev.bannerPreview?.startsWith('blob:')) URL.revokeObjectURL(prev.bannerPreview);
+      return { ...prev, bannerFile: file, bannerPreview: preview, bannerAction: 'update' };
+    });
+    detachFileBuffer(file, (cloned) => setDraft((p) => (p.bannerFile === file ? { ...p, bannerFile: cloned } : p)));
+  };
+  const removeBanner = () => setDraft((prev) => {
+    if (prev.bannerPreview?.startsWith('blob:')) URL.revokeObjectURL(prev.bannerPreview);
+    return { ...prev, bannerFile: null, bannerPreview: null, bannerAction: 'delete' };
+  });
+  const setIcon = (file: File) => {
+    const preview = URL.createObjectURL(file);
+    setDraft((prev) => {
+      if (prev.iconPreview?.startsWith('blob:')) URL.revokeObjectURL(prev.iconPreview);
+      return { ...prev, iconFile: file, iconPreview: preview, iconAction: 'update' };
+    });
+    detachFileBuffer(file, (cloned) => setDraft((p) => (p.iconFile === file ? { ...p, iconFile: cloned } : p)));
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const formData = new FormData();
-      formData.append('name', name.trim()); formData.append('bio', bio);
-      formData.append('location', location); formData.append('link', link.trim());
-      formData.append('banner_action', bannerAction); formData.append('icon_action', iconAction);
-      if (bannerFile) formData.append('banner', bannerFile);
-      if (iconFile) formData.append('icon', iconFile);
-      const res = await ApiClient.put<any>('/members/me', formData);
-      setUser(res.data); onUpdated(res.data); onClose();
+      const updated = await ProfileController.saveProfileDraft(user, draft, queryClient);
+      onUpdated(updated);
+      onClose();
     } catch (err: any) {
       dialog.alert(err?.message || 'Error al guardar los cambios del perfil.', 'Error');
     } finally { setIsSaving(false); }
@@ -67,17 +77,12 @@ export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpd
             {isSaving ? 'Guardando...' : 'Guardar'}
           </button>
         </div>
-        <EditProfileMedia
-          username={user.username} bannerPreview={bannerPreview} iconPreview={iconPreview}
-          onBannerChange={(f) => { setBannerFile(f); setBannerPreview(URL.createObjectURL(f)); setBannerAction('update'); }}
-          onBannerRemove={() => { setBannerFile(null); setBannerPreview(null); setBannerAction('delete'); }}
-          onIconChange={(f) => { setIconFile(f); setIconPreview(URL.createObjectURL(f)); setIconAction('update'); }}
-        />
+        <EditProfileMedia username={user.username} bannerPreview={draft.bannerPreview} iconPreview={draft.iconPreview} onBannerChange={setBanner} onBannerRemove={removeBanner} onIconChange={setIcon} />
         <div className="p-4 space-y-3">
-          <PixelField label="Nombre" value={name} onChange={setName} maxLength={LIMITS.NAME_MAX} />
-          <PixelField label="Biografía" value={bio} onChange={setBio} maxLength={LIMITS.BIO_MAX} isTextarea />
-          <PixelField label="Ubicación" value={location} onChange={setLocation} maxLength={LIMITS.LOCATION_MAX} />
-          <PixelField label="Sitio web" value={link} onChange={setLink} maxLength={LIMITS.LINK_MAX} />
+          <PixelField label="Nombre" value={draft.name} onChange={(v) => setDraft((p) => ({ ...p, name: v }))} maxLength={LIMITS.NAME_MAX} />
+          <PixelField label="Biografía" value={draft.bio} onChange={(v) => setDraft((p) => ({ ...p, bio: v }))} maxLength={LIMITS.BIO_MAX} isTextarea />
+          <PixelField label="Ubicación" value={draft.location} onChange={(v) => setDraft((p) => ({ ...p, location: v }))} maxLength={LIMITS.LOCATION_MAX} />
+          <PixelField label="Sitio web" value={draft.link} onChange={(v) => setDraft((p) => ({ ...p, link: v }))} maxLength={LIMITS.LINK_MAX} />
         </div>
       </div>
     </div>

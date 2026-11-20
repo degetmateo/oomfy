@@ -68,6 +68,9 @@ export class SocketGateway {
   public static broadcastChatMessage(chatId: string, message: any): void {
     this.io?.to(`chat:${chatId}`).emit('new-message', message);
   }
+  public static broadcastPublicationInteraction(data: { postId: string; upvotes_count?: number; shares_count?: number }): void {
+    this.io?.emit('publication-interaction-updated', data);
+  }
   public static broadcastDeleteMessage(chatId: string, messageId: string, participants: string[] = []): void {
     this.io?.to(`chat:${chatId}`).emit('delete-message', { chatId, messageId });
     for (const p of participants) this.io?.to(`user:${p}`).emit('delete-message', { chatId, messageId });

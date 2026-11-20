@@ -28,7 +28,7 @@ export const ImageCropperModal: React.FC<Props> = ({
   const { crop, setCrop, selectAll, onDragStart, onDragMove, onDragEnd } = useCropBox({ bounds, aspectRatio: aspect });
 
   useEffect(() => {
-    if (!file || !isOpen) return;
+    if (!file || !isOpen) { setImageSrc(null); return; }
     const url = URL.createObjectURL(file);
     setImageSrc(url);
     setAspect(initialAspect);

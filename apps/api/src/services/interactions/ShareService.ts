@@ -4,6 +4,7 @@ import { MongoPublicationRepository } from '../../infrastructure/repositories/mo
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
 import { NotificationDispatcher } from '../notifications/NotificationDispatcher.js';
+import { SocketGateway } from '../../socket/SocketGateway.js';
 import { ForbiddenError, NotFoundError } from '../../errors/AppError.js';
 
 export class ShareService {
@@ -54,6 +55,7 @@ export class ShareService {
 
     await MongoPublicationRepository.create(shareDoc);
     await MongoPublicationRepository.incrementCounters(pubId, { shares_count: 1 });
+    SocketGateway.broadcastPublicationInteraction({ postId: pubId, shares_count: currentShares + 1 });
     await NotificationDispatcher.dispatch({
       recipientId: pub.author.id,
       sender: user,
@@ -86,8 +88,12 @@ export class ShareService {
     });
 
     const deletedCount = res.deletedCount ?? 0;
-    if (deletedCount > 0) await MongoPublicationRepository.incrementCounters(pubId, { shares_count: -1 });
     const currentCount = Math.max(0, pub.shares_count || 0);
-    return { shared: false, shares_count: deletedCount > 0 ? Math.max(0, currentCount - 1) : currentCount };
+    const nextCount = deletedCount > 0 ? Math.max(0, currentCount - 1) : currentCount;
+    if (deletedCount > 0) {
+      await MongoPublicationRepository.incrementCounters(pubId, { shares_count: -1 });
+      SocketGateway.broadcastPublicationInteraction({ postId: pubId, shares_count: nextCount });
+    }
+    return { shared: false, shares_count: nextCount };
   }
 }

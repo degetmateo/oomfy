@@ -59,6 +59,7 @@ export interface Publication {
   is_upvoted?: boolean;
   is_quoted?: boolean;
   is_shared?: boolean;
+  reports_count?: number;
   target_publication?: Publication | null;
   author_thread_preview?: Publication[];
   author_thread_remaining_count?: number;

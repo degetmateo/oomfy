@@ -12,8 +12,8 @@ interface Props {
 export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
   const safeUrl = resolveMediaUrl(imageUrl);
   const {
-    scale, position, isDragging, stageRef, handleZoom, resetZoom,
-    handleWheel, handleMouseDown, stopDragging, handleTouchStart, handleTouchMove, handleTouchEnd,
+    scale, position, isDragging, stageRef, modalRef, handleZoom, resetZoom,
+    handleMouseDown, handleStageClick, stopDragging, handleTouchStart, handleTouchMove, handleTouchEnd,
   } = useImageViewerZoom(safeUrl, onClose);
 
   if (!safeUrl) return null;
@@ -25,6 +25,7 @@ export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
 
   const modalContent = (
     <div
+      ref={modalRef}
       role="dialog"
       aria-modal="true"
       aria-label="Visor de imagen ampliada"
@@ -33,10 +34,9 @@ export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
       onMouseUp={(e) => { e.stopPropagation(); stopDragging(); }}
       onPointerUp={stopDragging}
       onClick={stopAndClose}
-      onWheel={handleWheel}
-      className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between items-center select-none font-mono"
+      className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between items-center select-none font-mono overscroll-contain overflow-hidden"
     >
-      <div className="w-full flex justify-between items-center p-3 sm:p-4 z-20 bg-gradient-to-b from-black/90 to-transparent">
+      <div className="w-full flex justify-between items-center p-3 sm:p-4 z-20 bg-gradient-to-b from-black/90 to-transparent" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2">
           <button type="button" onClick={(e) => { e.stopPropagation(); handleZoom(0.3); }} aria-label="Acercar imagen" className="p-2 bg-dark-card border border-dark-border text-white hover:text-brand-400 pixel-button" title="Acercar (Rueda hacia arriba)">
             <ZoomIn className="w-5 h-5" aria-hidden="true" />
@@ -56,7 +56,7 @@ export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
 
       <div
         ref={stageRef}
-        onClick={(e) => e.stopPropagation()}
+        onClick={handleStageClick}
         onMouseDown={handleMouseDown}
         onMouseUp={(e) => { e.stopPropagation(); stopDragging(); }}
         onPointerUp={stopDragging}
@@ -73,6 +73,7 @@ export const ImageViewerModal: React.FC<Props> = ({ imageUrl, onClose }) => {
           src={safeUrl}
           alt="Vista ampliada"
           draggable={false}
+          onClick={(e) => e.stopPropagation()}
           onDragStart={(e) => e.preventDefault()}
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,

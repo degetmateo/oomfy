@@ -31,23 +31,30 @@ export class WebPushService {
 
   public static async sendPushToUser(userId: string, payload: WebPushPayload, category?: keyof PushPreferences): Promise<number> {
     const subs = await PushSubscriptionRepository.findActiveSubscriptions(userId, category);
-    const { sent } = await this.dispatchToSubscriptions(subs, WebPushClient.formatPayload(payload));
+    const { sent } = await this.dispatchToSubscriptions(subs, payload, category);
     return sent;
   }
 
   public static async broadcastPush(payload: WebPushPayload): Promise<{ sent: number; failed: number }> {
     const subs = await PushSubscriptionRepository.findAllActive();
-    return this.dispatchToSubscriptions(subs, WebPushClient.formatPayload(payload));
+    return this.dispatchToSubscriptions(subs, payload);
   }
 
-  private static async dispatchToSubscriptions(subs: any[], dataString: string): Promise<{ sent: number; failed: number }> {
+  private static async dispatchToSubscriptions(
+    subs: any[],
+    payload: WebPushPayload,
+    category?: keyof PushPreferences
+  ): Promise<{ sent: number; failed: number }> {
     if (!subs.length) return { sent: 0, failed: 0 };
     let sent = 0;
     let failed = 0;
+    const silentKey = category ? `${String(category)}_silent` : null;
     await Promise.all(
       subs.map(async (sub) => {
+        const isSilent = Boolean(payload.silent || (silentKey && sub.preferences?.[silentKey] === true));
+        const dataString = WebPushClient.formatPayload({ ...payload, silent: isSilent });
         try {
-          await WebPushClient.send({ endpoint: sub.endpoint, keys: sub.keys }, dataString);
+          await WebPushClient.send({ endpoint: sub.endpoint, keys: sub.keys }, dataString, { silent: isSilent });
           sent++;
         } catch (err: any) {
           failed++;

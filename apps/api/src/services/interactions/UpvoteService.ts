@@ -4,6 +4,7 @@ import { MongoPublicationRepository } from '../../infrastructure/repositories/mo
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
 import { NotificationDispatcher } from '../notifications/NotificationDispatcher.js';
+import { SocketGateway } from '../../socket/SocketGateway.js';
 import { ForbiddenError, NotFoundError } from '../../errors/AppError.js';
 
 export class UpvoteService {
@@ -46,6 +47,7 @@ export class UpvoteService {
     }
 
     await MongoPublicationRepository.incrementCounters(pubId, { upvotes_count: 1 });
+    SocketGateway.broadcastPublicationInteraction({ postId: pubId, upvotes_count: currentUpvotes + 1 });
     await NotificationDispatcher.dispatch({
       recipientId: pub.author.id,
       sender: user,
@@ -72,11 +74,13 @@ export class UpvoteService {
     });
 
     const deletedCount = res.deletedCount ?? 0;
+    const currentCount = Math.max(0, pub.upvotes_count || 0);
+    const nextCount = deletedCount > 0 ? Math.max(0, currentCount - 1) : currentCount;
     if (deletedCount > 0) {
       await MongoPublicationRepository.incrementCounters(pubId, { upvotes_count: -1 });
+      SocketGateway.broadcastPublicationInteraction({ postId: pubId, upvotes_count: nextCount });
     }
 
-    const currentCount = Math.max(0, pub.upvotes_count || 0);
-    return { upvoted: false, upvotes_count: deletedCount > 0 ? Math.max(0, currentCount - 1) : currentCount };
+    return { upvoted: false, upvotes_count: nextCount };
   }
 }

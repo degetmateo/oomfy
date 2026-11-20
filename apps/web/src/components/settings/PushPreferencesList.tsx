@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import {
-  PushNotificationService,
-  PushPreferences,
-  DEFAULT_PUSH_PREFERENCES,
-} from '../../services/PushNotificationService.js';
+import { Volume2, VolumeX } from 'lucide-react';
+import type { PushCategoryKey } from '@oomfy/shared';
+import { PushNotificationService, PushPreferences, DEFAULT_PUSH_PREFERENCES } from '../../services/PushNotificationService.js';
 
-interface Props {
-  endpoint?: string | null;
-}
+interface Props { endpoint?: string | null; }
 
-const PREF_ITEMS: { key: keyof PushPreferences; label: string; desc: string }[] = [
+const PREF_ITEMS: { key: PushCategoryKey; label: string; desc: string }[] = [
   { key: 'messages', label: 'Notificaciones de mensajes', desc: 'Mensajes privados recibidos en chats.' },
   { key: 'replies', label: 'Notificaciones de respuestas', desc: 'Respuestas a tus publicaciones.' },
   { key: 'quotes', label: 'Notificaciones de citas', desc: 'Citas de tus publicaciones.' },
@@ -27,16 +23,10 @@ export const PushPreferencesList: React.FC<Props> = ({ endpoint }) => {
   useEffect(() => {
     let isMounted = true;
     PushNotificationService.getPreferences(endpoint || undefined)
-      .then((data) => {
-        if (isMounted) setPrefs(data.preferences);
-      })
+      .then((data) => { if (isMounted) setPrefs(data.preferences); })
       .catch(() => {})
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-    return () => {
-      isMounted = false;
-    };
+      .finally(() => { if (isMounted) setLoading(false); });
+    return () => { isMounted = false; };
   }, [endpoint]);
 
   const togglePref = async (key: keyof PushPreferences) => {
@@ -52,36 +42,50 @@ export const PushPreferencesList: React.FC<Props> = ({ endpoint }) => {
     }
   };
 
-  if (loading) {
-    return <div className="text-xs text-dark-muted font-mono animate-pulse">Cargando opciones...</div>;
-  }
+  if (loading) return <div className="text-xs text-dark-muted font-mono animate-pulse">Cargando opciones...</div>;
 
   return (
     <div className="flex flex-col gap-2.5 mt-3 border border-dark-border bg-dark-card/40 p-3">
-      <h5 className="text-[11px] font-bold uppercase tracking-wider text-dark-muted mb-1">
-        Opciones de notificación
-      </h5>
+      <h5 className="text-[11px] font-bold uppercase tracking-wider text-dark-muted mb-1">Opciones de notificación</h5>
       <div className="divide-y divide-dark-border/60">
         {PREF_ITEMS.map(({ key, label, desc }) => {
           const enabled = prefs[key];
+          const silentKey = `${key}_silent` as keyof PushPreferences;
+          const isSilent = Boolean(prefs[silentKey]);
           return (
             <div key={key} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
-              <div className="flex flex-col">
+              <div className="flex flex-col min-w-0">
                 <span className="text-xs font-bold text-white">{label}</span>
                 <span className="text-[11px] text-dark-muted font-sans">{desc}</span>
               </div>
-              <button
-                type="button"
-                disabled={updating === key}
-                onClick={() => togglePref(key)}
-                className={`px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors pixel-button border ${
-                  enabled
-                    ? 'bg-brand-500/20 border-brand-500 text-brand-400 hover:bg-brand-500/30'
-                    : 'bg-dark-card border-dark-border text-dark-muted hover:text-white'
-                }`}
-              >
-                {enabled ? 'Activado' : 'Desactivado'}
-              </button>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {enabled && (
+                  <button
+                    type="button"
+                    disabled={updating === silentKey}
+                    aria-label={`Modo silencioso para ${label}`}
+                    aria-pressed={isSilent}
+                    title={isSilent ? 'Silenciosa (sin sonido ni vibración)' : 'Con sonido y vibración'}
+                    onClick={() => togglePref(silentKey)}
+                    className={`px-2 py-1 text-[10px] font-bold uppercase border flex items-center gap-1 pixel-button transition-colors ${
+                      isSilent ? 'border-yellow-500/60 text-yellow-300 bg-yellow-950/30' : 'border-dark-border text-dark-muted hover:text-white bg-dark-card'
+                    }`}
+                  >
+                    {isSilent ? <VolumeX className="w-3 h-3" aria-hidden="true" /> : <Volume2 className="w-3 h-3" aria-hidden="true" />}
+                    <span>{isSilent ? 'Silencioso' : 'Con alerta'}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={updating === key}
+                  onClick={() => togglePref(key)}
+                  className={`px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors pixel-button border ${
+                    enabled ? 'bg-brand-500/20 border-brand-500 text-brand-400 hover:bg-brand-500/30' : 'bg-dark-card border-dark-border text-dark-muted hover:text-white'
+                  }`}
+                >
+                  {enabled ? 'Activado' : 'Desactivado'}
+                </button>
+              </div>
             </div>
           );
         })}
@@ -89,4 +93,3 @@ export const PushPreferencesList: React.FC<Props> = ({ endpoint }) => {
     </div>
   );
 };
-

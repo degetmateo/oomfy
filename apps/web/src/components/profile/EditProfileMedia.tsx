@@ -27,16 +27,16 @@ export const EditProfileMedia: React.FC<Props> = ({
     const isGif = file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif');
     if (isGif) {
       if (target === 'banner') onBannerChange(file);
-      if (target === 'icon') onIconChange(file);
+      else onIconChange(file);
       return;
     }
-    setCropFile(file);
     setCropTarget(target);
+    setCropFile(file);
   };
 
   const handleCropped = (cropped: File) => {
     if (cropTarget === 'banner') onBannerChange(cropped);
-    if (cropTarget === 'icon') onIconChange(cropped);
+    else if (cropTarget === 'icon') onIconChange(cropped);
     setCropFile(null);
     setCropTarget(null);
   };
@@ -55,7 +55,7 @@ export const EditProfileMedia: React.FC<Props> = ({
             </button>
           )}
         </div>
-        <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelected(f, 'banner'); e.target.value = ''; }} />
+        <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleFileSelected(f, 'banner'); }} />
       </div>
 
       <div className="px-4 -mt-10 mb-4 relative z-10 flex">
@@ -70,11 +70,11 @@ export const EditProfileMedia: React.FC<Props> = ({
           <button type="button" onClick={() => iconInputRef.current?.click()} className="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-80 hover:opacity-100" title="Cambiar avatar">
             <Camera className="w-5 h-5" />
           </button>
-          <input type="file" ref={iconInputRef} className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelected(f, 'icon'); e.target.value = ''; }} />
+          <input type="file" ref={iconInputRef} className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleFileSelected(f, 'icon'); }} />
         </div>
       </div>
 
-      <ImageCropperModal file={cropFile} isOpen={cropFile !== null} aspectRatio={cropTarget === 'banner' ? 3 : 1} title={cropTarget === 'banner' ? 'Recortar banner' : 'Recortar avatar'} allowAspectChange={cropTarget === 'banner'} onCrop={handleCropped} onClose={() => { setCropFile(null); setCropTarget(null); }} />
+      <ImageCropperModal key={cropTarget || 'closed'} file={cropFile} isOpen={cropFile !== null} aspectRatio={cropTarget === 'banner' ? 3 : 1} title={cropTarget === 'banner' ? 'Recortar banner' : 'Recortar avatar'} allowAspectChange={cropTarget === 'banner'} onCrop={handleCropped} onClose={() => { setCropFile(null); setCropTarget(null); }} />
     </>
   );
 };

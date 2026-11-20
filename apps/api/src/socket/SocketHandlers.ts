@@ -4,6 +4,7 @@ import { MongoChatRepository } from '../infrastructure/repositories/mongo/MongoC
 import { MongoMemberRepository } from '../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MessageService } from '../services/chat/MessageService.js';
 import { SocketGateway } from './SocketGateway.js';
+import { registerInteractionSocketHandlers } from './SocketInteractionHandlers.js';
 
 async function hasChatAccess(socket: Socket, chatId: string, userId: string): Promise<boolean> {
   if (typeof chatId !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(chatId)) return false;
@@ -65,6 +66,7 @@ export function registerSocketHandlers(socket: Socket, userSockets: Map<string, 
       socket.emit('error', { message: (err as Error).message });
     }
   });
+  registerInteractionSocketHandlers(socket, user, isWithinSocketQuota);
   socket.on('disconnect', () => {
     userSockets.get(user.id)?.delete(socket.id);
     if (userSockets.get(user.id)?.size === 0) {
