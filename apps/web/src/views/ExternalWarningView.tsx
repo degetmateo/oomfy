@@ -7,7 +7,14 @@ import { UrlHelper } from '../utils/UrlHelper.js';
 export const ExternalWarningView: React.FC = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const targetUrl = params.get('url') || '';
+  const rawTargetUrl = (params.get('url') || '').trim();
+  const isRelativePath =
+    (rawTargetUrl.startsWith('/') || rawTargetUrl.startsWith('#')) &&
+    !rawTargetUrl.startsWith('//') &&
+    !rawTargetUrl.startsWith('/\\');
+  const targetUrl = isRelativePath
+    ? rawTargetUrl
+    : UrlHelper.normalizeProfileLink(rawTargetUrl) || rawTargetUrl;
 
   useEffect(() => {
     if (targetUrl && UrlHelper.isInternalUrl(targetUrl)) {
@@ -16,12 +23,21 @@ export const ExternalWarningView: React.FC = () => {
   }, [targetUrl, navigate]);
 
   let hostname = '';
-  const isSafeExternal = UrlHelper.isSafeHttpUrl(targetUrl);
-  try {
-    hostname = new URL(targetUrl).hostname;
-  } catch {
+  let hasValidAbsoluteHttpUrl = false;
+  if (targetUrl && !isRelativePath) {
+    try {
+      const parsed = new URL(targetUrl);
+      hasValidAbsoluteHttpUrl =
+        parsed.origin !== 'null' && (parsed.protocol === 'https:' || parsed.protocol === 'http:');
+      hostname = parsed.hostname;
+    } catch {
+      hostname = targetUrl;
+    }
+  } else {
     hostname = targetUrl;
   }
+
+  const isSafeExternal = Boolean(targetUrl) && hasValidAbsoluteHttpUrl && !UrlHelper.isInternalUrl(targetUrl);
 
   const handleProceed = () => {
     if (!targetUrl || !isSafeExternal) return;

@@ -88,7 +88,16 @@ export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpd
           <PixelField label="Nombre" value={draft.name} onChange={(v) => setDraft((p) => ({ ...p, name: v }))} maxLength={LIMITS.NAME_MAX} />
           <PixelField label="Biografía" value={draft.bio} onChange={(v) => setDraft((p) => ({ ...p, bio: v }))} maxLength={LIMITS.BIO_MAX} isTextarea />
           <PixelField label="Ubicación" value={draft.location} onChange={(v) => setDraft((p) => ({ ...p, location: v }))} maxLength={LIMITS.LOCATION_MAX} />
-          <PixelField label="Sitio web" value={draft.link} onChange={(v) => setDraft((p) => ({ ...p, link: v }))} maxLength={LIMITS.LINK_MAX} />
+          <PixelField
+            label="Sitio web"
+            value={draft.link}
+            onChange={(v) => setDraft((p) => ({ ...p, link: v }))}
+            maxLength={LIMITS.LINK_MAX}
+            placeholder="ej. tusitio.com o https://tusitio.com"
+            inputMode="url"
+            autoCapitalize="none"
+            spellCheck={false}
+          />
         </div>
       </div>
     </div>

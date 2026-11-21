@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   SignupSchema, CreatePublicationSchema, CreatePublicationAdminFormSchema,
-  SendMessageSchema, SendMessageAdminSchema, UsernameSchema, LIMITS,
+  SendMessageSchema, SendMessageAdminSchema, UsernameSchema, UpdateProfileSchema,
+  normalizeProfileLink, LIMITS,
 } from '../src/index.js';
 
 describe('Shared Schemas Validation', () => {
@@ -81,5 +82,42 @@ describe('Shared Schemas Validation', () => {
         );
       }
     }
+  });
+
+  it('normalizes valid profile links across domains, www, http, https, ports, and internal paths', () => {
+    expect(normalizeProfileLink('ejemplo.com')).toBe('https://ejemplo.com');
+    expect(normalizeProfileLink('www.ejemplo.com/perfil?ref=1#top')).toBe('https://www.ejemplo.com/perfil?ref=1#top');
+    expect(normalizeProfileLink('http://ejemplo.com')).toBe('http://ejemplo.com');
+    expect(normalizeProfileLink('https://EXAMPLE.COM/Bio')).toBe('https://example.com/Bio');
+    expect(normalizeProfileLink('//cdn.ejemplo.com/page')).toBe('https://cdn.ejemplo.com/page');
+    expect(normalizeProfileLink('localhost:5173/test')).toBe('https://localhost:5173/test');
+    expect(normalizeProfileLink('oomfy.online/bob')).toBe('https://oomfy.online/bob');
+
+    expect(UpdateProfileSchema.safeParse({ link: '' })).toMatchObject({ success: true, data: { link: null } });
+    expect(UpdateProfileSchema.safeParse({ link: '   ' })).toMatchObject({ success: true, data: { link: null } });
+    expect(UpdateProfileSchema.safeParse({ link: 'miweb.dev/hola' })).toMatchObject({
+      success: true,
+      data: { link: 'https://miweb.dev/hola' },
+    });
+  });
+
+  it('rejects dangerous schemes, credentials, spaces, single non-domain words, and overlong profile links', () => {
+    const invalidLinks = [
+      'javascript:alert(1)',
+      'data:text/html,<script>alert(1)</script>',
+      'vbscript:msgbox(1)',
+      'ftp://files.ejemplo.com',
+      'https://oomfy.online@evil.com',
+      'ejemplo.com con espacios',
+      'palabrasueltasinpunto',
+      'https://',
+    ];
+    for (const bad of invalidLinks) {
+      expect(normalizeProfileLink(bad)).toBeNull();
+      expect(UpdateProfileSchema.safeParse({ link: bad }).success).toBe(false);
+    }
+
+    const tooLong = `https://ejemplo.com/${'a'.repeat(LIMITS.LINK_MAX)}`;
+    expect(UpdateProfileSchema.safeParse({ link: tooLong }).success).toBe(false);
   });
 });

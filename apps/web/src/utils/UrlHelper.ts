@@ -1,9 +1,30 @@
+import { normalizeProfileLink } from '@oomfy/shared';
+
+interface OriginLike {
+  readonly opaque?: boolean;
+  isSameSite(other: OriginLike): boolean;
+}
+
+interface OriginConstructorLike {
+  from(value: unknown): OriginLike;
+}
+
+function getOriginApi(): OriginConstructorLike | null {
+  if (!('Origin' in globalThis)) return null;
+  const ctor = (globalThis as { Origin?: OriginConstructorLike }).Origin;
+  return ctor && typeof ctor.from === 'function' ? ctor : null;
+}
+
 export class UrlHelper {
+  public static normalizeProfileLink(urlStr: string | null | undefined): string | null {
+    return normalizeProfileLink(urlStr);
+  }
+
   public static isSafeHttpUrl(urlStr: string | null | undefined): boolean {
     if (!urlStr) return false;
     try {
       const u = new URL(urlStr.trim(), typeof window !== 'undefined' ? window.location.origin : 'https://oomfy.online');
-      return u.protocol === 'https:' || u.protocol === 'http:';
+      return u.origin !== 'null' && (u.protocol === 'https:' || u.protocol === 'http:');
     } catch {
       return false;
     }
@@ -34,16 +55,41 @@ export class UrlHelper {
     if (trimmed.startsWith('/') || trimmed.startsWith('#')) return true;
 
     try {
-      const currentHost = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
-      const u = new URL(trimmed, typeof window !== 'undefined' ? window.location.origin : 'https://oomfy.online');
-      if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
+      const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://oomfy.online';
+      const u = new URL(trimmed, baseOrigin);
+      if ((u.protocol !== 'https:' && u.protocol !== 'http:') || u.origin === 'null') return false;
       const host = u.hostname.toLowerCase();
 
-      if (currentHost && (host === currentHost || host.endsWith(`.${currentHost}`))) {
+      if (host === 'localhost' || host === '127.0.0.1') return true;
+
+      const OriginApi = getOriginApi();
+      if (OriginApi) {
+        try {
+          const targetOrigin = OriginApi.from(u);
+          if (targetOrigin.opaque) return false;
+          if (
+            targetOrigin.isSameSite(OriginApi.from('https://oomfy.online')) ||
+            targetOrigin.isSameSite(OriginApi.from('http://oomfy.online'))
+          ) {
+            return true;
+          }
+          if (typeof window !== 'undefined') {
+            try {
+              if (targetOrigin.isSameSite(OriginApi.from(globalThis))) return true;
+            } catch { /* ignore opaque or unavailable current context origin */ }
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      }
+
+      const currentHost = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
+      if (currentHost && (host === currentHost || (currentHost === 'oomfy.online' && host.endsWith('.oomfy.online')))) {
         return true;
       }
 
-      return host === 'oomfy.online' || host.endsWith('.oomfy.online') || host === 'localhost' || host === '127.0.0.1';
+      return host === 'oomfy.online' || host.endsWith('.oomfy.online');
     } catch {
       return false;
     }

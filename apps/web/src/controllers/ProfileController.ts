@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
-import { PublicUser } from '@oomfy/shared';
+import { LIMITS, PublicUser, normalizeProfileLink } from '@oomfy/shared';
 import { ApiClient } from '../services/api.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
@@ -29,15 +29,29 @@ export class ProfileController {
     };
   }
 
+  private static resolveDraftLink(rawLink: string): string | null {
+    const trimmed = rawLink.trim();
+    if (!trimmed) return null;
+    const normalized = normalizeProfileLink(trimmed);
+    if (!normalized) {
+      throw new Error('Ingresa un enlace válido (ej. ejemplo.com o https://ejemplo.com).');
+    }
+    if (normalized.length > LIMITS.LINK_MAX) {
+      throw new Error(`El enlace no puede superar los ${LIMITS.LINK_MAX} caracteres.`);
+    }
+    return normalized;
+  }
+
   public static buildProfileFormData(base: PublicUser, draft: ProfileEditDraft): { formData: FormData; hasChanges: boolean } {
     const formData = new FormData();
     let hasChanges = false;
-    const trimmedName = draft.name.trim(), trimmedLink = draft.link.trim();
+    const trimmedName = draft.name.trim();
+    const normalizedLink = this.resolveDraftLink(draft.link);
 
     if (trimmedName !== (base.name || '')) { formData.append('name', trimmedName); hasChanges = true; }
     if (draft.bio !== (base.bio || '')) { formData.append('bio', draft.bio); hasChanges = true; }
     if (draft.location !== (base.location || '')) { formData.append('location', draft.location); hasChanges = true; }
-    if (trimmedLink !== (base.link || '')) { formData.append('link', trimmedLink); hasChanges = true; }
+    if ((normalizedLink || '') !== (base.link || '')) { formData.append('link', normalizedLink || ''); hasChanges = true; }
 
     formData.append('banner_action', draft.bannerAction);
     formData.append('icon_action', draft.iconAction);
@@ -51,11 +65,12 @@ export class ProfileController {
 
   public static async saveProfileDraft(base: PublicUser, draft: ProfileEditDraft, queryClient?: QueryClient | null): Promise<PublicUser> {
     const modelBase = userIdentityMap.get(base.username) || base;
+    const normalizedLink = this.resolveDraftLink(draft.link);
     const { formData, hasChanges } = this.buildProfileFormData(modelBase, draft);
     if (!hasChanges) return modelBase;
 
     userIdentityMap.patch(modelBase.username, (prev) => ({
-      ...prev, name: draft.name.trim() || prev.name, bio: draft.bio, location: draft.location, link: draft.link.trim() || null,
+      ...prev, name: draft.name.trim() || prev.name, bio: draft.bio, location: draft.location, link: normalizedLink,
     }));
 
     try {

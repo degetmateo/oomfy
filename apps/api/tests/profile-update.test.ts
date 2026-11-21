@@ -85,4 +85,50 @@ describe('ProfileService updateProfile media preservation', () => {
     expect(updateDoc.$set.name).toBe('My New Name');
     expect(updateDoc.$setOnInsert.name).toBeUndefined();
   });
+
+  it('normalizes bare-domain profile links to https:// and rejects unsafe schemes', async () => {
+    const existingUser = {
+      id: 'user-uuid-link',
+      username: 'linkuser',
+      name: 'Link User',
+      email: 'link@oomfy.online',
+      role: 'member' as const,
+      status: 'active' as const,
+      created_at: new Date().toISOString(),
+      bio: null,
+      location: null,
+      link: null,
+      icon_url: null,
+      banner_url: null,
+    };
+
+    vi.spyOn(PostgresUserRepository, 'findById').mockResolvedValue(existingUser);
+    const createOrUpdateSpy = vi.spyOn(MongoMemberRepository, 'createOrUpdate').mockResolvedValue();
+    vi.spyOn(UserSyncService, 'enqueueProfileSync').mockImplementation(() => {});
+    vi.spyOn(MongoMemberRepository, 'findById').mockResolvedValue({
+      ...existingUser,
+      link: 'https://miweb.com',
+    });
+
+    const updated = await ProfileService.updateProfile('user-uuid-link', {
+      link: 'miweb.com',
+      icon_action: 'none',
+      banner_action: 'none',
+    });
+
+    expect(createOrUpdateSpy.mock.calls[0][0].link).toBe('https://miweb.com');
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE members SET link = $1'),
+      ['https://miweb.com', 'user-uuid-link']
+    );
+    expect(updated.link).toBe('https://miweb.com');
+
+    await expect(
+      ProfileService.updateProfile('user-uuid-link', {
+        link: 'javascript:alert(1)',
+        icon_action: 'none',
+        banner_action: 'none',
+      })
+    ).rejects.toThrow(/enlace válido/i);
+  });
 });

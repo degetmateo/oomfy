@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Link as LinkIcon } from 'lucide-react';
 import { PublicUser } from '@oomfy/shared';
 
@@ -14,10 +14,13 @@ export const ProfileMeta: React.FC<Props> = ({ user }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
 
-  const handleBioLinkClick = (e: React.MouseEvent, url: string) => {
-    e.preventDefault();
-    navigate(`/external?url=${encodeURIComponent(url)}`);
-  };
+  const normalizedLink = UrlHelper.normalizeProfileLink(user.link);
+  const isInternalLink = normalizedLink ? UrlHelper.isInternalUrl(normalizedLink) : false;
+  const linkTarget = normalizedLink
+    ? isInternalLink
+      ? UrlHelper.getInternalPath(normalizedLink)
+      : `/external?url=${encodeURIComponent(normalizedLink)}`
+    : null;
 
   return (
     <>
@@ -27,17 +30,15 @@ export const ProfileMeta: React.FC<Props> = ({ user }) => {
             <MapPin className="w-3.5 h-3.5" /> {user.location}
           </span>
         )}
-        {user.link && UrlHelper.isSafeHttpUrl(user.link) && (
-          <a
-            href={user.link}
-            target="_blank"
-            rel="ugc nofollow noopener noreferrer"
-            onClick={(e) => handleBioLinkClick(e, user.link!)}
+        {linkTarget && normalizedLink && (
+          <Link
+            to={linkTarget}
+            title={normalizedLink}
             className="flex items-center gap-1 text-brand-400 hover:underline max-w-xs truncate"
           >
-            <LinkIcon className="w-3.5 h-3.5 flex-shrink-0" />
+            <LinkIcon className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
             <span className="truncate">{user.link}</span>
-          </a>
+          </Link>
         )}
         <span className="flex items-center gap-1">
           <Calendar className="w-3.5 h-3.5" /> Se unió el {new Date(user.created_at).toLocaleDateString()}

@@ -42,10 +42,11 @@ export class RoutePrefetchService {
   }
 
   public static prefetchProfileTab(queryClient: QueryClient, username: string, tab: 'posts' | 'replies' | 'likes'): void {
+    const normalized = username.trim().toLowerCase();
     const p = new URLSearchParams({ limit: '20' });
-    if (tab === 'likes') p.append('liked_by', username);
-    else { p.append('author_username', username); p.append('type', tab === 'replies' ? 'reply' : 'posts'); }
-    this.prefetchCursorFeed(queryClient, ['user-posts', username, tab], `/publications?${p.toString()}`);
+    if (tab === 'likes') p.append('liked_by', normalized);
+    else { p.append('author_username', normalized); p.append('type', tab === 'replies' ? 'reply' : 'posts'); }
+    this.prefetchCursorFeed(queryClient, ['user-posts', normalized, tab], `/publications?${p.toString()}`);
   }
 
   public static prefetchRouteData(queryClient: QueryClient, path: string): void {
@@ -75,7 +76,7 @@ export class RoutePrefetchService {
     }
     const profileMatch = cleanPath.match(/^\/([a-zA-Z0-9_]{3,30})$/);
     if (profileMatch && !STATIC_TOP_ROUTES.has(profileMatch[1].toLowerCase())) {
-      const username = profileMatch[1];
+      const username = profileMatch[1].toLowerCase();
       queryClient.prefetchQuery({
         queryKey: ['profile', username],
         queryFn: async () => {

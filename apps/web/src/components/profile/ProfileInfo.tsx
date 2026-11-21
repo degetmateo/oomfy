@@ -34,6 +34,7 @@ export const ProfileInfo: React.FC<Props> = ({ user: rawUser, isOwnProfile = fal
         >
           {user.icon_url ? (
             <img
+              key={user.icon_url}
               src={resolveMediaUrl(user.icon_url) || ''}
               alt={user.username}
               onLoad={() => ImageMemoryCache.mark(resolveMediaUrl(user.icon_url))}

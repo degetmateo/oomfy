@@ -1,11 +1,10 @@
-import { UpdateProfileInput, PublicUser } from '@oomfy/shared';
+import { LIMITS, UpdateProfileInput, PublicUser, normalizeProfileLink } from '@oomfy/shared';
 import { PostgresPool } from '../../infrastructure/database/postgres/PostgresPool.js';
 import { PostgresUserRepository } from '../../infrastructure/repositories/postgres/PostgresUserRepository.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MongoFollowRepository } from '../../infrastructure/repositories/mongo/MongoFollowRepository.js';
 import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
-import { isHttpUrl } from '../../utils/UrlSecurityHelper.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors/AppError.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
 import { BackgroundTaskDispatcher } from '../../infrastructure/async/BackgroundTaskDispatcher.js';
@@ -50,7 +49,22 @@ export class ProfileService {
       throw new ForbiddenError('La edición de perfiles está desactivada temporalmente por mantenimiento.');
     }
 
-    if (input.link && !isHttpUrl(input.link)) throw new BadRequestError('El enlace debe comenzar por http:// o https://.');
+    let normalizedLink: string | null | undefined = input.link;
+    if (typeof input.link === 'string') {
+      const trimmedLink = input.link.trim();
+      if (!trimmedLink) {
+        normalizedLink = null;
+      } else {
+        const parsedLink = normalizeProfileLink(trimmedLink);
+        if (!parsedLink) {
+          throw new BadRequestError('Ingresa un enlace válido (ej. ejemplo.com o https://ejemplo.com).');
+        }
+        if (parsedLink.length > LIMITS.LINK_MAX) {
+          throw new BadRequestError(`Máximo ${LIMITS.LINK_MAX} caracteres.`);
+        }
+        normalizedLink = parsedLink;
+      }
+    }
 
     const [iconUrl, bannerUrl] = await Promise.all([
       ProfileMediaService.applyMediaUpdate('icon', userId, input.icon_action, files.icon),
@@ -64,7 +78,7 @@ export class ProfileService {
     if (input.name !== undefined) { fields.push(`name = $${idx++}`); values.push(input.name); }
     if (input.bio !== undefined) { fields.push(`bio = $${idx++}`); values.push(input.bio); }
     if (input.location !== undefined) { fields.push(`location = $${idx++}`); values.push(input.location); }
-    if (input.link !== undefined) { fields.push(`link = $${idx++}`); values.push(input.link); }
+    if (normalizedLink !== undefined) { fields.push(`link = $${idx++}`); values.push(normalizedLink); }
     if (fields.length > 0) {
       values.push(userId);
       await pool.query(`UPDATE members SET ${fields.join(', ')}, updated_at = NOW() WHERE id = $${idx}`, values);
@@ -74,7 +88,7 @@ export class ProfileService {
     if (input.name !== undefined) mongoUpdates.name = input.name;
     if (input.bio !== undefined) mongoUpdates.bio = input.bio;
     if (input.location !== undefined) mongoUpdates.location = input.location;
-    if (input.link !== undefined) mongoUpdates.link = input.link;
+    if (normalizedLink !== undefined) mongoUpdates.link = normalizedLink;
     if (iconUrl !== undefined) mongoUpdates.icon_url = iconUrl;
     if (bannerUrl !== undefined) mongoUpdates.banner_url = bannerUrl;
 

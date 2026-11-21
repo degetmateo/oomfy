@@ -10,6 +10,7 @@ interface UseCursorFeedOptions {
   buildUrl: (olderId: string | null) => string;
   limit?: number;
   enabled?: boolean;
+  refetchOnMount?: boolean | 'always';
 }
 
 function getCursorPlaceholder(queryKey: QueryKey, limit: number): { pages: { success: boolean; data: Publication[] }[]; pageParams: (string | null)[] } | undefined {
@@ -22,13 +23,13 @@ function getCursorPlaceholder(queryKey: QueryKey, limit: number): { pages: { suc
     return cached.length > 0 ? { pages: [{ success: true, data: cached }], pageParams: [null] } : undefined;
   }
   if (prefix === 'user-posts' && queryKey[2] === 'posts' && typeof queryKey[1] === 'string') {
-    const authorPosts = publicationIdentityMap.getByAuthor(queryKey[1]).slice(0, limit);
+    const authorPosts = publicationIdentityMap.getByAuthor(queryKey[1].toLowerCase()).slice(0, limit);
     return authorPosts.length > 0 ? { pages: [{ success: true, data: authorPosts }], pageParams: [null] } : undefined;
   }
   return undefined;
 }
 
-export function useCursorFeed({ queryKey, buildUrl, limit = 20, enabled = true }: UseCursorFeedOptions) {
+export function useCursorFeed({ queryKey, buildUrl, limit = 20, enabled = true, refetchOnMount }: UseCursorFeedOptions) {
   const query = useInfiniteQuery<{ success: boolean; data: Publication[] }>({
     queryKey,
     queryFn: async ({ pageParam }) => {
@@ -51,6 +52,7 @@ export function useCursorFeed({ queryKey, buildUrl, limit = 20, enabled = true }
     },
     staleTime: 2 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+    ...(refetchOnMount !== undefined ? { refetchOnMount } : {}),
     enabled,
   });
 

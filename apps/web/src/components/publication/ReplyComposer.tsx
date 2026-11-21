@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { LIMITS } from '@oomfy/shared';
 import { useAuthStore } from '../../stores/authStore.js';
 import { ComposerAttachmentPreviews } from '../common/ComposerAttachmentPreviews.js';
+import { ComposerDropFeedback, ComposerDropOverlay } from '../common/ComposerDropOverlay.js';
 import { PublicationComposerToolbar } from './PublicationComposerToolbar.js';
 import { useComposerMedia } from '../../hooks/useComposerMedia.js';
 import type { OptimisticMeta } from '../../controllers/optimisticPublicationHelpers.js';
@@ -55,7 +56,12 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-b border-dark-border bg-dark-bg font-mono">
+    <form onSubmit={handleSubmit} {...media.dragProps} className="relative p-3 sm:p-4 border-b border-dark-border bg-dark-bg font-mono">
+      <ComposerDropOverlay
+        isDragging={media.isDraggingMedia}
+        remainingSlots={media.remainingSlots}
+        maxTotal={media.maxTotal}
+      />
       <label htmlFor={inputId} className="sr-only">Publicar tu respuesta</label>
       <textarea
         id={inputId} name="content" ref={media.attachTextareaRef} rows={2} value={content}
@@ -64,6 +70,7 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
         style={{ fieldSizing: 'content' } as React.CSSProperties}
         className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans min-h-[3.25rem] max-h-80 overflow-y-hidden"
       />
+      <ComposerDropFeedback message={media.dropFeedback} />
       <ComposerAttachmentPreviews files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
       <PublicationComposerToolbar
         content={content} onChangeContent={setContent} media={media} isSubmitting={isSubmitting}

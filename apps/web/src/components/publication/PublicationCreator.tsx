@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { LIMITS, Publication } from '@oomfy/shared';
 import { useAuthStore } from '../../stores/authStore.js';
 import { ComposerAttachmentPreviews } from '../common/ComposerAttachmentPreviews.js';
+import { ComposerDropFeedback, ComposerDropOverlay } from '../common/ComposerDropOverlay.js';
 import { PublicationQuotedPreview } from './PublicationQuotedPreview.js';
 import { PublicationComposerToolbar } from './PublicationComposerToolbar.js';
 import { useComposerMedia } from '../../hooks/useComposerMedia.js';
@@ -55,7 +56,12 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-b border-dark-border bg-dark-bg font-mono">
+    <form onSubmit={handleSubmit} {...media.dragProps} className="relative p-3 sm:p-4 border-b border-dark-border bg-dark-bg font-mono">
+      <ComposerDropOverlay
+        isDragging={media.isDraggingMedia}
+        remainingSlots={media.remainingSlots}
+        maxTotal={media.maxTotal}
+      />
       <label htmlFor={inputId} className="sr-only">
         {quotedPublication ? 'Añade un comentario' : '¿Qué estás pensando?'}
       </label>
@@ -74,6 +80,7 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
         className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans min-h-[4.5rem] max-h-80 overflow-y-hidden"
       />
       {quotedPublication && <PublicationQuotedPreview quotedPublication={quotedPublication} onRemove={onRemoveQuoted} />}
+      <ComposerDropFeedback message={media.dropFeedback} />
       <ComposerAttachmentPreviews files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
       <PublicationComposerToolbar
         content={content} onChangeContent={setContent} media={media} isSubmitting={false}

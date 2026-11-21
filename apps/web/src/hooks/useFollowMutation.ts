@@ -24,7 +24,7 @@ export function useFollowMutation(user: PublicUser) {
   const isFollowing = Boolean(modelUser?.is_following ?? user.is_following);
 
   const syncQueryLists = (nextFollowing: boolean, deltaFollowers: number) => {
-    queryClient.setQueryData(['profile', user.username], (old: any) =>
+    queryClient.setQueryData(['profile', key], (old: any) =>
       old?.data ? { ...old, data: { ...old.data, is_following: nextFollowing, follower_count: Math.max(0, (old.data.follower_count || 0) + deltaFollowers) } } : old
     );
     ['suggested-members', 'user-follows'].forEach((prefix) => {

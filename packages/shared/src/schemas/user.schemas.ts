@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { LIMITS } from '../constants/limits.js';
-import { emptyToNull, httpUrlSchema } from './url.schemas.js';
+import { emptyToNull, normalizeProfileLink } from './url.schemas.js';
 
 export const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
 
@@ -30,8 +30,16 @@ export const UpdateProfileSchema = z.object({
     .optional(),
   link: z.preprocess(
     emptyToNull,
-    httpUrlSchema('El sitio web debe comenzar con http:// o https://')
-      .max(LIMITS.LINK_MAX, { error: `Máximo ${LIMITS.LINK_MAX} caracteres.` })
+    z
+      .string()
+      .trim()
+      .refine((val) => normalizeProfileLink(val) !== null, {
+        error: 'Ingresa un enlace válido (ej. ejemplo.com o https://ejemplo.com).',
+      })
+      .transform((val) => normalizeProfileLink(val)!)
+      .refine((val) => val.length <= LIMITS.LINK_MAX, {
+        error: `Máximo ${LIMITS.LINK_MAX} caracteres.`,
+      })
       .nullable()
       .optional()
   ),

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, RefObject } from 'react';
 import { useImageCropQueue } from './useImageCropQueue.js';
-import { extractMediaFromDataTransfer, syncTextareaHeight } from '../utils/composerMediaHelper.js';
+import { extractMediaFromDataTransfer, hasDraggableMediaPayload, syncTextareaHeight } from '../utils/composerMediaHelper.js';
 
 interface Options {
   allowCrop?: boolean;
@@ -14,9 +14,45 @@ export function useComposerMedia(options: Options = {}) {
   const { allowCrop = true, cropTitle = 'Recortar imagen', maxGifs = 4, maxTotal = 4, maxLength } = options;
   const [files, setFiles] = useState<File[]>([]);
   const [gifs, setGifs] = useState<string[]>([]);
+  const [isDraggingMedia, setIsDraggingMedia] = useState(false);
+  const [dropFeedback, setDropFeedback] = useState<string | null>(null);
   const [textareaEl, setTextareaEl] = useState<HTMLTextAreaElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const dragDepthRef = useRef(0);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cropQueue = useImageCropQueue((cropped) => setFiles((prev) => [...prev, ...cropped].slice(0, maxTotal)));
+
+  const remainingSlots = Math.max(0, maxTotal - (files.length + gifs.length));
+
+  const showDropFeedback = useCallback((msg: string | null) => {
+    if (feedbackTimerRef.current) {
+      clearTimeout(feedbackTimerRef.current);
+      feedbackTimerRef.current = null;
+    }
+    setDropFeedback(msg);
+    if (msg) {
+      feedbackTimerRef.current = setTimeout(() => {
+        setDropFeedback(null);
+        feedbackTimerRef.current = null;
+      }, 4000);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isDraggingMedia || typeof window === 'undefined') return;
+    const resetDrag = () => {
+      dragDepthRef.current = 0;
+      setIsDraggingMedia(false);
+    };
+    window.addEventListener('dragend', resetDrag);
+    return () => window.removeEventListener('dragend', resetDrag);
+  }, [isDraggingMedia]);
 
   const attachTextareaRef = useCallback((el: HTMLTextAreaElement | null) => {
     textareaRef.current = el;
@@ -44,10 +80,53 @@ export function useComposerMedia(options: Options = {}) {
     setGifs((prev) => (maxGifs === 1 ? [url] : prev.includes(url) || prev.length >= maxGifs ? prev : [...prev, url]));
   };
 
-  const handleDataTransfer = (dt: DataTransfer | null | undefined, preventDefault: () => void) => {
-    const { files: dtFiles, url } = extractMediaFromDataTransfer(dt);
-    if (dtFiles.length > 0) { preventDefault(); attachFiles(dtFiles, true); return; }
-    if (url) { preventDefault(); attachGifUrl(url); }
+  const handleDataTransfer = (
+    dt: DataTransfer | null | undefined,
+    preventDefault: () => void,
+    opts?: { stopPropagation?: () => void; reportFeedback?: boolean }
+  ) => {
+    const { files: dtFiles, url, rejectedCount } = extractMediaFromDataTransfer(dt);
+    if (dtFiles.length > 0) {
+      preventDefault();
+      opts?.stopPropagation?.();
+      if (remainingSlots <= 0) {
+        if (opts?.reportFeedback) showDropFeedback(`Has alcanzado el límite de ${maxTotal} archivos adjuntos.`);
+        return;
+      }
+      attachFiles(dtFiles, true);
+      if (opts?.reportFeedback) {
+        if (rejectedCount > 0 && dtFiles.length > remainingSlots) {
+          showDropFeedback('Algunos archivos se omitieron por formato no compatible o por el límite máximo.');
+        } else if (rejectedCount > 0) {
+          showDropFeedback('Algunos archivos no son imágenes/GIFs válidos y se omitieron.');
+        } else if (dtFiles.length > remainingSlots) {
+          showDropFeedback(`Solo se adjuntaron ${remainingSlots} de ${dtFiles.length} por el límite de ${maxTotal}.`);
+        } else {
+          showDropFeedback(null);
+        }
+      }
+      return;
+    }
+    if (url) {
+      preventDefault();
+      opts?.stopPropagation?.();
+      if (remainingSlots <= 0) {
+        if (opts?.reportFeedback) showDropFeedback(`Has alcanzado el límite de ${maxTotal} archivos adjuntos.`);
+        return;
+      }
+      if (maxGifs > 1 && gifs.length >= maxGifs) {
+        if (opts?.reportFeedback) showDropFeedback(`Has alcanzado el límite de ${maxGifs} GIFs.`);
+        return;
+      }
+      attachGifUrl(url);
+      if (opts?.reportFeedback) showDropFeedback(null);
+      return;
+    }
+    if (rejectedCount > 0) {
+      preventDefault();
+      opts?.stopPropagation?.();
+      if (opts?.reportFeedback) showDropFeedback('Solo se permiten imágenes y GIFs (PNG, JPG, WEBP o GIF).');
+    }
   };
 
   const transferHandlerRef = useRef(handleDataTransfer);
@@ -73,6 +152,39 @@ export function useComposerMedia(options: Options = {}) {
     handleDataTransfer(e.clipboardData, () => e.preventDefault());
   };
 
+  const dragProps: Pick<React.HTMLAttributes<HTMLElement>, 'onDragEnter' | 'onDragOver' | 'onDragLeave' | 'onDrop'> = {
+    onDragEnter: (e) => {
+      if (!hasDraggableMediaPayload(e.dataTransfer)) return;
+      e.preventDefault();
+      dragDepthRef.current += 1;
+      setIsDraggingMedia(true);
+    },
+    onDragOver: (e) => {
+      if (!hasDraggableMediaPayload(e.dataTransfer)) return;
+      e.preventDefault();
+      try {
+        e.dataTransfer.dropEffect = remainingSlots > 0 ? 'copy' : 'none';
+      } catch { /* ignore read-only dataTransfer in synthetic events */ }
+      setIsDraggingMedia(true);
+    },
+    onDragLeave: (e) => {
+      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+      const related = e.relatedTarget as Node | null;
+      if (dragDepthRef.current === 0 || (related && !e.currentTarget.contains(related))) {
+        dragDepthRef.current = 0;
+        setIsDraggingMedia(false);
+      }
+    },
+    onDrop: (e) => {
+      dragDepthRef.current = 0;
+      setIsDraggingMedia(false);
+      handleDataTransfer(e.dataTransfer, () => e.preventDefault(), {
+        stopPropagation: () => e.stopPropagation(),
+        reportFeedback: true,
+      });
+    },
+  };
+
   const insertEmoji = (emoji: string, value: string, setValue: (v: string) => void, elRef: RefObject<HTMLTextAreaElement | null> = textareaRef) => {
     const el = elRef.current;
     const [start, end] = [el?.selectionStart ?? value.length, el?.selectionEnd ?? value.length];
@@ -84,8 +196,15 @@ export function useComposerMedia(options: Options = {}) {
 
   return {
     files, setFiles, gifs, setGifs, textareaRef, textareaEl, attachTextareaRef, cropQueue, attachFiles, attachGifUrl,
+    isDraggingMedia, dropFeedback, remainingSlots, maxTotal, dragProps,
     removeFile: (i: number) => setFiles((p) => p.filter((_, idx) => idx !== i)),
     removeGif: (i: number) => setGifs((p) => p.filter((_, idx) => idx !== i)),
-    handlePaste, insertEmoji, clearMedia: () => { setFiles([]); setGifs([]); if (textareaRef.current) { textareaRef.current.value = ''; syncTextareaHeight(textareaRef.current); } },
+    handlePaste, insertEmoji,
+    clearMedia: () => {
+      setFiles([]);
+      setGifs([]);
+      showDropFeedback(null);
+      if (textareaRef.current) { textareaRef.current.value = ''; syncTextareaHeight(textareaRef.current); }
+    },
   };
 }

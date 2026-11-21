@@ -7,6 +7,9 @@ interface Props {
   maxLength?: number;
   isTextarea?: boolean;
   placeholder?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  autoCapitalize?: string;
+  spellCheck?: boolean;
 }
 
 export const PixelField: React.FC<Props> = ({
@@ -16,6 +19,9 @@ export const PixelField: React.FC<Props> = ({
   maxLength = 50,
   isTextarea = false,
   placeholder = '',
+  inputMode,
+  autoCapitalize,
+  spellCheck,
 }) => {
   const [focused, setFocused] = useState(false);
   const inputId = useId();
@@ -55,6 +61,9 @@ export const PixelField: React.FC<Props> = ({
           onChange={(e) => onChange(e.target.value)}
           maxLength={maxLength}
           placeholder={placeholder}
+          inputMode={inputMode}
+          autoCapitalize={autoCapitalize}
+          spellCheck={spellCheck}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           className="w-full bg-transparent text-sm text-dark-text outline-none"

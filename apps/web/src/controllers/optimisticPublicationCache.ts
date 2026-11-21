@@ -33,7 +33,19 @@ function patchListQueries(
     if (mode === 'prepend' && q.queryKey[1] === 'following') continue;
     queryClient.setQueryData(q.queryKey, updatePages);
   }
-  queryClient.setQueriesData({ queryKey: ['user-posts'] }, (old: any) => updatePages(old));
+  if (mode === 'prepend') {
+    const authorLower = pub.author?.username?.toLowerCase();
+    const targetTab = pub.type === 'reply' ? 'replies' : 'posts';
+    if (authorLower) {
+      for (const q of queryClient.getQueryCache().findAll({ queryKey: ['user-posts'] })) {
+        if (typeof q.queryKey[1] === 'string' && q.queryKey[1].toLowerCase() === authorLower && q.queryKey[2] === targetTab) {
+          queryClient.setQueryData(q.queryKey, updatePages);
+        }
+      }
+    }
+  } else {
+    queryClient.setQueriesData({ queryKey: ['user-posts'] }, (old: any) => updatePages(old));
+  }
   if (pub.parent_publication_id) {
     queryClient.setQueryData(['publication', pub.parent_publication_id], (old: any) => {
       if (!old) return old;

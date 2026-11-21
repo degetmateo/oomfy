@@ -7,6 +7,7 @@ import { EmojiPickerMenu } from '../common/EmojiPickerMenu.js';
 import { ComposerAutocompleteMenu } from '../common/ComposerAutocompleteMenu.js';
 import { ChatReplyBanner } from './ChatReplyBanner.js';
 import { ComposerAttachmentPreviews } from '../common/ComposerAttachmentPreviews.js';
+import { ComposerDropFeedback, ComposerDropOverlay } from '../common/ComposerDropOverlay.js';
 import { useComposerMedia } from '../../hooks/useComposerMedia.js';
 import { useComposerAutocomplete } from '../../hooks/useComposerAutocomplete.js';
 
@@ -66,8 +67,18 @@ export const ChatInputBar: React.FC<Props> = ({ replyingTo, onCancelReply, onSen
   };
 
   return (
-    <div className="chat-input-bar-container border-t border-dark-border bg-dark-bg flex flex-col flex-shrink-0 font-mono relative pb-[env(safe-area-inset-bottom)]">
+    <div
+      {...media.dragProps}
+      className="chat-input-bar-container border-t border-dark-border bg-dark-bg flex flex-col flex-shrink-0 font-mono relative pb-[env(safe-area-inset-bottom)]"
+    >
+      <ComposerDropOverlay
+        isDragging={media.isDraggingMedia}
+        remainingSlots={media.remainingSlots}
+        maxTotal={media.maxTotal}
+        compact
+      />
       <ChatReplyBanner replyingTo={replyingTo} onCancel={onCancelReply} />
+      <ComposerDropFeedback message={media.dropFeedback} compact />
       <ComposerAttachmentPreviews variant="compact" files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
       <form onSubmit={handleSubmit} className="p-2 sm:p-2.5 flex items-end gap-1.5 sm:gap-2 relative">
         <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => { media.attachFiles(Array.from(e.target.files || [])); e.target.value = ''; }} className="hidden" aria-label="Adjuntar imagen" />

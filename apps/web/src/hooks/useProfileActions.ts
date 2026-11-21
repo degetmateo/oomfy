@@ -35,7 +35,7 @@ export function useProfileActions(user: PublicUser) {
     });
     patchEntityUser(user.username, applyPatch);
     userIdentityMap.patch(user.username, applyPatch);
-    queryClient.setQueryData(['profile', user.username], (old: any) =>
+    queryClient.setQueryData(['profile', user.username.toLowerCase()], (old: any) =>
       old?.data ? { ...old, data: applyPatch(old.data) } : old
     );
   };
@@ -57,7 +57,7 @@ export function useProfileActions(user: PublicUser) {
       if (isBlocked) await ApiClient.delete(`/members/${user.username}/block`);
       else await ApiClient.post(`/members/${user.username}/block`);
       syncBlockCaches(!isBlocked);
-      queryClient.invalidateQueries({ queryKey: ['profile', user.username] });
+      queryClient.invalidateQueries({ queryKey: ['profile', user.username.toLowerCase()] });
     } catch (err: any) {
       dialog.alert(err.message || 'Error al actualizar bloqueo', 'Error');
     } finally {
