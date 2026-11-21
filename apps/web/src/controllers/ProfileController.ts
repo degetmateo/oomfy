@@ -2,6 +2,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { PublicUser } from '@oomfy/shared';
 import { ApiClient } from '../services/api.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
+import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
 
@@ -61,8 +62,13 @@ export class ProfileController {
       const res = await ApiClient.put<{ success: boolean; data: PublicUser }>('/members/me', formData);
       const updated = res.data;
       userIdentityMap.ingest([updated], Date.now(), true);
+      publicationIdentityMap.syncAuthor(updated);
       useAuthStore.getState().setUser(updated);
       if (queryClient) {
+        queryClient.setQueriesData({ queryKey: ['profile'] }, (old: any) => (
+          old?.data && (old.data.id === updated.id || old.data.username?.toLowerCase() === updated.username?.toLowerCase())
+            ? { ...old, data: { ...old.data, ...updated } } : old
+        ));
         queryClient.invalidateQueries({ queryKey: ['profile'] });
         PublicationCacheService.invalidatePublicationLists(queryClient);
       }

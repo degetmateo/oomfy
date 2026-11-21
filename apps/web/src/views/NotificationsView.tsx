@@ -23,10 +23,10 @@ export const NotificationsView: React.FC = () => {
       queryKey: ['notifications-infinite-list'],
       queryFn: ({ pageParam }) => NotificationController.fetchPage(pageParam ? String(pageParam) : undefined),
       initialPageParam: '' as string,
-      getNextPageParam: (lastPage) => {
-        const notifs = lastPage?.data?.notifications;
-        return Array.isArray(notifs) && notifs.length >= 20 ? notifs[notifs.length - 1]?.id : undefined;
-      },
+      getNextPageParam: NotificationController.getNextPageParam,
+      placeholderData: () => NotificationController.getPlaceholderData(),
+      retry: 2,
+      retryOnMount: true,
       staleTime: 10 * 60 * 1000,
       gcTime: 30 * 60 * 1000,
       enabled: isAuthenticated,
@@ -34,6 +34,14 @@ export const NotificationsView: React.FC = () => {
 
   const queryNotifications = data?.pages?.flatMap((page) => page?.data?.notifications || []) || [];
   const allNotifications = modelNotifications.length > 0 ? modelNotifications : queryNotifications;
+  const recoveredErrorRef = useRef(false);
+
+  useEffect(() => {
+    if (!recoveredErrorRef.current && isAuthenticated && isError) {
+      recoveredErrorRef.current = true;
+      refetch();
+    }
+  }, [isAuthenticated, isError, refetch]);
 
   useEffect(() => {
     if (!data?.pages?.length) return;
@@ -67,12 +75,12 @@ export const NotificationsView: React.FC = () => {
             <CheckCheck className="w-4 h-4" /><span>Leídas</span>
           </button>
         </Header>
-        {isError ? (
+        {isError && allNotifications.length === 0 ? (
           <div className="p-8 text-center text-xs text-red-400">
             <p>No se pudieron cargar las notificaciones.</p>
             <button onClick={() => refetch()} className="mt-3 px-3 py-1 border border-brand-500 text-brand-400 hover:bg-brand-500 hover:text-black font-bold pixel-button">Reintentar</button>
           </div>
-        ) : isLoading ? <div className="p-8 text-center text-xs text-dark-muted">Cargando notificaciones...</div> : allNotifications.length > 0 ? (
+        ) : isLoading && allNotifications.length === 0 ? <div className="p-8 text-center text-xs text-dark-muted">Cargando notificaciones...</div> : allNotifications.length > 0 ? (
           <>
             <div className="divide-y divide-dark-border">
               {allNotifications.map((notif) => (

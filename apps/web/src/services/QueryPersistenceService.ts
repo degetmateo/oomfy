@@ -4,7 +4,7 @@ import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { chatIdentityMap } from '../models/ChatIdentityMap.js';
 import { clearLocalCacheDb, getCacheEntry, setCacheEntry } from './LocalCacheDb.js';
 import {
-  applyEntitiesSnapshot, clearBootEntitiesSync, EntitiesSnapshot, PERSIST_MAX_AGE_MS,
+  applyEntitiesSnapshot, clearBootEntitiesSync, EntitiesSnapshot, hydratePersistedQuery, PERSIST_MAX_AGE_MS,
   PERSIST_STALE_OFFSET_MS, readBootEntitiesSync, saveBootEntitiesSync, trimQueryData,
 } from './localPersistenceHelpers.js';
 
@@ -58,10 +58,7 @@ export class QueryPersistenceService {
     if (snapshot && Date.now() - snapshot.savedAt < PERSIST_MAX_AGE_MS) {
       const staleTime = Math.max(0, Date.now() - PERSIST_STALE_OFFSET_MS);
       for (const item of snapshot.queries || []) {
-        if (queryClient.getQueryData(item.queryKey) === undefined) {
-          queryClient.setQueryData(item.queryKey, item.data, { updatedAt: staleTime });
-          hydrated = true;
-        }
+        if (hydratePersistedQuery(queryClient, item.queryKey, item.data, staleTime)) hydrated = true;
       }
     }
     if (hydrated) queryClient.invalidateQueries({ refetchType: 'active' }).catch(() => {});

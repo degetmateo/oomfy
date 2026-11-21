@@ -12,6 +12,9 @@ export class ImageCropService {
     crop: CropAreaRect,
     originalFile: File
   ): Promise<File> {
+    if (originalFile.type === 'image/gif' || originalFile.name.toLowerCase().endsWith('.gif')) {
+      return originalFile;
+    }
     const scaleX = image.naturalWidth / renderedSize.width;
     const scaleY = image.naturalHeight / renderedSize.height;
 

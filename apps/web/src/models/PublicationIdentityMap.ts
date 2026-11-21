@@ -2,7 +2,7 @@ import { Publication, PublicUser } from '@oomfy/shared';
 import { ObservableSubject, Listener } from './ObservableSubject.js';
 import { collectPublications, mergePublicationEntity } from '../stores/entityMergeHelpers.js';
 import { userIdentityMap } from './UserIdentityMap.js';
-import { normalizePubCounters, patchPubAuthor } from './publicationModelHelpers.js';
+import { applyCanonicalAuthors, normalizePubCounters, patchPubAuthor } from './publicationModelHelpers.js';
 
 export class PublicationIdentityMap {
   private static instance: PublicationIdentityMap;
@@ -39,7 +39,7 @@ export class PublicationIdentityMap {
     const changed: string[] = [];
     for (const [id, pub] of collectPublications(items).entries()) {
       const key = id.toLowerCase();
-      if (!this.entities.has(key)) { this.entities.set(key, normalizePubCounters(pub)); changed.push(key); }
+      if (!this.entities.has(key)) { this.entities.set(key, applyCanonicalAuthors(normalizePubCounters(pub), (un) => userIdentityMap.get(un))); changed.push(key); }
     }
     if (changed.length > 0) this.subject.notifyMany(changed);
   }
@@ -50,7 +50,8 @@ export class PublicationIdentityMap {
       const key = id.toLowerCase();
       const prev = this.entities.get(key);
       const keepLocal = (this.inFlight.get(key) || 0) > 0 || (this.mutatedAt.get(key) || 0) >= fetchedAt;
-      const merged = mergePublicationEntity(prev, incoming, keepLocal);
+      const canonical = applyCanonicalAuthors(incoming, (un) => userIdentityMap.get(un));
+      const merged = mergePublicationEntity(prev, canonical, keepLocal);
       if (markFetched) this.fetchedAt.set(key, Math.max(this.fetchedAt.get(key) || 0, fetchedAt));
       if (prev !== merged) { this.entities.set(key, merged); changed.push(key); }
     }

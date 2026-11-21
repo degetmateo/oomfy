@@ -11,7 +11,13 @@ interface Props { user: PublicUser; isOpen: boolean; onClose: () => void; onUpda
 
 function detachFileBuffer(file: File, apply: (cloned: File) => void): void {
   if (typeof file.arrayBuffer !== 'function') return;
-  file.arrayBuffer().then((buf) => apply(new File([new Uint8Array(buf)], file.name, { type: file.type, lastModified: file.lastModified }))).catch(() => { });
+  file.arrayBuffer().then((buf) => {
+    const bytes = new Uint8Array(buf);
+    const isGifSig = bytes.length >= 4 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38;
+    const isGif = isGifSig || file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif');
+    const name = isGif && !file.name.toLowerCase().endsWith('.gif') ? `${file.name}.gif` : file.name;
+    apply(new File([bytes], name, { type: isGif ? 'image/gif' : file.type, lastModified: file.lastModified }));
+  }).catch(() => { });
 }
 
 export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpdated }) => {

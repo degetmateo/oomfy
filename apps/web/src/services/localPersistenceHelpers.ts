@@ -1,5 +1,7 @@
-import { Publication, PublicUser } from '@oomfy/shared';
+import { Notification, Publication, PublicUser } from '@oomfy/shared';
+import { QueryClient, QueryKey } from '@tanstack/react-query';
 import { chatIdentityMap, ChatSnapshot } from '../models/ChatIdentityMap.js';
+import { notificationIdentityMap } from '../models/NotificationIdentityMap.js';
 import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { safeLocalGet, safeLocalRemove, safeLocalSet } from '../utils/safeStorage.js';
@@ -52,6 +54,23 @@ export function readBootEntitiesSync(scope: string): EntitiesSnapshot | null {
     const parsed = JSON.parse(raw) as EntitiesSnapshot;
     return parsed && Date.now() - parsed.savedAt < PERSIST_MAX_AGE_MS ? parsed : null;
   } catch { return null; }
+}
+
+export function hydratePersistedQuery(queryClient: QueryClient, queryKey: QueryKey, rawData: any, updatedAt: number): boolean {
+  if (queryClient.getQueryData(queryKey) !== undefined) return false;
+  let data = rawData;
+  if (rawData && Array.isArray(rawData.pages) && Array.isArray(queryKey) && queryKey[0] === 'notifications-infinite-list') {
+    const pages = rawData.pages.filter((p: any) => Array.isArray(p?.data?.notifications));
+    if (pages.length === 0) return false;
+    pages.forEach((p: any, idx: number) => {
+      notificationIdentityMap.ingestPage(p.data.notifications as Notification[], idx === 0 ? p.data.pendingCount : undefined, idx > 0, 0);
+    });
+    const rawParams = Array.isArray(rawData.pageParams) ? rawData.pageParams : [];
+    const pageParams = pages.map((_p: any, idx: number) => (idx === 0 ? '' : rawParams[idx]));
+    data = { ...rawData, pages, pageParams };
+  }
+  queryClient.setQueryData(queryKey, data, { updatedAt });
+  return true;
 }
 
 export function clearBootEntitiesSync(): void {

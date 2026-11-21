@@ -40,7 +40,7 @@ export function useCursorFeed({ queryKey, buildUrl, limit = 20, enabled = true }
       const registry = useEntityRegistryStore.getState();
       registry.ingestPublications(items, fetchedAt);
       const authors = items.flatMap((p) => [p?.author, p?.target_publication?.author]).filter(Boolean);
-      if (authors.length > 0) registry.ingestUsers(authors as unknown as PublicUser[]);
+      if (authors.length > 0) registry.ingestUsers(authors as unknown as PublicUser[], fetchedAt);
       return res;
     },
     placeholderData: () => getCursorPlaceholder(queryKey, limit),

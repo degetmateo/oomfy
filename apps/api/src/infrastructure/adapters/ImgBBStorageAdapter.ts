@@ -33,7 +33,7 @@ export class ImgBBStorageAdapter {
     }
 
     return {
-      url: data.data.display_url || data.data.url,
+      url: data.data.image?.url || data.data.url || data.data.display_url,
       delete_url: data.data.delete_url,
       imgbb_id: data.data.id,
     };

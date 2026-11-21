@@ -71,6 +71,7 @@ self.addEventListener('fetch', (event) => {
       }
       return res;
     });
+    if (isMemberMedia) return networkFetch.catch(() => cached || Response.error());
     if (cached) {
       event.waitUntil(networkFetch.catch(() => {}));
       return cached;

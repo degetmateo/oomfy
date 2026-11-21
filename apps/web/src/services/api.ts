@@ -58,7 +58,8 @@ export class ApiClient {
 
     if (res.status === 401 && !endpoint.includes('/auth/')) {
       const hasSession = Boolean(token || safeLocalGet('oomfy_refresh_token'));
-      const newToken = hasSession ? await this.refreshAccessToken() : null;
+      const current = getAccessToken();
+      const newToken = current && current !== token ? current : (hasSession ? await this.refreshAccessToken() : null);
       if (newToken) {
         headers.Authorization = `Bearer ${newToken}`;
         const retryRes = await fetch(`${this.BASE_URL}${endpoint}`, { ...options, credentials: 'include', headers });
@@ -66,7 +67,7 @@ export class ApiClient {
         if (!retryRes.ok) throw this.createHttpError(retryData.message || 'Error en la petición.', retryRes.status);
         return retryData as T;
       }
-      if (hasSession) {
+      if (hasSession && !safeLocalGet('oomfy_refresh_token')) {
         setAccessToken(null);
         window.dispatchEvent(new CustomEvent('auth:unauthorized'));
       }

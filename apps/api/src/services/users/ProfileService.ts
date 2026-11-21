@@ -8,6 +8,7 @@ import { MongoPublicationRepository } from '../../infrastructure/repositories/mo
 import { isHttpUrl } from '../../utils/UrlSecurityHelper.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../errors/AppError.js';
 import { SystemSettingsService } from '../admin/SystemSettingsService.js';
+import { BackgroundTaskDispatcher } from '../../infrastructure/async/BackgroundTaskDispatcher.js';
 import { UserSyncService } from './UserSyncService.js';
 import { ProfileMediaService } from './ProfileMediaService.js';
 
@@ -80,6 +81,7 @@ export class ProfileService {
     await MongoMemberRepository.createOrUpdate(mongoUpdates);
     if (iconUrl !== undefined || bannerUrl !== undefined) ProfileMediaService.invalidateCache(existingUser.username);
     UserSyncService.enqueueProfileSync(userId, existingUser.username, { name: input.name, icon_url: iconUrl, banner_url: bannerUrl });
+    await BackgroundTaskDispatcher.waitForIdle();
 
     return (await MongoMemberRepository.findById(userId))!;
   }

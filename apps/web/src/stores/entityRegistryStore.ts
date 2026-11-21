@@ -13,7 +13,7 @@ interface EntityRegistryState {
   seedPublications: (items: Array<Publication | null | undefined>) => void;
   patchPublication: (id: string, updater: (prev: Publication) => Publication, markMutated?: boolean) => void;
   setPubInFlight: (id: string, delta: 1 | -1) => void;
-  ingestUsers: (items: Array<PublicUser | null | undefined>) => void;
+  ingestUsers: (items: Array<PublicUser | null | undefined>, fetchedAt?: number) => void;
   seedUser: (user: PublicUser | null | undefined) => void;
   patchUser: (username: string, updater: (prev: PublicUser) => PublicUser) => void;
   clearRegistry: () => void;
@@ -55,8 +55,8 @@ export const useEntityRegistryStore = create<EntityRegistryState>((set) => {
       });
     },
 
-    ingestUsers: (items) => {
-      userIdentityMap.ingest(items);
+    ingestUsers: (items, fetchedAt = Date.now()) => {
+      userIdentityMap.ingest(items, fetchedAt);
       set((state) => {
         const next = { ...state.usersByUsername };
         for (const u of items) {

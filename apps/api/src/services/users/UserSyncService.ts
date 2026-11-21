@@ -28,15 +28,17 @@ export class UserSyncService {
       senderSet['sender.name'] = cleanName;
     }
     if (input.icon_url !== undefined) {
-      pubSet['author.icon_url'] = input.icon_url;
-      targetPubSet['target_publication.author.icon_url'] = input.icon_url;
+      const iconObj = input.icon_url ? { url: input.icon_url } : null;
+      pubSet['author.icon_url'] = input.icon_url; pubSet['author.icon'] = iconObj;
+      targetPubSet['target_publication.author.icon_url'] = input.icon_url; targetPubSet['target_publication.author.icon'] = iconObj;
       followerSet['follower.icon_url'] = input.icon_url;
       followedSet['followed.icon_url'] = input.icon_url;
       senderSet['sender.icon_url'] = input.icon_url;
     }
     if (input.banner_url !== undefined) {
-      pubSet['author.banner_url'] = input.banner_url;
-      targetPubSet['target_publication.author.banner_url'] = input.banner_url;
+      const bannerObj = input.banner_url ? { url: input.banner_url } : null;
+      pubSet['author.banner_url'] = input.banner_url; pubSet['author.banner'] = bannerObj;
+      targetPubSet['target_publication.author.banner_url'] = input.banner_url; targetPubSet['target_publication.author.banner'] = bannerObj;
       followerSet['follower.banner_url'] = input.banner_url;
       followedSet['followed.banner_url'] = input.banner_url;
     }

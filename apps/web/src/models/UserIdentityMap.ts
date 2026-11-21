@@ -55,12 +55,15 @@ export class UserIdentityMap {
       if (!u?.username) continue;
       const key = u.username.toLowerCase();
       const prev = this.users.get(key);
-      const next = mergeUserDefined(prev, u);
+      const prevFetched = this.fetchedAt.get(key) || 0;
+      const prevFull = this.fullProfileAt.get(key) || 0;
+      const allowOverwriteVisual = isFullProfile || (fetchedAt >= prevFull && fetchedAt >= prevFetched);
+      const next = mergeUserDefined(prev, u, allowOverwriteVisual);
       this.users.set(key, next);
-      this.fetchedAt.set(key, Math.max(this.fetchedAt.get(key) || 0, fetchedAt));
-      if (isFullProfile) this.fullProfileAt.set(key, Math.max(this.fullProfileAt.get(key) || 0, fetchedAt));
+      this.fetchedAt.set(key, Math.max(prevFetched, fetchedAt));
+      if (isFullProfile) this.fullProfileAt.set(key, Math.max(prevFull, fetchedAt));
       changed.push(key);
-      if (hasVisualUserChange(prev, next)) this.emitSync(next);
+      if (hasVisualUserChange(prev, next) || (isFullProfile && !prev)) this.emitSync(next);
     }
     if (changed.length > 0) this.subject.notifyMany(changed);
   }

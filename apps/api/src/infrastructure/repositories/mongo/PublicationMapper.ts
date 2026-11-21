@@ -16,7 +16,13 @@ export class PublicationMapper {
 
     const authorUsername = doc.author?.username || 'anonymous';
     const dynamicIcon = authorUsername !== 'anonymous' ? `/members/${authorUsername}/icon` : null;
-    const dynamicBanner = authorUsername !== 'anonymous' ? `/members/${authorUsername}/banner` : null;
+    const storedIcon = normalizeAssetUrl(
+      doc.author?.icon_url !== undefined ? doc.author.icon_url : doc.author?.icon?.url
+    );
+    const storedBanner = normalizeAssetUrl(
+      doc.author?.banner_url !== undefined ? doc.author.banner_url : doc.author?.banner?.url
+    );
+    const hasExplicitNullIcon = doc.author && (doc.author.icon_url === null || doc.author.icon === null);
 
     const parentId = doc.parent_publication_id
       ? doc.parent_publication_id.toString()
@@ -33,8 +39,8 @@ export class PublicationMapper {
         username: authorUsername,
         name: doc.author?.name || doc.author?.username || 'Anonymous',
         role: doc.author?.role || 'member',
-        icon_url: dynamicIcon || doc.author?.icon_url || doc.author?.icon?.url || null,
-        banner_url: dynamicBanner || doc.author?.banner_url || doc.author?.banner?.url || null,
+        icon_url: storedIcon || (hasExplicitNullIcon ? null : dynamicIcon),
+        banner_url: storedBanner || null,
       },
       type: doc.type || 'default',
       content: doc.content || null,

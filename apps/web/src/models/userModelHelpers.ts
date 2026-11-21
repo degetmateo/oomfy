@@ -1,6 +1,11 @@
 import { PublicUser } from '@oomfy/shared';
 
 const SYNC_FIELDS = ['name', 'username', 'role', 'icon_url', 'banner_url'] as const;
+const VISUAL_KEYS = new Set(['name', 'icon_url', 'banner_url', 'bio', 'location', 'link', 'role']);
+
+export function isDynamicMemberMediaUrl(url?: string | null): boolean {
+  return Boolean(url && /^(\/api)?\/members\/[^/]+\/(icon|banner)$/.test(url.trim()));
+}
 
 export function normalizeUserCounters(u: PublicUser): PublicUser {
   return {
@@ -11,11 +16,20 @@ export function normalizeUserCounters(u: PublicUser): PublicUser {
   };
 }
 
-export function mergeUserDefined(prev: PublicUser | undefined, incoming: Partial<PublicUser>): PublicUser {
+export function mergeUserDefined(
+  prev: PublicUser | undefined,
+  incoming: Partial<PublicUser>,
+  allowOverwriteVisual = true
+): PublicUser {
   if (!prev) return normalizeUserCounters(incoming as PublicUser);
   const merged: Record<string, unknown> = { ...prev };
   for (const [k, v] of Object.entries(incoming)) {
-    if (v !== undefined) merged[k] = v;
+    if (v === undefined) continue;
+    if (!allowOverwriteVisual && VISUAL_KEYS.has(k) && prev[k as keyof PublicUser] !== undefined) continue;
+    if ((k === 'icon_url' || k === 'banner_url') && isDynamicMemberMediaUrl(v as string | null) && prev[k] && !isDynamicMemberMediaUrl(prev[k])) {
+      continue;
+    }
+    merged[k] = v;
   }
   return normalizeUserCounters(merged as unknown as PublicUser);
 }

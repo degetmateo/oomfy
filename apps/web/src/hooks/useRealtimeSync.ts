@@ -12,6 +12,7 @@ export function useRealtimeSync(): void {
   const { isAuthenticated, user, token } = useAuthStore();
   const userId = user?.id;
   const wasAuthRef = useRef(isAuthenticated);
+  const lastSyncAtRef = useRef(0);
 
   useEffect(() => {
     if (!isAuthenticated || !userId) {
@@ -25,6 +26,9 @@ export function useRealtimeSync(): void {
 
     const socket = SocketClient.getSocket(token || undefined);
     const syncBadgesAndLists = () => {
+      const now = Date.now();
+      if (now - lastSyncAtRef.current < 1500) return;
+      lastSyncAtRef.current = now;
       queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
       queryClient.invalidateQueries({ queryKey: ['notifications-infinite-list'] });
       queryClient.invalidateQueries({ queryKey: ['unread-messages-count'] });
