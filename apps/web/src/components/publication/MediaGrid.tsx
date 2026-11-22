@@ -7,9 +7,10 @@ import { ImageMemoryCache } from '../../utils/imageCache.js';
 interface MediaGridProps {
   images: MediaItem[];
   priority?: boolean;
+  compact?: boolean;
 }
 
-export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }) => {
+export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false, compact = false }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
 
@@ -27,33 +28,44 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
     setSelectedImage(url);
   };
 
+  const getImgLoadingProps = (url: string, idx: number) => {
+    const isLcp = priority && idx === 0;
+    const isCached = ImageMemoryCache.has(url);
+    return {
+      loading: (isLcp || isCached ? 'eager' : 'lazy') as 'eager' | 'lazy',
+      decoding: (isCached ? 'sync' : 'auto') as 'sync' | 'auto',
+      ...(isLcp ? { fetchpriority: 'high' as const } : {}),
+    };
+  };
+
   if (count === 1) {
     const singleImg = validImages[0];
     return (
       <>
-        <div className="mt-3 flex justify-start">
-          <div
-            data-no-card-nav="true"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => openZoom(e, singleImg.resolvedUrl)}
-            className="relative overflow-hidden bg-dark-card cursor-pointer group border border-dark-border max-w-full inline-block min-h-[120px]"
-          >
-            <img
-              src={singleImg.resolvedUrl}
-              alt="Adjunto de publicación"
-              onLoad={() => ImageMemoryCache.mark(singleImg.resolvedUrl)}
-              onError={() => setFailedUrls((prev) => ({ ...prev, [singleImg.resolvedUrl]: true }))}
-              className="max-w-full w-auto max-h-[450px] object-contain group-hover:opacity-90 transition-opacity"
-              loading={priority || ImageMemoryCache.has(singleImg.resolvedUrl) ? 'eager' : 'lazy'}
-              decoding={ImageMemoryCache.has(singleImg.resolvedUrl) ? 'sync' : 'auto'}
-              {...(priority ? ({ fetchpriority: 'high' } as any) : {})}
-            />
-          </div>
+        <div
+          data-no-card-nav="true"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => openZoom(e, singleImg.resolvedUrl)}
+          className="w-full overflow-hidden bg-dark-card border border-dark-border cursor-pointer group"
+        >
+          <img
+            src={singleImg.resolvedUrl}
+            alt="Adjunto de publicación"
+            onLoad={() => ImageMemoryCache.mark(singleImg.resolvedUrl)}
+            onError={() => setFailedUrls((prev) => ({ ...prev, [singleImg.resolvedUrl]: true }))}
+            className={`block w-full object-cover ${compact ? 'aspect-[16/9] max-h-[240px]' : 'aspect-[16/10] max-h-[420px]'} group-hover:scale-[1.01] transition-transform duration-200`}
+            {...getImgLoadingProps(singleImg.resolvedUrl, 0)}
+          />
         </div>
         <ImageViewerModal imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />
       </>
     );
   }
+
+  const gridRowsClass = count >= 3 ? 'grid-rows-2' : '';
+  const gridHeightClass = count >= 3
+    ? (compact ? 'aspect-[16/9] max-h-[240px]' : 'aspect-[16/9] max-h-[380px]')
+    : (compact ? 'aspect-[16/9] max-h-[220px]' : 'aspect-[16/9] max-h-[360px]');
 
   return (
     <>
@@ -61,23 +73,21 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false }
         data-no-card-nav="true"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        className="grid grid-cols-2 gap-2 mt-3 border border-dark-border bg-dark-bg overflow-hidden max-h-96 aspect-[16/10]"
+        className={`grid grid-cols-2 ${gridRowsClass} gap-0.5 w-full ${gridHeightClass} border border-dark-border bg-dark-bg overflow-hidden`}
       >
         {validImages.map((img, i) => (
           <div
             key={img.resolvedUrl + i}
             onClick={(e) => openZoom(e, img.resolvedUrl)}
-            className={`relative overflow-hidden bg-dark-card cursor-pointer group ${count === 3 && i === 0 ? 'row-span-2' : ''}`}
+            className={`relative min-h-0 h-full overflow-hidden bg-dark-card cursor-pointer group ${count === 3 && i === 0 ? 'row-span-2' : ''}`}
           >
             <img
               src={img.resolvedUrl}
               alt="Adjunto de publicación"
               onLoad={() => ImageMemoryCache.mark(img.resolvedUrl)}
               onError={() => setFailedUrls((prev) => ({ ...prev, [img.resolvedUrl]: true }))}
-              className="w-full h-full object-cover max-h-80 group-hover:scale-105 transition-transform duration-200"
-              loading={(priority && i === 0) || ImageMemoryCache.has(img.resolvedUrl) ? 'eager' : 'lazy'}
-              decoding={ImageMemoryCache.has(img.resolvedUrl) ? 'sync' : 'auto'}
-              {...(priority && i === 0 ? ({ fetchpriority: 'high' } as any) : {})}
+              className="block w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-200"
+              {...getImgLoadingProps(img.resolvedUrl, i)}
             />
           </div>
         ))}

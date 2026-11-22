@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import dns from 'dns/promises';
 import { UrlExtractor } from '../src/infrastructure/adapters/UrlExtractor.js';
 import { OpenGraphParser } from '../src/infrastructure/adapters/OpenGraphParser.js';
 import { AnimeEmbedAdapter } from '../src/infrastructure/adapters/AnimeEmbedAdapter.js';
 import { SocialOEmbedAdapter } from '../src/infrastructure/adapters/SocialOEmbedAdapter.js';
+import { TikTokEmbedAdapter } from '../src/infrastructure/adapters/TikTokEmbedAdapter.js';
 import { SpotifyEmbedAdapter } from '../src/infrastructure/adapters/SpotifyEmbedAdapter.js';
 import { PublicationMapper } from '../src/infrastructure/repositories/mongo/PublicationMapper.js';
 import { CreatePublicationService } from '../src/services/publications/CreatePublicationService.js';
@@ -114,5 +116,53 @@ describe('Multi-Link URL Extraction, Provider Embeds & Sanitization', () => {
     expect('is_upvoted' in persisted).toBe(false);
     expect('is_shared' in persisted).toBe(false);
     expect('is_quoted' in persisted).toBe(false);
+  });
+
+  it('resolves short vm.tiktok.com URLs, rejects empty oEmbed HTTP 200 errors, falls back to TikWM without usuario desconocido, and themes Spotify dark', async () => {
+    vi.spyOn(dns, 'lookup').mockResolvedValue([{ address: '104.16.10.10', family: 4 }] as any);
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === 'https://vm.tiktok.com/ZMshort1/') {
+        return new Response('', {
+          status: 302,
+          headers: { location: 'https://www.tiktok.com/@coolcreator/video/7400112233?is_from_webapp=1&sender_device=pc' },
+        });
+      }
+      if (url.includes('tiktok.com/oembed')) {
+        return new Response(JSON.stringify({ code: 400, status_msg: 'Something went wrong' }), { status: 200 });
+      }
+      if (url.includes('tikwm.com/api')) {
+        return new Response(JSON.stringify({
+          code: 0,
+          data: {
+            title: 'Bailando en pixel',
+            cover: 'http://p16.tiktokcdn.com/thumb.jpg',
+            author: { unique_id: 'coolcreator', nickname: 'Cool Creator', avatar: 'http://p16.tiktokcdn.com/ava.jpg' },
+          },
+        }), { status: 200 });
+      }
+      if (url.includes('open.spotify.com/oembed')) {
+        return new Response(JSON.stringify({
+          title: 'Night Drive',
+          author_name: 'Synth Artist',
+          thumbnail_url: 'http://i.scdn.co/cover.jpg',
+          html: '<iframe src="https://open.spotify.com/embed/track/abc123?utm_source=oembed"></iframe>',
+        }), { status: 200 });
+      }
+      return new Response('', { status: 404 });
+    });
+
+    const tt = await TikTokEmbedAdapter.fetchTikTok('https://vm.tiktok.com/ZMshort1/');
+    expect(tt?.url).toBe('https://www.tiktok.com/@coolcreator/video/7400112233');
+    expect(tt?.author_username).toBe('coolcreator');
+    expect(tt?.author_name).toBe('Cool Creator');
+    expect(tt?.title).toBe('Bailando en pixel');
+    expect(tt?.thumbnail_url).toBe('https://p16.tiktokcdn.com/thumb.jpg');
+    expect(JSON.stringify(tt)).not.toContain('undefined');
+    expect(JSON.stringify(tt)).not.toContain('desconocido');
+
+    const sp = await SpotifyEmbedAdapter.fetchEmbed('https://open.spotify.com/track/abc123');
+    expect(sp.media_kind).toBe('Pista');
+    expect(sp.iframe_url).toContain('theme=0');
   });
 });

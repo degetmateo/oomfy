@@ -1,20 +1,23 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Publication } from '@oomfy/shared';
-import { PublicationActions } from './PublicationActions.js';
 import { PublicationMenu } from './PublicationMenu.js';
-import { MediaGrid } from './MediaGrid.js';
-import { LinkPreviewCard } from './LinkPreviewCard.js';
+import { PublicationReplyBanner } from './PublicationReplyBanner.js';
+import { PublicationContentBlocks } from './PublicationContentBlocks.js';
 import { PixelBadge } from '../icons/PixelBadge.js';
 import { PixelShare } from '../icons/PixelShare.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
-import { FormattedText } from '../common/FormattedText.js';
 import { formatExactDateTime } from '../../utils/formatTime.js';
 import { usePublicationModel } from '../../hooks/usePublicationModel.js';
 
 interface Props {
-  publication: Publication; repliesCount: number; canDelete: boolean; isAuthenticated: boolean;
-  articleRef: React.RefObject<HTMLElement>; onDelete: () => void; onQuote: () => void;
+  publication: Publication;
+  repliesCount: number;
+  canDelete: boolean;
+  isAuthenticated: boolean;
+  articleRef: React.RefObject<HTMLElement>;
+  onDelete: () => void;
+  onQuote: () => void;
 }
 
 export const PublicationDetailArticle: React.FC<Props> = ({
@@ -24,42 +27,36 @@ export const PublicationDetailArticle: React.FC<Props> = ({
   const navigate = useNavigate();
 
   return (
-    <article ref={articleRef} className="p-4 border-b border-dark-border bg-dark-card/20 relative">
+    <article ref={articleRef} className="p-4 sm:p-5 border-b border-dark-border bg-dark-card/20 relative flex flex-col gap-3.5">
       {publication.type === 'shared' && (
-        <div className="flex items-center gap-1.5 text-xs text-dark-muted mb-2 font-mono">
+        <div className="flex items-center gap-1.5 text-xs text-dark-muted font-mono">
           <PixelShare active size={16} /><span>Compartido por @{publication.author.username}</span>
         </div>
       )}
       {publication.type === 'reply' && (
-        <div className="text-xs text-dark-muted mb-2 font-mono flex items-center gap-1">
-          <span>En respuesta a</span>
-          <span onClick={() => {
-            if (publication.target_publication?.author.username) navigate(`/${publication.target_publication.author.username}`);
-            else if (publication.parent_publication_id) navigate(`/publication/${publication.parent_publication_id}`);
-          }} className="text-brand-400 font-bold hover:underline cursor-pointer">
-            @{publication.target_publication?.author.username || 'usuario'}
-          </span>
-        </div>
+        <PublicationReplyBanner
+          parentAuthorUsername={publication.target_publication?.author?.username}
+          parentPublicationId={publication.parent_publication_id}
+        />
       )}
 
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div onClick={() => navigate(`/${publication.author.username}`)} className="cursor-pointer">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div onClick={() => navigate(`/${publication.author.username}`)} className="cursor-pointer flex-shrink-0">
             <PixelAvatar src={publication.author.icon_url} username={publication.author.username} sizeClass="w-14 h-14" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span onClick={() => navigate(`/${publication.author.username}`)} className="font-bold text-white hover:text-brand-400 cursor-pointer">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span onClick={() => navigate(`/${publication.author.username}`)} className="font-bold text-white hover:text-brand-400 cursor-pointer truncate">
                 {publication.author.name}
               </span>
               <PixelBadge role={publication.author.role} />
             </div>
-            <span onClick={() => navigate(`/${publication.author.username}`)} className="text-dark-muted text-xs cursor-pointer hover:underline">
+            <span onClick={() => navigate(`/${publication.author.username}`)} className="text-dark-muted text-[0.8125rem] cursor-pointer hover:underline truncate block">
               @{publication.author.username}
             </span>
           </div>
         </div>
-
         <PublicationMenu
           postId={publication.id}
           authorId={publication.author.id}
@@ -70,27 +67,17 @@ export const PublicationDetailArticle: React.FC<Props> = ({
         />
       </div>
 
-      {publication.content && (
-        <FormattedText text={publication.content} authorId={publication.author.id} className="text-base text-dark-text whitespace-pre-line leading-relaxed mb-3 font-sans block" />
-      )}
-
-      <MediaGrid images={publication.images || []} priority />
-      <LinkPreviewCard embeds={publication.embeds} targetPublication={publication.type === 'quote' ? publication.target_publication : undefined} />
-
-      <div className="py-2 border-y border-dark-border/60 text-xs text-dark-muted my-3">
-        {formatExactDateTime(publication.created_at)}
-      </div>
-
-      <PublicationActions
-        postId={publication.id}
-        initialUpvotes={Math.max(0, publication.upvotes_count || 0, publication.is_upvoted ? 1 : 0)}
-        initialIsUpvoted={publication.is_upvoted}
-        initialShares={Math.max(0, publication.shares_count || 0)}
-        initialIsShared={publication.is_shared}
-        initialIsQuoted={publication.is_quoted}
-        quotesCount={Math.max(0, publication.quotes_count || 0)}
-        commentsCount={Math.max(0, publication.comments_count || 0, repliesCount)}
+      <PublicationContentBlocks
+        post={publication}
+        variant="detail"
+        priority
+        commentsCountOverride={Math.max(0, publication.comments_count || 0, repliesCount)}
         onQuoteClick={onQuote}
+        extraBeforeActions={(
+          <div className="py-2.5 border-y border-dark-border/60 text-xs text-dark-muted">
+            {formatExactDateTime(publication.created_at)}
+          </div>
+        )}
       />
     </article>
   );

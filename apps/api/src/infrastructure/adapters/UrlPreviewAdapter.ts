@@ -2,6 +2,7 @@ import { PublicationEmbed } from '@oomfy/shared';
 import { Environment } from '../../config/Environment.js';
 import { SpotifyEmbedAdapter } from './SpotifyEmbedAdapter.js';
 import { SocialOEmbedAdapter } from './SocialOEmbedAdapter.js';
+import { TikTokEmbedAdapter } from './TikTokEmbedAdapter.js';
 import { AnimeEmbedAdapter } from './AnimeEmbedAdapter.js';
 import { OpenGraphParser } from './OpenGraphParser.js';
 import { UrlExtractor } from './UrlExtractor.js';
@@ -34,7 +35,7 @@ export class UrlPreviewAdapter {
     return UrlExtractor.extract(text, max);
   }
 
-  public static async getPreviews(urls: string[], budgetMs = 4500): Promise<LinkPreview[]> {
+  public static async getPreviews(urls: string[], budgetMs = 6000): Promise<LinkPreview[]> {
     if (!urls.length) return [];
     const results = await Promise.allSettled(urls.slice(0, 4).map((u) => withTimeoutBudget(this.getPreview(u), budgetMs)));
     return results
@@ -54,7 +55,7 @@ export class UrlPreviewAdapter {
         if (twitter) return twitter;
       }
       if (matchesDomain(host, 'tiktok.com')) {
-        const tiktok = await SocialOEmbedAdapter.fetchTikTok(url);
+        const tiktok = await TikTokEmbedAdapter.fetchTikTok(url);
         if (tiktok) return tiktok;
       }
       if (matchesDomain(host, 'youtube.com') || host === 'youtu.be') {

@@ -8,4 +8,7 @@ declare module 'react' {
     popovertarget?: string;
     popovertargetaction?: 'toggle' | 'show' | 'hide';
   }
+  interface ImgHTMLAttributes<T> {
+    fetchpriority?: 'high' | 'low' | 'auto';
+  }
 }

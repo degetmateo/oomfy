@@ -51,17 +51,17 @@ export const PublicationActions: React.FC<Props> = ({
   };
 
   return (
-    <div className="flex pt-2 pb-2 justify-between items-center w-full text-dark-muted text-sm font-medium select-none">
-      <button type="button" onClick={onCommentClick} title="Comentar" aria-label={`Comentar (${comments})`} className="flex items-center gap-2 rounded hover:bg-dark-border/40 hover:text-brand-400 transition-colors">
+    <div className="flex justify-between items-center gap-2 w-full text-dark-muted text-sm font-medium select-none">
+      <button type="button" onClick={onCommentClick} title="Comentar" aria-label={`Comentar (${comments})`} className="flex items-center gap-2 py-1 px-1.5 -mx-1.5 rounded hover:bg-dark-border/40 hover:text-brand-400 transition-colors">
         <PixelComment size={20} /><span>{comments}</span>
       </button>
-      <button type="button" onClick={toggleShare} title="Compartir" aria-label={`Compartir (${shares})`} aria-pressed={state.is_shared} className={`flex items-center gap-2 rounded hover:bg-dark-border/40 transition-colors ${state.is_shared ? 'text-brand-400' : 'hover:text-brand-400'}`}>
+      <button type="button" onClick={toggleShare} title="Compartir" aria-label={`Compartir (${shares})`} aria-pressed={state.is_shared} className={`flex items-center gap-2 py-1 px-1.5 -mx-1.5 rounded hover:bg-dark-border/40 transition-colors ${state.is_shared ? 'text-brand-400' : 'hover:text-brand-400'}`}>
         <PixelShare active={state.is_shared} size={20} /><span>{shares}</span>
       </button>
-      <button type="button" onClick={handleQuote} title="Citar" aria-label={`Citar (${quotes})`} aria-pressed={state.is_quoted} className={`flex items-center gap-2 rounded hover:bg-dark-border/40 transition-colors ${state.is_quoted ? 'text-brand-400' : 'hover:text-brand-400'}`}>
+      <button type="button" onClick={handleQuote} title="Citar" aria-label={`Citar (${quotes})`} aria-pressed={state.is_quoted} className={`flex items-center gap-2 py-1 px-1.5 -mx-1.5 rounded hover:bg-dark-border/40 transition-colors ${state.is_quoted ? 'text-brand-400' : 'hover:text-brand-400'}`}>
         <PixelQuote active={state.is_quoted} size={20} /><span>{quotes}</span>
       </button>
-      <button type="button" onClick={toggleUpvote} title="Me gusta" aria-label={`Me gusta (${upvotes})`} aria-pressed={state.is_upvoted} className={`flex items-center gap-2 rounded hover:bg-dark-border/40 transition-colors ${state.is_upvoted ? 'text-brand-400' : 'hover:text-brand-400'}`}>
+      <button type="button" onClick={toggleUpvote} title="Me gusta" aria-label={`Me gusta (${upvotes})`} aria-pressed={state.is_upvoted} className={`flex items-center gap-2 py-1 px-1.5 -mx-1.5 rounded hover:bg-dark-border/40 transition-colors ${state.is_upvoted ? 'text-brand-400' : 'hover:text-brand-400'}`}>
         <PixelThumb active={state.is_upvoted} size={20} /><span>{upvotes}</span>
       </button>
     </div>

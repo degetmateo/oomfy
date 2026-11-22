@@ -1,6 +1,7 @@
 import { GenericEmbed } from '@oomfy/shared';
-import { safeFetchPublicHtml, toSafeHttpsAssetUrl } from '../../utils/UrlSecurityHelper.js';
-import { clampText, OpenGraphParser, stripHtml } from './OpenGraphParser.js';
+import { toSafeHttpsAssetUrl } from '../../utils/UrlSecurityHelper.js';
+import { clampText, stripHtml } from './OpenGraphParser.js';
+import { TikTokEmbedAdapter } from './TikTokEmbedAdapter.js';
 
 export function extractYouTubeVideoId(rawUrl: string): string | null {
   try {
@@ -78,28 +79,7 @@ export class SocialOEmbedAdapter {
   }
 
   public static async fetchTikTok(url: string): Promise<GenericEmbed | null> {
-    try {
-      const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(3500) });
-      if (res.ok) {
-        const data = (await res.json()) as any;
-        const thumb = toSafeHttpsAssetUrl(data.thumbnail_url);
-        return {
-          type: 'tiktok', url, site_name: 'TikTok',
-          title: clampText(data.title || `Video de @${data.author_name}`, 200),
-          description: clampText(`TikTok por ${data.author_name || 'usuario'}`, 200),
-          author_name: clampText(data.author_name, 100),
-          thumbnail_url: thumb || undefined, image: thumb,
-        };
-      }
-    } catch { /* fallback to OG */ }
-    const html = await safeFetchPublicHtml(url);
-    if (!html) return null;
-    const og = OpenGraphParser.parse(html, url);
-    return {
-      type: 'tiktok', url, site_name: 'TikTok',
-      title: og.title || 'Video de TikTok', description: og.description,
-      thumbnail_url: og.image || undefined, image: og.image,
-    };
+    return TikTokEmbedAdapter.fetchTikTok(url);
   }
 
   public static async fetchYouTube(url: string): Promise<GenericEmbed | null> {

@@ -98,8 +98,8 @@ export const EmbedCarousel: React.FC<Props> = ({ embeds }) => {
       </div>
       <div ref={trackRef} className="embed-carousel-track" tabIndex={0} role="group" aria-label="Enlaces" style={{ touchAction: 'manipulation' }}>
         {embeds.map((emb, idx) => (
-          <div key={`${emb.url}-${idx}`} role="group" aria-roledescription="slide" aria-label={`${idx + 1} de ${count}`}>
-            <PublicationEmbedItem embed={emb} />
+          <div key={`${emb.url}-${idx}`} role="group" aria-roledescription="slide" aria-label={`${idx + 1} de ${count}`} className="flex">
+            <PublicationEmbedItem embed={emb} isHiddenSlide={idx > 0} />
           </div>
         ))}
       </div>

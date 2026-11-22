@@ -65,12 +65,53 @@ describe('EmbedCarousel, Provider Cards & Safe External Navigation', () => {
 
     const slides = screen.getAllByRole('group').filter((el) => el.getAttribute('aria-roledescription') === 'slide');
     expect(slides).toHaveLength(3);
+    expect(slides[0].className).toContain('flex');
+    expect(slides[0].firstElementChild?.className).toContain('min-h-[8.75rem]');
+    expect(slides[0].firstElementChild?.className).toContain('h-full');
     expect(screen.getByRole('button', { name: 'Ir al enlace 1' })).toHaveAttribute('aria-current', 'true');
     expect(prevBtn).toBeDisabled();
 
     fireEvent.click(nextBtn);
     expect(screen.getByRole('button', { name: 'Ir al enlace 2' })).toHaveAttribute('aria-current', 'true');
     expect(screen.getByRole('status')).toHaveTextContent('Enlace 2 de 3');
+  });
+
+  it('sets fetchpriority="low" on hidden carousel slide images and no-referrer policy', () => {
+    const embeds: PublicationEmbed[] = [
+      { type: 'tiktok', url: 'https://www.tiktok.com/@a/video/1', title: 'TikTok 1', thumbnail_url: 'https://cdn.example.com/1.jpg' },
+      { type: 'tiktok', url: 'https://www.tiktok.com/@b/video/2', title: 'TikTok 2', thumbnail_url: 'https://cdn.example.com/2.jpg' },
+    ];
+    renderWithRouter(<LinkPreviewCard embeds={embeds} />);
+    const imgs = document.querySelectorAll('img');
+    expect(imgs).toHaveLength(2);
+    expect(imgs[0].getAttribute('fetchpriority')).toBeNull();
+    expect(imgs[1].getAttribute('fetchpriority')).toBe('low');
+    expect(imgs[0].getAttribute('referrerpolicy')).toBe('no-referrer');
+  });
+
+  it('renders Spotify embed in Oomfy retro card style and toggles inline dark iframe on play', () => {
+    const embeds: PublicationEmbed[] = [{
+      type: 'spotify',
+      url: 'https://open.spotify.com/track/xyz',
+      title: 'Pixel Song',
+      media_kind: 'Pista',
+      author_name: 'Chiptune',
+      description: 'Pista • Chiptune',
+      thumbnail_url: 'https://i.scdn.co/art.jpg',
+      iframe_url: 'https://open.spotify.com/embed/track/xyz',
+    }];
+
+    renderWithRouter(<LinkPreviewCard embeds={embeds} />);
+    expect(document.querySelector('iframe')).toBeNull();
+    expect(screen.getByText('Spotify • Pista')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reproducir' }));
+    const iframe = document.querySelector('iframe');
+    expect(iframe).toBeInTheDocument();
+    expect(iframe?.getAttribute('src')).toContain('theme=0');
+
+    fireEvent.click(screen.getByRole('button', { name: /Cerrar/i }));
+    expect(document.querySelector('iframe')).toBeNull();
   });
 
   it('routes external embed link clicks through /external?url=...', () => {

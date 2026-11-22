@@ -23,6 +23,10 @@ export interface SpotifyEmbed {
   type: 'spotify';
   url: string;
   title?: string;
+  description?: string;
+  author_name?: string;
+  site_name?: string;
+  media_kind?: string;
   iframe_url?: string;
   thumbnail_url?: string;
 }
