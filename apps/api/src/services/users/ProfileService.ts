@@ -97,7 +97,12 @@ export class ProfileService {
     UserSyncService.enqueueProfileSync(userId, existingUser.username, { name: input.name, icon_url: iconUrl, banner_url: bannerUrl });
     await BackgroundTaskDispatcher.waitForIdle();
 
-    return (await MongoMemberRepository.findById(userId))!;
+    const updated = (await MongoMemberRepository.findById(userId))!;
+    if (updated.pinned_publication_id) {
+      updated.pinned_publication = await MongoPublicationRepository.findById(updated.pinned_publication_id, userId);
+      if (!updated.pinned_publication) updated.pinned_publication_id = null;
+    }
+    return updated;
   }
 
   public static async acceptTerms(userId: string): Promise<PublicUser> {

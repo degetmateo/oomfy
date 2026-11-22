@@ -171,3 +171,61 @@ dialog::backdrop {
   content-visibility: auto;
   contain-intrinsic-size: auto none auto 160px;
 }
+
+/* Top-layer popover dropdown menu with safe CSS Anchor progressive enhancement */
+.pub-menu-popover {
+  padding: 0.25rem 0;
+  z-index: 9999;
+}
+
+.pub-menu-popover[data-js-positioned="true"] {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+}
+
+@supports (position-area: block-end) {
+  [popover].pub-menu-popover:not([data-js-positioned="true"]) {
+    inset: auto;
+    margin: 0;
+    position-area: block-end span-inline-start;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+  }
+}
+
+/* Chat scroll container & bottom-start target */
+.chat-scroll-container {
+  overflow-anchor: none;
+}
+
+.chat-bottom-anchor {
+  scroll-initial-target: nearest;
+  height: 1px;
+  flex-shrink: 0;
+}
+
+/* Native CSS scroll-snap horizontal embed carousel */
+.embed-carousel-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  touch-action: manipulation;
+  scrollbar-width: none;
+}
+
+.embed-carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.embed-carousel-track > * {
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .embed-carousel-track {
+    scroll-behavior: smooth;
+  }
+}

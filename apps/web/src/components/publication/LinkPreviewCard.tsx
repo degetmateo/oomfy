@@ -1,19 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink, Play } from 'lucide-react';
-import { SpotifyPlayer } from './SpotifyPlayer.js';
+import { PublicationEmbed } from '@oomfy/shared';
 import { MediaGrid } from './MediaGrid.js';
 import { PixelBadge } from '../icons/PixelBadge.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { FormattedText } from '../common/FormattedText.js';
 import { UrlHelper } from '../../utils/UrlHelper.js';
-import { resolveMediaUrl } from '../../utils/mediaUrl.js';
 import { formatRelativeTime, formatExactDateTime } from '../../utils/formatTime.js';
 import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
 import { usePublicationModel } from '../../hooks/usePublicationModel.js';
+import { PublicationEmbedItem } from './PublicationEmbedItem.js';
+import { EmbedCarousel } from './EmbedCarousel.js';
 
 interface Props {
-  embeds?: any[];
+  embeds?: PublicationEmbed[];
   targetPublication?: any;
 }
 
@@ -24,12 +24,8 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
     if (targetPublication?.id) navigate(`/publication/${targetPublication.id}`);
   });
 
-  const handleExternalClick = (e: React.MouseEvent, url: string) => {
-    e.stopPropagation();
-    if (window.getSelection()?.toString()) return;
-    if (UrlHelper.isInternalUrl(url)) navigate(UrlHelper.getInternalPath(url));
-    else navigate(`/external?url=${encodeURIComponent(url)}`);
-  };
+  const validEmbeds = (embeds || []).filter((emb) => emb && typeof emb.url === 'string' && UrlHelper.isSafeHttpUrl(emb.url));
+  if (!targetPublication && validEmbeds.length === 0) return null;
 
   return (
     <div className="mt-2.5 mb-2.5 flex flex-col gap-2 font-mono">
@@ -60,34 +56,8 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
         </div>
       )}
 
-      {embeds.map((emb: any, idx: number) => {
-        if (emb.type === 'spotify') return <SpotifyPlayer key={idx} embeds={[emb]} />;
-        const thumb = resolveMediaUrl(emb.thumbnail_url || emb.image);
-        return (
-          <div
-            key={idx}
-            onClick={(e) => handleExternalClick(e, emb.url)}
-            className="border border-dark-border bg-dark-card/40 hover:border-brand-500 hover:bg-dark-card/70 transition-colors overflow-hidden flex flex-col sm:flex-row group cursor-pointer"
-          >
-            {thumb && (
-              <div className="w-full sm:w-36 h-28 flex-shrink-0 bg-dark-bg overflow-hidden relative">
-                <img src={thumb} alt={emb.title || 'Vista previa'} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                {(emb.type === 'youtube' || emb.type === 'tiktok') && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white"><Play className="w-6 h-6 fill-white" /></div>
-                )}
-              </div>
-            )}
-            <div className="p-2.5 flex-1 min-w-0 flex flex-col justify-center">
-              <span className="text-[11px] text-brand-400 truncate flex items-center gap-1 font-bold">
-                <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                {emb.site_name || (() => { try { return emb.url ? new URL(emb.url).hostname : 'Enlace'; } catch { return 'Enlace'; } })()}
-              </span>
-              <h4 className="text-xs font-bold text-white truncate mt-0.5">{emb.title || emb.url}</h4>
-              {emb.description && <p className="text-[11px] text-dark-muted line-clamp-2 mt-1 font-sans">{emb.description}</p>}
-            </div>
-          </div>
-        );
-      })}
+      {validEmbeds.length === 1 && <PublicationEmbedItem embed={validEmbeds[0]} />}
+      {validEmbeds.length > 1 && <EmbedCarousel embeds={validEmbeds} />}
     </div>
   );
 };

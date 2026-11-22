@@ -6,9 +6,14 @@ export class PublicationInteractionDecorator {
   public static async decorate(posts: Publication[], userId?: string): Promise<Publication[]> {
     if (!userId || posts.length === 0) return posts;
 
+    const nestedPreviewIds = posts
+      .flatMap((p) => [...(p.author_thread_preview || []), ...(p.subthread_preview || [])])
+      .map((p) => p?.id)
+      .filter(Boolean) as string[];
     const postIds = posts.map((p) => p.id);
     const targetIds = posts.map((p) => p.target_publication?.id).filter(Boolean) as string[];
-    const allPostVariants = [...postIds, ...targetIds].flatMap((id) => MongoIdHelper.idVariants(id));
+    const allPostVariants = Array.from(new Set([...postIds, ...targetIds, ...nestedPreviewIds]))
+      .flatMap((id) => MongoIdHelper.idVariants(id));
     const userVariants = MongoIdHelper.idVariants(userId);
     const db = MongoDatabase.getDb();
 
@@ -63,6 +68,12 @@ export class PublicationInteractionDecorator {
         post.target_publication.is_upvoted = upvotedSet.has(tid);
         post.target_publication.is_shared = sharedSet.has(tid);
         post.target_publication.is_quoted = quotedSet.has(tid);
+      }
+      for (const preview of [...(post.author_thread_preview || []), ...(post.subthread_preview || [])]) {
+        const sid = (preview.id || '').toLowerCase();
+        preview.is_upvoted = upvotedSet.has(sid);
+        preview.is_shared = sharedSet.has(sid);
+        preview.is_quoted = quotedSet.has(sid);
       }
     }
 

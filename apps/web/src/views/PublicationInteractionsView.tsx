@@ -35,6 +35,7 @@ export const PublicationInteractionsView: React.FC = () => {
     placeholderData: () => PublicationCacheService.getPlaceholderDetailData(queryClient, id),
     enabled: Boolean(id),
     staleTime: 60 * 1000,
+    refetchOnMount: 'always',
   });
 
   const author = pub?.author?.username || data?.publication?.author?.username;

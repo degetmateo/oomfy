@@ -28,8 +28,17 @@ export const ProfileFeed: React.FC<Props> = ({
     ? posts.filter((p) => p.id !== pinnedPublication.id)
     : posts;
 
-  if (loadingPosts) {
+  if (loadingPosts && !showPinned) {
     return <div className="p-8 text-center text-xs text-dark-muted font-mono">Cargando publicaciones...</div>;
+  }
+
+  if (loadingPosts && showPinned && pinnedPublication) {
+    return (
+      <div className="divide-y divide-dark-border font-mono">
+        <PinnedPublicationItem post={pinnedPublication} pinnedByName={pinnedByName || 'usuario'} />
+        <div className="p-8 text-center text-xs text-dark-muted font-mono">Cargando publicaciones...</div>
+      </div>
+    );
   }
 
   const hasAnyContent = showPinned || displayedPosts.length > 0;

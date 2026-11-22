@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { QueryClientContext } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { LIMITS, PublicUser } from '@oomfy/shared';
@@ -34,7 +35,11 @@ export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpd
 
   useEffect(() => {
     if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (useDialogStore.getState().isOpen || document.querySelector('[data-cropper-modal="true"]')) return;
+      onClose();
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
@@ -73,8 +78,16 @@ export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpd
     } finally { setIsSaving(false); }
   };
 
-  return (
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="edit-profile-modal-title" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 font-mono">
+  const modal = (
+    <div
+      onClick={(e) => { e.stopPropagation(); onClose(); }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-profile-modal-title"
+      data-no-card-nav="true"
+      data-no-swipe="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 font-mono"
+    >
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-[#1a1a1a] border-2 border-dark-border shadow-pixel flex flex-col max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-3 border-b-2 border-dark-border bg-[#141414]">
           <button type="button" onClick={onClose} aria-label="Cerrar" className="p-1 hover:bg-dark-border border border-transparent hover:border-dark-muted"><X className="w-5 h-5 text-white" aria-hidden="true" /></button>
@@ -102,4 +115,6 @@ export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpd
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modal, document.body) : modal;
 };

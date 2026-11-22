@@ -72,7 +72,7 @@ export const ChatsView: React.FC = () => {
               </div>
             </header>
             <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-              <ChatThread chat={selectedChat} currentUserId={user.id} />
+              <ChatThread key={selectedChat.id} chat={selectedChat} currentUserId={user.id} />
             </div>
           </>
         ) : selectedChatId ? (

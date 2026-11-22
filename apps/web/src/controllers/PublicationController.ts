@@ -77,7 +77,15 @@ export class PublicationController {
   }
 
   public static async deletePublication(postId: string, queryClient?: QueryClient | null): Promise<void> {
+    const deleted = publicationIdentityMap.get(postId);
     await ApiClient.delete(`/publications/${postId}`);
+    if (deleted?.type === 'quote' && deleted.parent_publication_id) {
+      PublicationCacheService.applyPatch(queryClient, deleted.parent_publication_id, (p) => ({
+        ...p,
+        quotes_count: Math.max(0, (p.quotes_count || 1) - 1),
+        is_quoted: false,
+      }));
+    }
     publicationIdentityMap.remove(postId);
     if (queryClient) PublicationCacheService.invalidatePublicationLists(queryClient);
   }

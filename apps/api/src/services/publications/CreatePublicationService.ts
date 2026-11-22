@@ -1,8 +1,9 @@
 import { v7 as uuidv7 } from 'uuid';
-import { CreatePublicationInput, LIMITS, Publication } from '@oomfy/shared';
+import { CreatePublicationInput, LIMITS, Publication, PublicationEmbed } from '@oomfy/shared';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 import { PublicationMapper } from '../../infrastructure/repositories/mongo/PublicationMapper.js';
 import { UrlPreviewAdapter } from '../../infrastructure/adapters/UrlPreviewAdapter.js';
+import { clampText } from '../../infrastructure/adapters/OpenGraphParser.js';
 import { AuthorProfileResolver } from './AuthorProfileResolver.js';
 import { PublicationMediaHelper } from './PublicationMediaHelper.js';
 import { MentionNotificationHelper } from './MentionNotificationHelper.js';
@@ -31,42 +32,58 @@ export class CreatePublicationService {
       throw new BadRequestError('La publicación no puede estar vacía.');
     }
 
-    const limitedMedia = await PublicationMediaHelper.buildMediaItems(imageFiles, tenorList);
-    const { iconUrl, bannerUrl } = await AuthorProfileResolver.resolve(user);
-    const embeds: any[] = [];
     let targetPublication: Publication | null = null;
-    let rootPublicationId: string | null = null;
-    const threadIds: string[] = [];
     let pubType = input.type || 'default';
-
-    if (content) {
-      const extractedUrl = UrlPreviewAdapter.extractFirstUrl(content);
-      const preview = extractedUrl ? await UrlPreviewAdapter.getPreview(extractedUrl) : null;
-      if (preview) {
-        if (preview.type === 'quote' && !targetPublication) {
-          targetPublication = preview.target_publication;
-          pubType = 'quote';
-        } else embeds.push(preview);
-      }
-    }
-
     if (input.target_id) {
       targetPublication = await MongoPublicationRepository.findById(input.target_id);
       if (!targetPublication) throw new BadRequestError('Publicación destino no encontrada.');
-    }
-    if (targetPublication?.author?.id && targetPublication.author.id !== user.id && (await MongoBlockRepository.isBlockedEitherWay(user.id, targetPublication.author.id))) {
-      throw new ForbiddenError('No puedes interactuar con las publicaciones de este usuario.');
-    }
-    if (targetPublication && input.target_id) {
-      if (pubType === 'quote') {
-        await MongoPublicationRepository.incrementCounters(targetPublication.id, { quotes_count: 1 });
-      } else {
-        pubType = 'reply';
-        rootPublicationId = targetPublication.root_publication_id || targetPublication.id;
-        if (targetPublication.thread_ids?.length) threadIds.push(...targetPublication.thread_ids);
-        threadIds.push(targetPublication.id);
-        await MongoPublicationRepository.incrementCounters(targetPublication.id, { comments_count: 1 });
+      if (targetPublication.author?.id && targetPublication.author.id !== user.id && (await MongoBlockRepository.isBlockedEitherWay(user.id, targetPublication.author.id))) {
+        throw new ForbiddenError('No puedes interactuar con las publicaciones de este usuario.');
       }
+    }
+
+    const embeds: PublicationEmbed[] = [];
+    if (content) {
+      const urls = UrlPreviewAdapter.extractUrls(content, 4);
+      const previews = await UrlPreviewAdapter.getPreviews(urls, 4500);
+      for (const preview of previews) {
+        if (preview.type === 'quote' && preview.target_publication) {
+          if (!input.target_id && !targetPublication && pubType === 'default') {
+            const quoted = preview.target_publication as Publication;
+            if (quoted.author?.id && quoted.author.id !== user.id && (await MongoBlockRepository.isBlockedEitherWay(user.id, quoted.author.id))) {
+              throw new ForbiddenError('No puedes interactuar con las publicaciones de este usuario.');
+            }
+            targetPublication = quoted;
+            pubType = 'quote';
+          } else {
+            embeds.push({
+              type: 'link', url: preview.url, title: clampText(preview.title, 200),
+              description: clampText(preview.description, 200), site_name: 'Oomfy',
+            });
+          }
+        } else if (preview.type !== 'quote') {
+          embeds.push(preview);
+        }
+      }
+    }
+
+    const [limitedMedia, { iconUrl, bannerUrl }] = await Promise.all([
+      PublicationMediaHelper.buildMediaItems(imageFiles, tenorList),
+      AuthorProfileResolver.resolve(user),
+    ]);
+
+    let rootPublicationId: string | null = null;
+    const threadIds: string[] = [];
+    let didIncrementQuote = false;
+    if (targetPublication && pubType === 'quote') {
+      await MongoPublicationRepository.incrementCounters(targetPublication.id, { quotes_count: 1 });
+      didIncrementQuote = true;
+    } else if (targetPublication && input.target_id) {
+      pubType = 'reply';
+      rootPublicationId = targetPublication.root_publication_id || targetPublication.id;
+      if (targetPublication.thread_ids?.length) threadIds.push(...targetPublication.thread_ids);
+      threadIds.push(targetPublication.id);
+      await MongoPublicationRepository.incrementCounters(targetPublication.id, { comments_count: 1 });
     }
 
     const newPublication: Publication = {
@@ -84,7 +101,11 @@ export class CreatePublicationService {
     return {
       ...newPublication,
       images: PublicationMapper.sanitizeImages(newPublication.images),
-      target_publication: targetPublication ? { ...targetPublication, images: PublicationMapper.sanitizeImages(targetPublication.images) } : null,
+      target_publication: targetPublication ? {
+        ...targetPublication,
+        images: PublicationMapper.sanitizeImages(targetPublication.images),
+        ...(didIncrementQuote ? { quotes_count: Math.max(0, targetPublication.quotes_count || 0) + 1, is_quoted: true } : {}),
+      } : null,
     };
   }
 }

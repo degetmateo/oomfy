@@ -22,9 +22,27 @@ export interface MediaItem {
 export interface SpotifyEmbed {
   type: 'spotify';
   url: string;
-  title: string;
-  iframe_url: string;
-  thumbnail_url: string;
+  title?: string;
+  iframe_url?: string;
+  thumbnail_url?: string;
+}
+
+export interface AnimeEmbed {
+  type: 'anilist' | 'myanimelist';
+  url: string;
+  title?: string;
+  description?: string;
+  thumbnail_url?: string;
+  image?: string | null;
+  site_name?: string;
+  media_type?: 'anime' | 'manga';
+  media_format?: string;
+  score?: number | null;
+  episodes?: number | null;
+  chapters?: number | null;
+  status?: string;
+  genres?: string[];
+  season_year?: number | null;
 }
 
 export interface GenericEmbed {
@@ -34,12 +52,15 @@ export interface GenericEmbed {
   description?: string;
   author_name?: string;
   author_username?: string;
+  avatar_url?: string | null;
   thumbnail_url?: string;
   image?: string | null;
   site_name?: string;
+  iframe_url?: string;
+  video_id?: string;
 }
 
-export type PublicationEmbed = SpotifyEmbed | GenericEmbed;
+export type PublicationEmbed = SpotifyEmbed | AnimeEmbed | GenericEmbed;
 
 export interface Publication {
   id: string; // UUID v7
@@ -67,4 +88,3 @@ export interface Publication {
   subthread_remaining_count?: number;
   has_author_reply?: boolean;
 }
-

@@ -40,6 +40,16 @@ export class UrlHelper {
     }
   }
 
+  public static isSafeYouTubeEmbedUrl(urlStr: string | null | undefined): boolean {
+    if (!urlStr) return false;
+    try {
+      const u = new URL(urlStr.trim());
+      return u.protocol === 'https:' && u.hostname.toLowerCase() === 'www.youtube-nocookie.com' && /^\/embed\/[a-zA-Z0-9_-]{11}$/.test(u.pathname);
+    } catch {
+      return false;
+    }
+  }
+
   public static decodeParamSafe(raw: string): string {
     try {
       return decodeURIComponent(raw);

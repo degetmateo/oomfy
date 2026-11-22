@@ -19,14 +19,19 @@ export function usePublicationActions(postId: string, fallback: InteractionFallb
   const queryClient = useContext(QueryClientContext);
   const live = usePublicationModel(postId);
 
+  const hasLive = Boolean(live);
   const isUpvoted = Boolean(live?.is_upvoted ?? fallback.is_upvoted);
+  const rawUpvotes = hasLive ? (live?.upvotes_count ?? 0) : (fallback.upvotes_count || 0);
+  const rawShares = hasLive ? (live?.shares_count ?? 0) : (fallback.shares_count || 0);
+  const rawQuotes = hasLive ? (live?.quotes_count ?? 0) : (fallback.quotes_count || 0);
+
   const current: InteractionFallback = {
-    upvotes_count: Math.max(0, live?.upvotes_count || 0, fallback.upvotes_count || 0, isUpvoted ? 1 : 0),
+    upvotes_count: Math.max(0, rawUpvotes, isUpvoted ? 1 : 0),
     is_upvoted: isUpvoted,
-    shares_count: Math.max(0, live?.shares_count || 0, fallback.shares_count || 0),
+    shares_count: Math.max(0, rawShares),
     is_shared: Boolean(live?.is_shared ?? fallback.is_shared),
     is_quoted: Boolean(live?.is_quoted ?? fallback.is_quoted),
-    quotes_count: Math.max(0, live?.quotes_count || 0, fallback.quotes_count || 0),
+    quotes_count: Math.max(0, rawQuotes),
     comments_count: Math.max(0, live?.comments_count || 0, fallback.comments_count || 0),
   };
 

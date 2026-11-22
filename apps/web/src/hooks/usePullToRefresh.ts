@@ -22,6 +22,8 @@ export function usePullToRefresh({
     if (disabled || !onRefresh || typeof window === 'undefined') return;
 
     const handleTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[role="dialog"], [role="alertdialog"]')) return;
       if (window.scrollY <= 2 && !isRefreshing) {
         startYRef.current = e.touches[0].clientY;
         isPullingRef.current = true;

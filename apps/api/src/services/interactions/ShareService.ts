@@ -50,7 +50,7 @@ export class ShareService {
       images: [],
       embeds: [],
       upvotes_count: 0, shares_count: 0, quotes_count: 0, comments_count: 0,
-      target_publication: { ...pub, shares_count: currentShares + 1, is_shared: true },
+      target_publication: { ...pub, shares_count: currentShares + 1 },
     };
 
     await MongoPublicationRepository.create(shareDoc);

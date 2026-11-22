@@ -22,8 +22,7 @@ import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { RouteScrollStore } from '../stores/routeScrollStore.js';
 import { usePublicationModel } from '../hooks/usePublicationModel.js';
 
-export const PublicationDetailView: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+const PublicationDetailContent: React.FC<{ id: string }> = ({ id }) => {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
   const location = useLocation();
@@ -48,11 +47,13 @@ export const PublicationDetailView: React.FC = () => {
     },
     placeholderData: () => PublicationCacheService.getPlaceholderDetailData(queryClient, id),
     staleTime: 60 * 1000,
+    refetchOnMount: 'always',
     enabled: Boolean(id),
   });
 
   const rawPub: Publication | undefined = data?.publication;
-  const publication = usePublicationModel(rawPub || id) || rawPub;
+  const cachedPub = publicationIdentityMap.get(id);
+  const publication = usePublicationModel(rawPub || cachedPub || id) || rawPub || cachedPub;
   const ancestors: Publication[] = data?.ancestors || [];
   const replies: Publication[] = data?.replies || data?.thread || [];
 
@@ -63,8 +64,9 @@ export const PublicationDetailView: React.FC = () => {
     return () => clearTimeout(timer);
   }, [id, Boolean(publication), ancestors.length]);
 
-  if (isLoading) return <div className="p-8 text-center text-dark-muted font-mono">Cargando publicación...</div>;
-  if (error || !publication) return <div className="p-8 text-center text-red-400 font-mono">Publicación no encontrada.</div>;
+  if (isLoading && !publication) return <div className="p-8 text-center text-dark-muted font-mono">Cargando publicación...</div>;
+  if ((error || !publication) && !isLoading) return <div className="p-8 text-center text-red-400 font-mono">Publicación no encontrada.</div>;
+  if (!publication) return null;
 
   const canDelete = Boolean(user && (user.id === publication.author.id || ['admin', 'mod'].includes(user.role)));
   const handleDelete = async () => {
@@ -80,7 +82,7 @@ export const PublicationDetailView: React.FC = () => {
         <Header title="Publicación" onRefresh={() => refetch()} isRefreshing={isFetching} />
         <ThreadAncestorsList publicationId={publication.id} initialAncestors={ancestors} hasMoreInitial={Boolean(data?.has_more_ancestors)} totalAncestors={data?.total_ancestors || ancestors.length} />
         <PublicationDetailArticle publication={publication} repliesCount={replies.length} canDelete={canDelete} isAuthenticated={isAuthenticated} articleRef={targetArticleRef} onDelete={handleDelete} onQuote={() => (isAuthenticated ? openPostModal(publication) : navigate('/signin'))} />
-        {isAuthenticated && <ReplyComposer targetId={id!} onSubmit={(fd, meta) => submitOptimisticReply(queryClient, fd, user, publication, meta)} />}
+        {isAuthenticated && <ReplyComposer targetId={id} onSubmit={(fd, meta) => submitOptimisticReply(queryClient, fd, user, publication, meta)} />}
         <div>
           {replies.length > 0 ? replies.map((c) => <ReplyThreadGroup key={c.id} reply={c} rootAuthorId={publication.author.id} rootAuthorUsername={publication.author.username} />) : isFetching ? (
             <div className="p-8 text-center text-xs text-dark-muted flex items-center justify-center gap-2"><RefreshCw className="w-4 h-4 animate-spin text-brand-400" /><span>Cargando respuestas...</span></div>
@@ -90,4 +92,10 @@ export const PublicationDetailView: React.FC = () => {
       </div>
     </PullToRefresh>
   );
+};
+
+export const PublicationDetailView: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  if (!id) return <div className="p-8 text-center text-red-400 font-mono">Publicación no encontrada.</div>;
+  return <PublicationDetailContent key={id} id={id} />;
 };

@@ -5,15 +5,7 @@ import { MongoPublicationRepository } from '../../infrastructure/repositories/mo
 const PUB_EMBED_TYPES = new Set(['comment', 'quote', 'mention']);
 
 export class NotificationService {
-  public static async getNotifications(
-    userId: string,
-    limit: number = 20,
-    olderId?: string | null
-  ): Promise<{
-    notifications: Notification[];
-    pendingCount: number;
-  }> {
-    const notifications = await MongoNotificationRepository.listByRecipient(userId, limit, olderId);
+  public static async populateTargetPublications(notifications: Notification[], userId: string): Promise<Notification[]> {
     const targetIds = Array.from(new Set(
       notifications
         .filter((n) => n.target_publication_id && PUB_EMBED_TYPES.has(n.type))
@@ -28,6 +20,19 @@ export class NotificationService {
         }
       }
     }
+    return notifications;
+  }
+
+  public static async getNotifications(
+    userId: string,
+    limit: number = 20,
+    olderId?: string | null
+  ): Promise<{
+    notifications: Notification[];
+    pendingCount: number;
+  }> {
+    const notifications = await MongoNotificationRepository.listByRecipient(userId, limit, olderId);
+    await this.populateTargetPublications(notifications, userId);
     const pendingCount = await MongoNotificationRepository.countPending(userId);
     return { notifications, pendingCount };
   }

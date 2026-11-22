@@ -4,14 +4,15 @@ import { UrlHelper } from '../../utils/UrlHelper.js';
 
 interface SpotifyPlayerProps {
   embeds?: SpotifyEmbed[];
+  compact?: boolean;
 }
 
-export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({ embeds }) => {
+export const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({ embeds, compact = false }) => {
   const safeEmbeds = (embeds || []).filter((e) => UrlHelper.isSafeSpotifyEmbedUrl(e?.iframe_url));
   if (safeEmbeds.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2 mt-3">
+    <div className={`flex flex-col gap-2 ${compact ? '' : 'mt-3'}`}>
       {safeEmbeds.map((embed, i) => (
         <div key={embed.url + i} className="rounded-xl overflow-hidden border border-dark-border">
           <iframe

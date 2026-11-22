@@ -1,8 +1,9 @@
-import { PublicUser } from '@oomfy/shared';
+import { Publication, PublicUser } from '@oomfy/shared';
 import { ObservableSubject, Listener } from './ObservableSubject.js';
 import { hasVisualUserChange, mergeUserDefined, normalizeUserCounters } from './userModelHelpers.js';
 
 type UserSyncListener = (user: PublicUser) => void;
+type PinnedListener = (pub: Publication, mode: 'seed' | 'ingest', fetchedAt: number) => void;
 
 export class UserIdentityMap {
   private static instance: UserIdentityMap;
@@ -11,6 +12,7 @@ export class UserIdentityMap {
   private fullProfileAt = new Map<string, number>();
   private subject = new ObservableSubject();
   private syncListeners = new Set<UserSyncListener>();
+  private pinnedListeners = new Set<PinnedListener>();
 
   public static getInstance(): UserIdentityMap {
     if (!this.instance) this.instance = new UserIdentityMap();
@@ -22,8 +24,18 @@ export class UserIdentityMap {
     return () => { this.syncListeners.delete(listener); };
   }
 
+  public onPinnedPublication(listener: PinnedListener): () => void {
+    this.pinnedListeners.add(listener);
+    return () => { this.pinnedListeners.delete(listener); };
+  }
+
   private emitSync(user: PublicUser): void {
     for (const listener of Array.from(this.syncListeners)) listener(user);
+  }
+
+  private emitPinned(user: PublicUser, mode: 'seed' | 'ingest', fetchedAt: number): void {
+    if (!user.pinned_publication) return;
+    for (const listener of Array.from(this.pinnedListeners)) listener(user.pinned_publication, mode, fetchedAt);
   }
 
   public get(username?: string | null): PublicUser | undefined {
@@ -44,7 +56,9 @@ export class UserIdentityMap {
     if (!user?.username) return;
     const key = user.username.toLowerCase();
     if (!this.users.has(key)) {
-      this.users.set(key, normalizeUserCounters(user));
+      const normalized = normalizeUserCounters(user);
+      this.users.set(key, normalized);
+      this.emitPinned(normalized, 'seed', 0);
       this.subject.notify(key);
     }
   }
@@ -63,6 +77,7 @@ export class UserIdentityMap {
       this.fetchedAt.set(key, Math.max(prevFetched, fetchedAt));
       if (isFullProfile) this.fullProfileAt.set(key, Math.max(prevFull, fetchedAt));
       changed.push(key);
+      if (u.pinned_publication) this.emitPinned(next, fetchedAt === 0 ? 'seed' : 'ingest', fetchedAt);
       if (hasVisualUserChange(prev, next) || (isFullProfile && !prev)) this.emitSync(next);
     }
     if (changed.length > 0) this.subject.notifyMany(changed);
@@ -76,9 +91,22 @@ export class UserIdentityMap {
     const nextKey = next.username.toLowerCase();
     if (nextKey !== key) this.users.delete(key);
     this.users.set(nextKey, next);
+    this.emitPinned(next, 'ingest', Date.now());
     this.subject.notifyMany(nextKey !== key ? [key, nextKey] : [key]);
     if (hasVisualUserChange(current, next)) this.emitSync(next);
     return next;
+  }
+
+  public clearPinnedPublication(postId: string): void {
+    const target = postId.toLowerCase();
+    const changed: string[] = [];
+    for (const [key, u] of this.users.entries()) {
+      if (u.pinned_publication_id?.toLowerCase() === target || u.pinned_publication?.id?.toLowerCase() === target) {
+        this.users.set(key, { ...u, pinned_publication_id: null, pinned_publication: null });
+        changed.push(key);
+      }
+    }
+    if (changed.length > 0) this.subject.notifyMany(changed);
   }
 
   public getAll(): PublicUser[] { return Array.from(this.users.values()); }

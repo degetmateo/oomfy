@@ -16,8 +16,8 @@ import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useCursorFeed } from '../hooks/useCursorFeed.js';
 import { useUserModel } from '../hooks/useUserModel.js';
+import { usePublicationModel } from '../hooks/usePublicationModel.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
-import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
 import { RoutePrefetchService } from '../services/RoutePrefetchService.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
@@ -55,7 +55,6 @@ const ProfileViewContent: React.FC<ContentProps> = ({ username, displayUsername 
       const res = await ApiClient.get<{ success: boolean; data: PublicUser }>(`/members/${displayUsername}`);
       if (res?.data) {
         userIdentityMap.ingest([res.data], fetchedAt, true);
-        if (res.data.pinned_publication) publicationIdentityMap.ingest([res.data.pinned_publication], fetchedAt);
       }
       return res;
     },
@@ -96,6 +95,11 @@ const ProfileViewContent: React.FC<ContentProps> = ({ username, displayUsername 
   const candidateUser = useUserModel(profile?.data || username) || profile?.data;
   const user =
     candidateUser && candidateUser.username?.toLowerCase() === username ? candidateUser : undefined;
+  const pinnedSource = user?.pinned_publication || user?.pinned_publication_id || null;
+  const resolvedPinned = usePublicationModel(pinnedSource);
+  const pinnedPublication = pinnedSource
+    ? (resolvedPinned || user?.pinned_publication || null)
+    : null;
   const visiblePosts =
     activeTab === 'likes'
       ? posts
@@ -108,11 +112,11 @@ const ProfileViewContent: React.FC<ContentProps> = ({ username, displayUsername 
   const headerSubtitle = user
     ? `${user.publication_count || 0} publicaciones`
     : isProfileError
-    ? 'Perfil no disponible'
-    : 'Cargando perfil...';
+      ? 'Perfil no disponible'
+      : 'Cargando perfil...';
 
   return (
-    <PullToRefresh onRefresh={handleRefresh}>
+    <PullToRefresh onRefresh={handleRefresh} disabled={isEditOpen || Boolean(zoomedImage)}>
       <div {...touchHandlers} className="flex flex-col min-h-screen font-mono">
         {user && (
           <SeoHead
@@ -156,7 +160,7 @@ const ProfileViewContent: React.FC<ContentProps> = ({ username, displayUsername 
         )}
         {user && (
           <ProfileInfo
-            key={user.id || username}
+            key={`profile-info-${user.id || username}`}
             user={user}
             isOwnProfile={isOwnProfile}
             onEditClick={() => setIsEditOpen(true)}
@@ -173,7 +177,7 @@ const ProfileViewContent: React.FC<ContentProps> = ({ username, displayUsername 
             <ProfileFeed
               activeTab={activeTab}
               posts={visiblePosts}
-              pinnedPublication={user?.pinned_publication}
+              pinnedPublication={pinnedPublication}
               pinnedByName={user?.name}
               loadingPosts={loadingPosts}
               isFetchingNextPage={isFetchingNextPage}
@@ -182,7 +186,7 @@ const ProfileViewContent: React.FC<ContentProps> = ({ username, displayUsername 
           </>
         )}
         {isOwnProfile && isEditOpen && user && (
-          <EditProfileModal key={user.id} user={user} isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} onUpdated={() => { queryClient.invalidateQueries({ queryKey: ['profile'] }); PublicationCacheService.invalidatePublicationLists(queryClient); }} />
+          <EditProfileModal key={`edit-profile-${user.id}`} user={user} isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} onUpdated={() => { queryClient.invalidateQueries({ queryKey: ['profile'] }); PublicationCacheService.invalidatePublicationLists(queryClient); }} />
         )}
         <ImageViewerModal imageUrl={zoomedImage} onClose={() => setZoomedImage(null)} />
       </div>

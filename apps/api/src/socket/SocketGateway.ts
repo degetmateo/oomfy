@@ -10,6 +10,21 @@ export class SocketGateway {
   private static io: Server | null = null;
   private static userSockets = new Map<string, Set<string>>();
   private static invisibleUsers = new Set<string>();
+  private static awayTimestamps = new Map<string, number>();
+
+  public static recordUserLeave(userId: string, ts = Date.now()): void {
+    this.awayTimestamps.set(userId, ts);
+    if (this.awayTimestamps.size > 5000) {
+      const first = this.awayTimestamps.keys().next().value;
+      if (first !== undefined) this.awayTimestamps.delete(first);
+    }
+  }
+
+  public static consumeUserLeave(userId: string): number | null {
+    const ts = this.awayTimestamps.get(userId) ?? null;
+    this.awayTimestamps.delete(userId);
+    return ts;
+  }
 
   public static initialize(server: HttpServer): void {
     this.io = new Server(server, { cors: { origin: corsOriginHandler, credentials: true } });
@@ -32,6 +47,7 @@ export class SocketGateway {
   public static disconnectUser(userId: string): void {
     this.io?.in(`user:${userId}`).disconnectSockets(true);
     this.userSockets.delete(userId);
+    this.awayTimestamps.delete(userId);
     this.broadcastOnlineMembersUpdated();
   }
   public static setUserInvisible(userId: string, invisible: boolean): void {

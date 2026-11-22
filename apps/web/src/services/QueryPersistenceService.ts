@@ -1,5 +1,6 @@
 import { QueryClient, QueryKey } from '@tanstack/react-query';
 import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
+import { publicationInteractionCache } from '../models/PublicationInteractionCache.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { chatIdentityMap } from '../models/ChatIdentityMap.js';
 import { clearLocalCacheDb, getCacheEntry, setCacheEntry } from './LocalCacheDb.js';
@@ -11,7 +12,9 @@ import {
 const PERSISTED_PREFIXES = new Set([
   'feed', 'profile', 'user-posts', 'explore-posts', 'topic-hub',
   'suggested-members', 'chats', 'notifications-infinite-list', 'publication',
+  'publication-interactions-users', 'publication-quotes',
 ]);
+const CORE_PREFIXES = new Set(['feed', 'profile', 'user-posts', 'chats', 'notifications-infinite-list', 'publication']);
 
 interface SavedQuery { queryKey: QueryKey; data: unknown; }
 interface QueriesSnapshot { savedAt: number; queries: SavedQuery[]; }
@@ -26,20 +29,32 @@ export class QueryPersistenceService {
   }
 
   public static async persistSnapshot(queryClient: QueryClient, scope = this.activeScope): Promise<void> {
-    const queries: SavedQuery[] = [];
+    const core: SavedQuery[] = [];
+    const secondary: SavedQuery[] = [];
     for (const q of queryClient.getQueryCache().getAll()) {
       const prefix = Array.isArray(q.queryKey) ? String(q.queryKey[0]) : '';
       if (q.state.status === 'success' && q.state.data !== undefined && PERSISTED_PREFIXES.has(prefix)) {
-        queries.push({ queryKey: q.queryKey, data: trimQueryData(q.state.data) });
+        const entry = { queryKey: q.queryKey, data: trimQueryData(q.state.data) };
+        if (CORE_PREFIXES.has(prefix)) core.push(entry);
+        else secondary.push(entry);
       }
-      if (queries.length >= 40) break;
     }
+    const queries = [...core, ...secondary].slice(0, 60);
     const now = Date.now();
+    const users = userIdentityMap.getAll().slice(-150);
+    const pubMap = new Map(publicationIdentityMap.getAll().slice(-150).map((p) => [p.id.toLowerCase(), p]));
+    for (const u of users) {
+      if (u.pinned_publication?.id) pubMap.set(u.pinned_publication.id.toLowerCase(), u.pinned_publication);
+    }
     const entitiesSnap: EntitiesSnapshot = {
-      savedAt: now, publications: publicationIdentityMap.getAll().slice(-150),
-      users: userIdentityMap.getAll().slice(-150), chatState: chatIdentityMap.exportSnapshot(),
+      savedAt: now,
+      publications: Array.from(pubMap.values()),
+      users,
+      chatState: chatIdentityMap.exportSnapshot(),
+      pubInteractions: publicationInteractionCache.exportEntries(),
     };
     saveBootEntitiesSync(scope, entitiesSnap);
+    publicationInteractionCache.saveSync(scope);
     await Promise.all([
       setCacheEntry<QueriesSnapshot>(`oomfy_queries_${scope}`, { savedAt: now, queries }),
       setCacheEntry<EntitiesSnapshot>(`oomfy_entities_${scope}`, entitiesSnap),
@@ -48,7 +63,8 @@ export class QueryPersistenceService {
 
   public static async hydrateFromLocalDb(queryClient: QueryClient, scope = 'guest'): Promise<boolean> {
     this.activeScope = scope;
-    let hydrated = applyEntitiesSnapshot(readBootEntitiesSync(scope));
+    let hydrated = publicationInteractionCache.loadSync(scope);
+    if (applyEntitiesSnapshot(readBootEntitiesSync(scope))) hydrated = true;
     const [entities, snapshot] = await Promise.all([
       getCacheEntry<EntitiesSnapshot>(`oomfy_entities_${scope}`),
       getCacheEntry<QueriesSnapshot>(`oomfy_queries_${scope}`),

@@ -29,13 +29,15 @@ export function usePinPublication(postId: string) {
     try {
       if (isPinned) {
         await ApiClient.delete(`/publications/${postId}/pin`);
-        setUser({ ...user, pinned_publication_id: null, pinned_publication: null });
+        const base = userIdentityMap.get(user.username) || user;
+        setUser({ ...base, pinned_publication_id: null, pinned_publication: null });
         userIdentityMap.patch(user.username, (u) => ({ ...u, pinned_publication_id: null, pinned_publication: null }));
       } else {
         await ApiClient.post(`/publications/${postId}/pin`);
         const pinnedPub = publicationIdentityMap.get(postId) || null;
-        setUser({ ...user, pinned_publication_id: postId });
+        const base = userIdentityMap.get(user.username) || user;
         userIdentityMap.patch(user.username, (u) => ({ ...u, pinned_publication_id: postId, pinned_publication: pinnedPub }));
+        setUser({ ...base, pinned_publication_id: postId, pinned_publication: null });
       }
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       queryClient.invalidateQueries({ queryKey: ['user-posts'] });

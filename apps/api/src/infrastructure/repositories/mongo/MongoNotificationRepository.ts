@@ -61,4 +61,24 @@ export class MongoNotificationRepository {
     const col = this.getCollection();
     return col.countDocuments({ recipient_id: { $in: MongoIdHelper.idVariants(recipientId) }, status: 'pending' });
   }
+
+  public static async listSince(recipientId: string, sinceDate: Date, limit = 20): Promise<Notification[]> {
+    const col = this.getCollection();
+    const iso = sinceDate.toISOString();
+    const docs = await col
+      .find({
+        recipient_id: { $in: MongoIdHelper.idVariants(recipientId) },
+        $or: [{ created_at: { $gt: iso } }, { created_at: { $gt: sinceDate } }],
+      } as any)
+      .sort({ created_at: -1 })
+      .limit(limit)
+      .toArray();
+    return docs.map((doc: any) => ({
+      ...doc,
+      id: String(doc.id || doc._id),
+      recipient_id: String(doc.recipient_id),
+      target_publication_id: doc.target_publication_id ? String(doc.target_publication_id) : null,
+      sender: doc.sender ? { ...doc.sender, id: String(doc.sender.id || doc.sender._id) } : doc.sender,
+    }));
+  }
 }

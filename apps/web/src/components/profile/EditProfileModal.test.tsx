@@ -28,11 +28,11 @@ describe('EditProfileModal Component', () => {
     const updatedUser = { ...dummyUser, name: 'Junko Updated', banner_url: 'https://cdn/b.gif', icon_url: 'https://cdn/i.gif' };
     const putSpy = vi.spyOn(ApiClient, 'put').mockResolvedValue({ success: true, data: updatedUser } as any);
 
-    const { container, rerender } = render(
+    const { rerender } = render(
       <EditProfileModal user={dummyUser} isOpen={true} onClose={handleClose} onUpdated={handleUpdated} />
     );
 
-    const fileInputs = container.querySelectorAll('input[type="file"]');
+    const fileInputs = document.body.querySelectorAll('input[type="file"]');
     const bannerInput = fileInputs[0] as HTMLInputElement;
     const iconInput = fileInputs[1] as HTMLInputElement;
 

@@ -10,6 +10,7 @@ export * from './types/session.js';
 export * from './types/admin.js';
 export * from './types/report.js';
 export * from './types/emote.js';
+export * from './types/socket.js';
 export * from './schemas/url.schemas.js';
 export * from './schemas/common.schemas.js';
 export * from './schemas/auth.schemas.js';

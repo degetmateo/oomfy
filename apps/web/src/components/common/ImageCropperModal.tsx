@@ -60,7 +60,13 @@ export const ImageCropperModal: React.FC<Props> = ({
 
   const modal = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 font-mono select-none"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      data-cropper-modal="true"
+      data-no-card-nav="true"
+      data-no-swipe="true"
+      className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 font-mono select-none"
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); } }}
       onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); }}

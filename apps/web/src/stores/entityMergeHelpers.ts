@@ -13,8 +13,13 @@ export function collectPublications(
     const key = item.id.toLowerCase();
     const existing = out.get(key);
     if (!existing) out.set(key, item);
-    else if (!isNested) out.set(key, { ...existing, ...item });
-    else {
+    else if (!isNested) {
+      const merged: Record<string, unknown> = { ...existing };
+      for (const [k, v] of Object.entries(item)) {
+        if (v !== undefined) merged[k] = v;
+      }
+      out.set(key, merged as unknown as Publication);
+    } else {
       out.set(key, {
         ...item, ...existing,
         upvotes_count: Math.max(existing.upvotes_count || 0, item.upvotes_count || 0),
@@ -22,6 +27,8 @@ export function collectPublications(
         shares_count: Math.max(existing.shares_count || 0, item.shares_count || 0),
         quotes_count: Math.max(existing.quotes_count || 0, item.quotes_count || 0),
         is_upvoted: existing.is_upvoted ?? item.is_upvoted,
+        is_shared: existing.is_shared ?? item.is_shared,
+        is_quoted: existing.is_quoted ?? item.is_quoted,
       });
     }
   }

@@ -19,7 +19,7 @@ export const CSP_DIRECTIVES: Record<string, string[]> = {
     'https://cloudflareinsights.com',
     'https://*.cloudflareinsights.com',
   ],
-  frameSrc: ["'self'", 'https://open.spotify.com', 'https://www.youtube.com', 'https://youtube.com', 'https://www.tiktok.com'],
+  frameSrc: ["'self'", 'https://open.spotify.com', 'https://www.youtube.com', 'https://youtube.com', 'https://www.youtube-nocookie.com', 'https://www.tiktok.com'],
   workerSrc: ["'self'", 'blob:'],
   manifestSrc: ["'self'"],
   frameAncestors: ["'self'"],

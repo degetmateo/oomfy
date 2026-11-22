@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertTriangle, Info } from 'lucide-react';
 import { useDialogStore } from '../../stores/dialogStore.js';
 
@@ -18,6 +19,7 @@ export const PixelDialogModal: React.FC = () => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (!isOpen || e.isComposing || e.keyCode === 229) return;
       if (e.key === 'Escape') {
+        e.preventDefault();
         handleCancel();
       } else if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement)) {
         handleConfirm();
@@ -29,14 +31,16 @@ export const PixelDialogModal: React.FC = () => {
 
   if (!isOpen) return null;
 
-  return (
+  const modal = (
     <div
       onClick={handleCancel}
       role={type === 'alert' || type === 'danger' ? 'alertdialog' : 'dialog'}
       aria-modal="true"
       aria-labelledby="pixel-dialog-title"
       aria-describedby="pixel-dialog-message"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 font-mono animate-fade-in"
+      data-no-card-nav="true"
+      data-no-swipe="true"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 font-mono animate-fade-in"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -87,5 +91,7 @@ export const PixelDialogModal: React.FC = () => {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modal, document.body) : modal;
 };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ApiClient } from '../../services/api.js';
 import { SocketClient } from '../../services/socket.js';
@@ -19,8 +19,28 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [reportingMessage, setReportingMessage] = useState<any | null>(null);
   const [activeImage, setActiveImage] = useState<string | null>(null);
-  const { scrollContainerRef, showScrollBottomButton, highlightedMessageId, handleScroll, scrollToBottom, scrollToMessage } = useChatScroll();
+  const {
+    scrollContainerRef, contentRef, showScrollBottomButton, highlightedMessageId,
+    handleScroll, scrollToBottom, scrollToMessage, snapToBottomImmediate, beginPrepend, restoreScrollAfterPrepend,
+  } = useChatScroll();
   const { messages, setMessages, isLoading, hasMore, setHasMore, loadingMore, setLoadingMore, typingUser, lastTypingSentRef, typingTimerRef, sendOptimisticMessage } = useChatMessages(chat.id, currentUserId, scrollToBottom);
+  const initialAnchoredRef = useRef(false);
+  const mountedWithMessagesRef = useRef(!isLoading && messages.length > 0);
+
+  useLayoutEffect(() => {
+    if (restoreScrollAfterPrepend()) return;
+    if (!initialAnchoredRef.current && !isLoading && messages.length > 0) {
+      initialAnchoredRef.current = true;
+      const supportsScrollInitial =
+        typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('scroll-initial-target', 'nearest');
+      const el = scrollContainerRef.current;
+      const needsJsSnap =
+        !supportsScrollInitial ||
+        !mountedWithMessagesRef.current ||
+        Boolean(el && el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+      if (needsJsSnap) snapToBottomImmediate();
+    }
+  }, [isLoading, messages.length, restoreScrollAfterPrepend, snapToBottomImmediate]);
 
   useEffect(() => {
     if (!replyingTo) return;
@@ -46,6 +66,7 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
     try {
       const res = await ApiClient.get<{ success: boolean; data: any[] }>(`/chats/${chat.id}/messages?limit=30&older_id=${messages[0].id}`);
       const older = res.data || [];
+      if (older.length > 0) beginPrepend();
       setMessages((prev) => [...older, ...prev]); setHasMore(older.length >= 30);
     } finally { setLoadingMore(false); }
   };
@@ -62,11 +83,11 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
   return (
     <div className="flex-1 flex flex-col h-full bg-dark-bg min-w-0 overflow-hidden">
       <div className="flex-1 min-h-0 flex flex-col relative">
-        <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-2 sm:px-3 py-2 flex flex-col min-h-0">
+        <div ref={scrollContainerRef} onScroll={handleScroll} className="chat-scroll-container flex-1 overflow-y-auto px-2 sm:px-3 py-2 flex flex-col min-h-0">
           {isLoading ? (
             <div className="m-auto text-center text-xs text-dark-muted font-mono">Cargando mensajes...</div>
           ) : messages.length > 0 ? (
-            <div className="mt-auto flex flex-col pb-6">
+            <div ref={contentRef} className="mt-auto flex flex-col pb-6">
               {hasMore && (
                 <div className="text-center py-1">
                   <button type="button" onClick={loadOlderMessages} disabled={loadingMore} className="text-[11px] text-brand-400 hover:text-brand-300 font-mono underline">
@@ -85,6 +106,7 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
                     onDismissError={(id) => setMessages((prev) => prev.filter((item) => item.id !== id))} onImageClick={setActiveImage} />
                 );
               })}
+              <div className="chat-bottom-anchor" aria-hidden="true" />
             </div>
           ) : <div className="m-auto text-center text-xs text-dark-muted font-mono"><p>No hay mensajes en esta conversación.</p><p className="mt-1 text-white">¡Envía un saludo!</p></div>}
         </div>

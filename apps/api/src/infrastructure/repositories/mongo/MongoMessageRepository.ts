@@ -97,4 +97,27 @@ export class MongoMessageRepository {
       { $set: { status: 'seen', updated_at: new Date().toISOString() } }
     );
   }
+
+  public static async listChatMessagesSince(chatId: string, sinceDate: Date, limit = 50): Promise<ChatMessage[]> {
+    const col = this.getCollection();
+    const iso = sinceDate.toISOString();
+    const messages = await col
+      .find({
+        chat_id: { $in: MongoIdHelper.idVariants(chatId) },
+        $or: [{ created_at: { $gt: iso } }, { created_at: { $gt: sinceDate } }],
+      } as any)
+      .sort({ created_at: 1 })
+      .limit(limit)
+      .toArray();
+    const senderIds = Array.from(new Set(messages.map((m) => String(m.sender_id || m.sender?.id)).filter(Boolean)));
+    const memberMap = new Map<string, any>();
+    try {
+      const members = await MongoMemberRepository.findManyByIds(senderIds);
+      for (const mem of members) {
+        memberMap.set(String(mem.id), mem);
+        if (mem.username) memberMap.set(mem.username.toLowerCase(), mem);
+      }
+    } catch { /* ignore if members collection is not mocked */ }
+    return messages.map((m) => this.mapDoc(m, memberMap));
+  }
 }

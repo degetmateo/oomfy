@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Flag, X, AlertTriangle } from 'lucide-react';
 import { ApiClient } from '../../services/api.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
@@ -61,10 +62,14 @@ export const ReportModal: React.FC<Props> = ({
     }
   };
 
-  return (
+  const modal = (
     <div
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 font-mono"
+      role="dialog"
+      aria-modal="true"
+      data-no-card-nav="true"
+      data-no-swipe="true"
+      onClick={(e) => { e.stopPropagation(); onClose(); }}
+      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 font-mono"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -145,5 +150,7 @@ export const ReportModal: React.FC<Props> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modal, document.body) : modal;
 };
 

@@ -5,8 +5,9 @@ import { MongoMemberRepository } from '../infrastructure/repositories/mongo/Mong
 import { MessageService } from '../services/chat/MessageService.js';
 import { SocketGateway } from './SocketGateway.js';
 import { registerInteractionSocketHandlers } from './SocketInteractionHandlers.js';
+import { registerSocketLifecycleHandlers } from './SocketLifecycleHandlers.js';
 
-async function hasChatAccess(socket: Socket, chatId: string, userId: string): Promise<boolean> {
+export async function hasChatAccess(socket: Socket, chatId: string, userId: string): Promise<boolean> {
   if (typeof chatId !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(chatId)) return false;
   return socket.rooms.has(`chat:${chatId}`) || MongoChatRepository.isParticipant(chatId, userId);
 }
@@ -67,6 +68,7 @@ export function registerSocketHandlers(socket: Socket, userSockets: Map<string, 
     }
   });
   registerInteractionSocketHandlers(socket, user, isWithinSocketQuota);
+  registerSocketLifecycleHandlers(socket, user, isWithinSocketQuota, hasChatAccess);
   socket.on('disconnect', () => {
     userSockets.get(user.id)?.delete(socket.id);
     if (userSockets.get(user.id)?.size === 0) {

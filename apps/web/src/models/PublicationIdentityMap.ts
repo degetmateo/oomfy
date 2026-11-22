@@ -3,6 +3,15 @@ import { ObservableSubject, Listener } from './ObservableSubject.js';
 import { collectPublications, mergePublicationEntity } from '../stores/entityMergeHelpers.js';
 import { userIdentityMap } from './UserIdentityMap.js';
 import { applyCanonicalAuthors, normalizePubCounters, patchPubAuthor } from './publicationModelHelpers.js';
+import { publicationInteractionCache } from './PublicationInteractionCache.js';
+
+function withInteractionFlags(pub: Publication, preferCache: boolean): Publication {
+  const next = publicationInteractionCache.applyTo(pub, preferCache);
+  if (next.target_publication) {
+    return { ...next, target_publication: publicationInteractionCache.applyTo(next.target_publication, preferCache) };
+  }
+  return next;
+}
 
 export class PublicationIdentityMap {
   private static instance: PublicationIdentityMap;
@@ -12,7 +21,16 @@ export class PublicationIdentityMap {
   private fetchedAt = new Map<string, number>();
   private subject = new ObservableSubject();
 
-  private constructor() { userIdentityMap.onUserSynced((u) => this.syncAuthor(u)); }
+  private constructor() {
+    userIdentityMap.onUserSynced((u) => this.syncAuthor(u));
+    userIdentityMap.onPinnedPublication((pub, mode, fetchedAt) => {
+      if (mode === 'seed' || fetchedAt === 0) this.seed([pub]);
+      else this.ingest([pub], fetchedAt);
+    });
+    for (const u of userIdentityMap.getAll()) {
+      if (u.pinned_publication) this.seed([u.pinned_publication]);
+    }
+  }
   public static getInstance(): PublicationIdentityMap {
     if (!this.instance) this.instance = new PublicationIdentityMap();
     return this.instance;
@@ -39,7 +57,14 @@ export class PublicationIdentityMap {
     const changed: string[] = [];
     for (const [id, pub] of collectPublications(items).entries()) {
       const key = id.toLowerCase();
-      if (!this.entities.has(key)) { this.entities.set(key, applyCanonicalAuthors(normalizePubCounters(pub), (un) => userIdentityMap.get(un))); changed.push(key); }
+      publicationInteractionCache.record(key, pub, 0);
+      if (!this.entities.has(key)) {
+        this.entities.set(
+          key,
+          applyCanonicalAuthors(normalizePubCounters(withInteractionFlags(pub, true)), (un) => userIdentityMap.get(un))
+        );
+        changed.push(key);
+      }
     }
     if (changed.length > 0) this.subject.notifyMany(changed);
   }
@@ -50,9 +75,13 @@ export class PublicationIdentityMap {
       const key = id.toLowerCase();
       const prev = this.entities.get(key);
       const keepLocal = (this.inFlight.get(key) || 0) > 0 || (this.mutatedAt.get(key) || 0) >= fetchedAt;
-      const canonical = applyCanonicalAuthors(incoming, (un) => userIdentityMap.get(un));
+      if (!keepLocal) publicationInteractionCache.record(key, incoming, fetchedAt);
+      const canonical = applyCanonicalAuthors(
+        withInteractionFlags(incoming, fetchedAt === 0),
+        (un) => userIdentityMap.get(un)
+      );
       const merged = mergePublicationEntity(prev, canonical, keepLocal);
-      if (markFetched) this.fetchedAt.set(key, Math.max(this.fetchedAt.get(key) || 0, fetchedAt));
+      if (markFetched && fetchedAt > 0) this.fetchedAt.set(key, Math.max(this.fetchedAt.get(key) || 0, fetchedAt));
       if (prev !== merged) { this.entities.set(key, merged); changed.push(key); }
     }
     if (changed.length > 0) this.subject.notifyMany(changed);
@@ -64,7 +93,9 @@ export class PublicationIdentityMap {
     if (!current) return undefined;
     const next = normalizePubCounters(updater(current));
     this.entities.set(key, next);
-    if (markMutated) this.mutatedAt.set(key, Date.now());
+    const now = Date.now();
+    publicationInteractionCache.record(key, next, markMutated ? now : 0);
+    if (markMutated) this.mutatedAt.set(key, now);
     this.subject.notify(key);
     return next;
   }
@@ -80,6 +111,7 @@ export class PublicationIdentityMap {
 
   public remove(id: string): void {
     const key = id.toLowerCase();
+    userIdentityMap.clearPinnedPublication(id);
     if (this.entities.delete(key)) {
       this.fetchedAt.delete(key); this.mutatedAt.delete(key); this.inFlight.delete(key);
       this.subject.notify(key);
@@ -93,7 +125,11 @@ export class PublicationIdentityMap {
   }
 
   public getAll(): Publication[] { return Array.from(this.entities.values()); }
-  public clear(): void { this.entities.clear(); this.inFlight.clear(); this.mutatedAt.clear(); this.fetchedAt.clear(); this.subject.clear(); }
+  public clear(): void {
+    this.entities.clear(); this.inFlight.clear(); this.mutatedAt.clear(); this.fetchedAt.clear();
+    publicationInteractionCache.clear();
+    this.subject.clear();
+  }
 }
 
 export const publicationIdentityMap = PublicationIdentityMap.getInstance();

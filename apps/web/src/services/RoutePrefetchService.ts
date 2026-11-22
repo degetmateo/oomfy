@@ -4,6 +4,7 @@ import { ApiClient } from './api.js';
 import { NotificationController } from '../controllers/NotificationController.js';
 import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
+import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 import { resolveMediaUrl } from '../utils/mediaUrl.js';
 import { ImageMemoryCache } from '../utils/imageCache.js';
 
@@ -80,9 +81,11 @@ export class RoutePrefetchService {
       queryClient.prefetchQuery({
         queryKey: ['profile', username],
         queryFn: async () => {
+          const fetchedAt = Date.now();
           const res = await ApiClient.get<{ success: boolean; data: PublicUser }>(`/members/${username}`);
           if (res?.data) {
-            userIdentityMap.ingest([res.data], Date.now(), true);
+            userIdentityMap.ingest([res.data], fetchedAt, true);
+            if (res.data.pinned_publication) publicationIdentityMap.ingest([res.data.pinned_publication], fetchedAt);
             if (res.data.icon_url) ImageMemoryCache.preload(resolveMediaUrl(res.data.icon_url));
           }
           return res;

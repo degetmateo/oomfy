@@ -25,6 +25,19 @@ export function mergeUserDefined(
   const merged: Record<string, unknown> = { ...prev };
   for (const [k, v] of Object.entries(incoming)) {
     if (v === undefined) continue;
+    if (k === 'pinned_publication') {
+      if (v && typeof v === 'object') {
+        merged[k] = v;
+      } else if (incoming.pinned_publication_id === null) {
+        merged[k] = null;
+      } else if (
+        incoming.pinned_publication_id !== undefined &&
+        incoming.pinned_publication_id !== prev.pinned_publication_id
+      ) {
+        merged[k] = null;
+      }
+      continue;
+    }
     if (!allowOverwriteVisual && VISUAL_KEYS.has(k) && prev[k as keyof PublicUser] !== undefined) continue;
     if ((k === 'icon_url' || k === 'banner_url') && isDynamicMemberMediaUrl(v as string | null) && prev[k] && !isDynamicMemberMediaUrl(prev[k])) {
       continue;
