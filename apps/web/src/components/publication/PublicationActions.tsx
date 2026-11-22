@@ -51,7 +51,7 @@ export const PublicationActions: React.FC<Props> = ({
   };
 
   return (
-    <div className="flex justify-between items-center w-full text-dark-muted text-sm font-medium select-none">
+    <div className="flex pt-2 pb-2 justify-between items-center w-full text-dark-muted text-sm font-medium select-none">
       <button type="button" onClick={onCommentClick} title="Comentar" aria-label={`Comentar (${comments})`} className="flex items-center gap-2 rounded hover:bg-dark-border/40 hover:text-brand-400 transition-colors">
         <PixelComment size={20} /><span>{comments}</span>
       </button>
