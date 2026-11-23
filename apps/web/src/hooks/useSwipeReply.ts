@@ -9,6 +9,7 @@ export function useSwipeReply(onReply?: () => void) {
   const longPressTimerRef = useRef<any>(null);
 
   const onTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement | null)?.closest('[data-no-swipe="true"]')) return;
     startRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     isHorizontalRef.current = null;
     setIsDragging(true);

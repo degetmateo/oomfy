@@ -21,16 +21,18 @@ function sanitizeIframeUrl(raw?: string | null): string | undefined {
   } catch { return undefined; }
 }
 
-function stripViewerFlags(pub: Publication): Record<string, any> {
-  const clean: Record<string, any> = { ...pub };
-  delete clean.is_upvoted; delete clean.is_shared; delete clean.is_quoted;
-  if (clean.target_publication && typeof clean.target_publication === 'object') {
-    clean.target_publication = stripViewerFlags(clean.target_publication);
-  }
-  return clean;
-}
-
 export class PublicationMapper {
+  public static stripViewerFlags(pub: Publication): Publication {
+    const clean: Record<string, any> = { ...pub };
+    delete clean.is_upvoted;
+    delete clean.is_shared;
+    delete clean.is_quoted;
+    if (clean.target_publication && typeof clean.target_publication === 'object') {
+      clean.target_publication = PublicationMapper.stripViewerFlags(clean.target_publication);
+    }
+    return clean as Publication;
+  }
+
   public static toDomain(doc: any): Publication {
     const rawId = doc._id ? doc._id.toString() : doc.id;
     const authorRawId = doc.author?._id ? doc.author._id.toString() : (doc.author?.id ? doc.author.id.toString() : '');
@@ -86,7 +88,7 @@ export class PublicationMapper {
   }
 
   public static toPersistence(publication: Publication): Record<string, any> {
-    const clean = stripViewerFlags(publication);
+    const clean = PublicationMapper.stripViewerFlags(publication);
     const pubMongoId = MongoIdHelper.toMongoId(publication.id);
     const parentMongoId = publication.parent_publication_id ? MongoIdHelper.toMongoId(publication.parent_publication_id) : null;
     const rootMongoId = publication.root_publication_id ? MongoIdHelper.toMongoId(publication.root_publication_id) : null;

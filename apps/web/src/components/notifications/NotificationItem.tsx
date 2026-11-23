@@ -5,8 +5,11 @@ import { Notification } from '@oomfy/shared';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { formatNotificationTime, formatExactDateTime } from '../../utils/formatTime.js';
 import { useUserModel } from '../../hooks/useUserModel.js';
+import { usePublicationModel } from '../../hooks/usePublicationModel.js';
 import { useCardClickGuard } from '../../hooks/useCardClickGuard.js';
+import { PublicationCacheService } from '../../services/PublicationCacheService.js';
 import { NotificationPublicationCard } from './NotificationPublicationCard.js';
+import { NotificationPublicationExcerpt } from './NotificationPublicationExcerpt.js';
 
 interface Props {
   notif: Notification;
@@ -44,11 +47,22 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
   const isDirectPublication = Boolean(
     notif.target_publication_id && (notif.type === 'comment' || notif.type === 'quote' || notif.type === 'mention')
   );
+  const isInteractionNotif = notif.type === 'upvote' || notif.type === 'share';
+
+  const liveTargetPub = usePublicationModel(
+    isInteractionNotif ? (notif.target_publication || notif.target_publication_id) : null
+  );
+  const targetPub = isInteractionNotif ? (liveTargetPub || notif.target_publication) : undefined;
+
+  const destination = notif.target_publication_id
+    ? `/publication/${notif.target_publication_id}`
+    : notif.type === 'mention'
+      ? '/chats'
+      : `/${sender.username}`;
 
   const cardHandlers = useCardClickGuard(() => {
-    if (notif.target_publication_id) navigate(`/publication/${notif.target_publication_id}`);
-    else if (notif.type === 'mention') navigate('/chats');
-    else navigate(`/${sender.username}`);
+    if (targetPub) PublicationCacheService.primePublication(targetPub);
+    navigate(destination);
   });
 
   if (isDirectPublication) {
@@ -56,7 +70,7 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
   }
 
   return (
-    <div
+    <article
       {...cardHandlers}
       className={`p-4 hover:bg-dark-card/50 transition-colors flex gap-3.5 items-start cursor-pointer ${
         isUnread ? 'bg-brand-500/15 border-l-4 border-l-brand-400' : ''
@@ -76,15 +90,31 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
               <Link to={`/${sender.username}`} onClick={(e) => e.stopPropagation()} className="text-dark-muted font-mono hover:underline">
                 @{sender.username}
               </Link>{' '}
-              <span className="text-dark-text font-sans">{getActionLabel(notif)}</span>
+              <Link
+                to={destination}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (targetPub) PublicationCacheService.primePublication(targetPub);
+                }}
+                className="text-dark-text font-sans hover:underline"
+              >
+                {getActionLabel(notif)}
+              </Link>
             </p>
             {isUnread && <span className="px-1.5 py-0.5 text-[10px] font-bold bg-brand-500 text-black font-mono flex-shrink-0">NUEVO</span>}
           </div>
+          {isInteractionNotif && (
+            <NotificationPublicationExcerpt
+              publication={targetPub}
+              isExplicitlyMissing={!targetPub && notif.target_publication === null}
+              isUnread={isUnread}
+            />
+          )}
           <time dateTime={notif.created_at} title={formatExactDateTime(notif.created_at)} className="text-[10px] text-dark-muted mt-1 block font-mono">
             {formatNotificationTime(notif.created_at)}
           </time>
         </div>
       </div>
-    </div>
+    </article>
   );
 };

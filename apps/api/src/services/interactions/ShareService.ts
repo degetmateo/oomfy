@@ -61,9 +61,10 @@ export class ShareService {
       sender: user,
       type: 'share',
       targetPublicationId: pubId,
+      targetPublication: { ...pub, shares_count: currentShares + 1 },
       push: {
         title: `${user.name} compartió`,
-        body: pub.content ? `"${pub.content.slice(0, 80)}"` : 'tu publicación.',
+        body: pub.content ? `"${pub.content.slice(0, 80)}"` : (pub.images?.[0]?.url || 'tu publicación.'),
         url: `/publication/${pubId}`,
         category: 'shares',
       },

@@ -45,7 +45,7 @@ export function buildOptimisticChatMsg(
   return {
     id: tempId, chat_id: chatId, sender_id: currentUserId, content: payload.content, reply_to_id: payload.replyToId,
     sender: { id: currentUserId, username: currentUser?.username || '', name: currentUser?.name || 'Tú', icon_url: currentUser?.icon_url || null },
-    media_urls: previewUrls, gif_url: payload.gifUrl, created_at: new Date().toISOString(), deliveryState: 'sending', retryPayload: payload, reply_to: replyMeta,
+    media_urls: previewUrls, gif_url: payload.gifUrl, embeds: [], quoted_publication: null, created_at: new Date().toISOString(), deliveryState: 'sending', retryPayload: payload, reply_to: replyMeta,
   };
 }
 

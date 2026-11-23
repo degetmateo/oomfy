@@ -50,7 +50,7 @@ export const PublicationContentBlocks: React.FC<Props> = ({
 
   return (
     <div className="flex flex-col gap-3 min-w-0">
-      {post.content && <FormattedText text={post.content} authorId={post.author.id} className={textClass} />}
+      {post.content && <FormattedText text={post.content} authorId={post.author.id} className={textClass} enlargeEmoteOnly />}
       <MediaGrid images={post.images || []} priority={priority} />
       <LinkPreviewCard embeds={post.embeds} targetPublication={resolvedQuoteTarget || undefined} />
       {extraBeforeActions}

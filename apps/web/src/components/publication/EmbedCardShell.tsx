@@ -31,7 +31,7 @@ export const EmbedCardShell: React.FC<Props> = ({
   const rootClass = `embed-card-shell grid ${gridCols} border border-dark-border bg-dark-card/50 hover:border-brand-500 hover:bg-dark-card/80 transition-colors overflow-hidden min-h-[8.75rem] h-full w-full font-mono text-left group`;
 
   const mediaContent = thumb ? (
-    <div className="relative h-full min-h-[8.75rem] bg-dark-bg overflow-hidden border-r border-dark-border">
+    <div className="embed-card-media relative h-full min-h-[8.75rem] bg-dark-bg overflow-hidden border-r border-dark-border">
       <img
         src={thumb}
         alt={imgAlt || title || badgeLabel}

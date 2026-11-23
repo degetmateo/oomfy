@@ -1,4 +1,4 @@
-import { AuthorSnapshot } from './publication.js';
+import { AuthorSnapshot, Publication, PublicationEmbed } from './publication.js';
 
 export interface Participant {
   id: string; // UUID v7
@@ -29,6 +29,8 @@ export interface ChatMessage {
   reply_to_id?: string | null;
   media_urls?: string[];
   gif_url?: string | null;
+  embeds?: PublicationEmbed[];
+  quoted_publication?: Publication | null;
 }
 
 export interface Chat {

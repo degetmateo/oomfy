@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CornerDownRight, AlertCircle, RotateCcw, Trash2 } from 'lucide-react';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { FormattedText } from '../common/FormattedText.js';
+import { LinkPreviewCard } from '../publication/LinkPreviewCard.js';
 import { ChatMessageMedia } from './ChatMessageMedia.js';
 import { ChatMessageActions } from './ChatMessageActions.js';
 import { ChatMessageReplyPreview } from './ChatMessageReplyPreview.js';
@@ -78,10 +79,15 @@ export const ChatMessageItem: React.FC<Props> = ({
         )}
         {message.content && (
           <div className={`text-sm md:text-base font-sans leading-relaxed whitespace-pre-wrap break-words ${isError ? 'text-red-400' : 'text-dark-text/95'}`}>
-            <FormattedText text={message.content} authorId={message.sender_id || sender.id} className="font-sans" />
+            <FormattedText text={message.content} authorId={message.sender_id || sender.id} className="font-sans" enlargeEmoteOnly />
           </div>
         )}
         <ChatMessageMedia mediaUrls={message.media_urls} gifUrl={message.gif_url} onImageClick={onImageClick} />
+        {((Array.isArray(message.embeds) && message.embeds.length > 0) || message.quoted_publication) && (
+          <div className="mt-2 w-full max-w-xl" data-no-swipe="true">
+            <LinkPreviewCard embeds={message.embeds} targetPublication={message.quoted_publication || undefined} />
+          </div>
+        )}
         {isError && (
           <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs font-mono text-red-400">
             <span className="inline-flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> Error al enviar</span>

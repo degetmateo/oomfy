@@ -2,7 +2,7 @@ import { Notification } from '@oomfy/shared';
 import { MongoNotificationRepository } from '../../infrastructure/repositories/mongo/MongoNotificationRepository.js';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 
-const PUB_EMBED_TYPES = new Set(['comment', 'quote', 'mention']);
+const PUB_EMBED_TYPES = new Set(['comment', 'quote', 'mention', 'upvote', 'share']);
 
 export class NotificationService {
   public static async populateTargetPublications(notifications: Notification[], userId: string): Promise<Notification[]> {

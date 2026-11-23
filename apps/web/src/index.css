@@ -230,3 +230,22 @@ dialog::backdrop {
     scroll-behavior: smooth;
   }
 }
+
+/* Container-adaptive embed cards for narrow chat columns & small screens */
+.embed-preview-container,
+.embed-slide-container {
+  container-type: inline-size;
+}
+
+@container (max-width: 340px) {
+  .embed-card-shell {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .embed-card-shell .embed-card-media {
+    min-height: 0;
+    height: 9rem;
+    border-right-width: 0;
+    border-bottom: 1px solid #2a2a2a;
+  }
+}

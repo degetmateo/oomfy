@@ -7,6 +7,7 @@ import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/Mo
 import { WebPushService } from '../notifications/WebPushService.js';
 import { NotificationIconHelper } from '../notifications/NotificationIconHelper.js';
 import { MentionNotificationHelper } from '../publications/MentionNotificationHelper.js';
+import { ContentEmbedResolver } from '../publications/ContentEmbedResolver.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../../errors/AppError.js';
 
@@ -51,9 +52,18 @@ export class MessageService {
       replyTo = { id: original.id, content: original.content, sender_username: original.sender?.username || 'usuario', sender_name: original.sender?.name };
     }
 
+    const { embeds, quotedPublication } = await ContentEmbedResolver.resolveForContent(content, {
+      userId: sender.id,
+      allowQuotePromotion: true,
+      throwOnBlockedQuote: false,
+      budgetMs: 4500,
+    });
+
     const message = await MongoMessageRepository.insertMessage({
       id: messageId, chat_id: chatId, sender_id: sender.id, sender: senderObj,
-      content, reply_to: replyTo, reply_to_id: data.reply_to_id || null, media_urls: data.media_urls || [], gif_url: data.gif_url || null,
+      content, reply_to: replyTo, reply_to_id: data.reply_to_id || null,
+      media_urls: data.media_urls || [], gif_url: data.gif_url || null,
+      embeds, quoted_publication: quotedPublication,
     });
     const snippet = content || (data.gif_url ? 'GIF' : data.media_urls?.length ? 'Imagen' : 'Mensaje');
     await MongoChatRepository.updateLastMessage(chatId, { id: messageId, content: snippet, sender_id: sender.id, created_at: (message as any).created_at });

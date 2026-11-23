@@ -28,7 +28,7 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
   if (!targetPublication && validEmbeds.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-3 font-mono">
+    <div className="embed-preview-container w-full flex flex-col gap-3 font-mono">
       {targetPublication && (
         <div
           data-no-card-nav="true"

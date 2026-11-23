@@ -3,13 +3,24 @@ import { useNavigate, Link } from 'react-router-dom';
 import { CustomEmote } from '@oomfy/shared';
 import { UrlHelper } from '../../utils/UrlHelper.js';
 import { InlineToken, parseMarkdownBlocks } from '../../utils/markdownParser.js';
+import { analyzeEmoteOnlyBlocks } from '../../utils/emoteOnlyHelper.js';
 import { useEmoteStore } from '../../stores/emoteStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useDialogStore } from '../../stores/dialogStore.js';
 
-interface Props { text: string | null | undefined; className?: string; authorId?: string; }
+interface Props {
+  text: string | null | undefined;
+  className?: string;
+  authorId?: string;
+  enlargeEmoteOnly?: boolean;
+}
 
-export const FormattedText: React.FC<Props> = ({ text, className = '', authorId }) => {
+export const FormattedText: React.FC<Props> = ({
+  text,
+  className = '',
+  authorId,
+  enlargeEmoteOnly = false,
+}) => {
   const navigate = useNavigate();
   const viewerId = useAuthStore((s) => s.user?.id);
   const { emoteMap, userEmoteMap, emotes, isLoaded, isLoading, fetchEmotes, importEmote } = useEmoteStore();
@@ -23,6 +34,24 @@ export const FormattedText: React.FC<Props> = ({ text, className = '', authorId 
   const blocks = parseMarkdownBlocks(text);
   const hasBlockElements = blocks.some((b) => b.type !== 'line');
 
+  const resolveEmote = (name: string): CustomEmote | undefined => {
+    const lower = name.toLowerCase();
+    return authorId
+      ? (userEmoteMap?.[authorId]?.[lower] ??
+          emotes.find((e) => e.creator_id === authorId && e.name.toLowerCase() === lower))
+      : emoteMap[lower];
+  };
+
+  const canImportEmote = (emote: CustomEmote): boolean => {
+    const lower = emote.name.toLowerCase();
+    return Boolean(
+      viewerId &&
+        viewerId !== emote.creator_id &&
+        !userEmoteMap?.[viewerId]?.[lower] &&
+        !emotes.some((e) => e.creator_id === viewerId && e.name.toLowerCase() === lower)
+    );
+  };
+
   const handleLinkClick = (e: React.MouseEvent, url: string) => {
     e.preventDefault(); e.stopPropagation();
     if (!window.getSelection()?.toString()) navigate(UrlHelper.isInternalUrl(url) ? UrlHelper.getInternalPath(url) : `/external?url=${encodeURIComponent(url)}`);
@@ -35,6 +64,70 @@ export const FormattedText: React.FC<Props> = ({ text, className = '', authorId 
     try { await importEmote(emote.id); await dialog.alert(`Emote :${emote.name}: agregado a tu colección.`, 'Personalización'); }
     catch (err) { await dialog.alert((err as Error).message, 'No se pudo importar'); }
   };
+
+  if (enlargeEmoteOnly && !hasBlockElements) {
+    const emoteOnly = analyzeEmoteOnlyBlocks(blocks, resolveEmote);
+    if (emoteOnly.mode !== 'none') {
+      const isSingle = emoteOnly.mode === 'single';
+      const imgSizePx = isSingle ? 64 : 48;
+      const imgClass = isSingle
+        ? 'block w-14 h-14 sm:w-16 sm:h-16 object-contain'
+        : 'block w-12 h-12 object-contain';
+      const unicodeClass = isSingle
+        ? 'inline-block text-[3.25rem] sm:text-[3.75rem] leading-none'
+        : 'inline-block text-[2.5rem] leading-none';
+
+      return (
+        <div className={className} data-emote-only={emoteOnly.mode}>
+          <div className="flex flex-col gap-1.5 py-0.5">
+            {emoteOnly.lines.map((line, lineIdx) => (
+              <div key={`el-${lineIdx}`} className="flex flex-wrap items-center gap-1.5">
+                {line.map((item, itemIdx) => {
+                  const key = `eo-${lineIdx}-${itemIdx}`;
+                  if (item.kind === 'unicode') {
+                    return (
+                      <span key={key} className={unicodeClass}>
+                        {item.value}
+                      </span>
+                    );
+                  }
+                  const { emote } = item;
+                  const canImport = canImportEmote(emote);
+                  const img = (
+                    <img
+                      src={emote.image_url}
+                      alt={`:${emote.name}:`}
+                      title={canImport ? `:${emote.name}: (clic para importar a tu colección)` : `:${emote.name}:`}
+                      width={imgSizePx}
+                      height={imgSizePx}
+                      loading="lazy"
+                      decoding="async"
+                      className={imgClass}
+                    />
+                  );
+                  return canImport ? (
+                    <button
+                      key={key}
+                      type="button"
+                      data-no-card-nav="true"
+                      aria-label={`Importar emote :${emote.name}:`}
+                      onClick={(e) => void handleImportEmote(e, emote)}
+                      className="inline-flex p-0 border-0 bg-transparent cursor-pointer"
+                    >
+                      {img}
+                    </button>
+                  ) : (
+                    <React.Fragment key={key}>{img}</React.Fragment>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+  }
+
   const renderAnchor = (key: string, url: string, label: string) => {
     const isInternal = UrlHelper.isInternalUrl(url);
     return <a key={key} href={url} target={isInternal ? undefined : '_blank'} rel={isInternal ? undefined : 'ugc nofollow noopener noreferrer'} onClick={(e) => handleLinkClick(e, url)} title={`Ir a ${url}`} className="text-brand-400 font-bold hover:underline cursor-pointer break-all">{label}</a>;
@@ -57,12 +150,35 @@ export const FormattedText: React.FC<Props> = ({ text, className = '', authorId 
         case 'mention': return <Link key={key} to={`/${tok.username.slice(1)}`} onClick={handleTokenNav} title={`Ver perfil de ${tok.username}`} className="text-brand-400 font-bold hover:underline cursor-pointer">{tok.username}</Link>;
         case 'hashtag': return <Link key={key} to={`/t/${encodeURIComponent(tok.tag.slice(1).toLowerCase())}`} onClick={handleTokenNav} title={`Explorar ${tok.tag}`} className="text-brand-400 hover:underline cursor-pointer">{tok.tag}</Link>;
         case 'emote': {
-          const lower = tok.name.toLowerCase();
-          const emote = authorId ? (userEmoteMap?.[authorId]?.[lower] ?? emotes.find((e) => e.creator_id === authorId && e.name.toLowerCase() === lower)) : emoteMap[lower];
+          const emote = resolveEmote(tok.name);
           if (!emote) return <React.Fragment key={key}>:{tok.name}:</React.Fragment>;
-          const canImport = Boolean(viewerId && viewerId !== emote.creator_id && !userEmoteMap?.[viewerId]?.[lower] && !emotes.some((e) => e.creator_id === viewerId && e.name.toLowerCase() === lower));
-          const img = <img src={emote.image_url} alt={`:${emote.name}:`} title={canImport ? `:${emote.name}: (clic para importar a tu colección)` : `:${emote.name}:`} className="inline-block w-6 h-6 align-text-bottom object-contain mx-0.5" />;
-          return canImport ? <button key={key} type="button" data-no-card-nav="true" onClick={(e) => void handleImportEmote(e, emote)} className="inline-flex p-0 border-0 bg-transparent cursor-pointer align-text-bottom">{img}</button> : <React.Fragment key={key}>{img}</React.Fragment>;
+          const canImport = canImportEmote(emote);
+          const img = (
+            <img
+              src={emote.image_url}
+              alt={`:${emote.name}:`}
+              title={canImport ? `:${emote.name}: (clic para importar a tu colección)` : `:${emote.name}:`}
+              width={24}
+              height={24}
+              loading="lazy"
+              decoding="async"
+              className="inline-block w-6 h-6 align-text-bottom object-contain mx-0.5"
+            />
+          );
+          return canImport ? (
+            <button
+              key={key}
+              type="button"
+              data-no-card-nav="true"
+              aria-label={`Importar emote :${emote.name}:`}
+              onClick={(e) => void handleImportEmote(e, emote)}
+              className="inline-flex p-0 border-0 bg-transparent cursor-pointer align-text-bottom"
+            >
+              {img}
+            </button>
+          ) : (
+            <React.Fragment key={key}>{img}</React.Fragment>
+          );
         }
       }
     });

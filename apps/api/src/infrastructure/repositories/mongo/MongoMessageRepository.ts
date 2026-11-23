@@ -1,7 +1,8 @@
-import { ChatMessage } from '@oomfy/shared';
+import { ChatMessage, Publication, PublicationEmbed } from '@oomfy/shared';
 import { MongoDatabase } from '../../database/mongo/MongoDatabase.js';
 import { MongoIdHelper } from './MongoIdHelper.js';
 import { MongoMemberRepository } from './MongoMemberRepository.js';
+import { PublicationMapper } from './PublicationMapper.js';
 
 export interface MongoMessageDoc {
   _id: any; id: string; chat_id: string; sender_id: string;
@@ -9,6 +10,7 @@ export interface MongoMessageDoc {
   content: string;
   reply_to?: { id: string; content: string; sender_username: string; sender_name?: string } | null;
   reply_to_id?: string | null; media_urls?: string[]; gif_url?: string | null;
+  embeds?: PublicationEmbed[]; quoted_publication?: Publication | null;
   status: 'sent' | 'seen'; created_at: string; updated_at?: string;
 }
 
@@ -28,6 +30,8 @@ export class MongoMessageRepository {
       } : m.sender,
       reply_to: m.reply_to ? { ...m.reply_to, id: String(m.reply_to.id) } : null,
       reply_to_id: m.reply_to_id ? String(m.reply_to_id) : null,
+      embeds: PublicationMapper.sanitizeEmbeds(m.embeds),
+      quoted_publication: m.quoted_publication ? PublicationMapper.toDomain(m.quoted_publication) : null,
     };
   }
 
@@ -36,15 +40,31 @@ export class MongoMessageRepository {
     const id = data.id!;
     const messageUuid = MongoIdHelper.toMongoId(id);
     const senderUuid = MongoIdHelper.toMongoId(data.sender_id!);
+    const sanitizedEmbeds = PublicationMapper.sanitizeEmbeds(data.embeds);
+    const persistedQuote = data.quoted_publication ? PublicationMapper.toPersistence(data.quoted_publication) : null;
+    const domainQuote = persistedQuote ? PublicationMapper.toDomain(persistedQuote) : null;
     const doc: any = {
       _id: messageUuid, id: messageUuid, chat_id: MongoIdHelper.toMongoId(data.chat_id!), sender_id: senderUuid,
       sender: { ...data.sender!, id: senderUuid }, content: data.content || '',
       reply_to: data.reply_to ? { ...data.reply_to, id: MongoIdHelper.toMongoId(data.reply_to.id) } : null,
       reply_to_id: data.reply_to_id ? MongoIdHelper.toMongoId(data.reply_to_id) : null,
-      media_urls: data.media_urls || [], gif_url: data.gif_url || null, status: 'sent', created_at: now, updated_at: now,
+      media_urls: data.media_urls || [], gif_url: data.gif_url || null,
+      embeds: sanitizedEmbeds,
+      quoted_publication: persistedQuote,
+      status: 'sent', created_at: now, updated_at: now,
     };
     await this.getCollection().insertOne(doc as any);
-    return { ...doc, id } as unknown as ChatMessage;
+    return {
+      ...doc,
+      id,
+      chat_id: String(data.chat_id),
+      sender_id: String(data.sender_id),
+      sender: data.sender ? { ...data.sender, id: String(data.sender_id) } : data.sender,
+      reply_to: data.reply_to ? { ...data.reply_to, id: String(data.reply_to.id) } : null,
+      reply_to_id: data.reply_to_id ? String(data.reply_to_id) : null,
+      embeds: sanitizedEmbeds,
+      quoted_publication: domainQuote,
+    } as unknown as ChatMessage;
   }
 
   public static async findById(id: string): Promise<MongoMessageDoc | null> {

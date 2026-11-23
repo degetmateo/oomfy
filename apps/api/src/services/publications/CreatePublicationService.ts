@@ -2,8 +2,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { CreatePublicationInput, LIMITS, Publication, PublicationEmbed } from '@oomfy/shared';
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 import { PublicationMapper } from '../../infrastructure/repositories/mongo/PublicationMapper.js';
-import { UrlPreviewAdapter } from '../../infrastructure/adapters/UrlPreviewAdapter.js';
-import { clampText } from '../../infrastructure/adapters/OpenGraphParser.js';
+import { ContentEmbedResolver } from './ContentEmbedResolver.js';
 import { AuthorProfileResolver } from './AuthorProfileResolver.js';
 import { PublicationMediaHelper } from './PublicationMediaHelper.js';
 import { MentionNotificationHelper } from './MentionNotificationHelper.js';
@@ -42,29 +41,15 @@ export class CreatePublicationService {
       }
     }
 
-    const embeds: PublicationEmbed[] = [];
-    if (content) {
-      const urls = UrlPreviewAdapter.extractUrls(content, 4);
-      const previews = await UrlPreviewAdapter.getPreviews(urls, 4500);
-      for (const preview of previews) {
-        if (preview.type === 'quote' && preview.target_publication) {
-          if (!input.target_id && !targetPublication && pubType === 'default') {
-            const quoted = preview.target_publication as Publication;
-            if (quoted.author?.id && quoted.author.id !== user.id && (await MongoBlockRepository.isBlockedEitherWay(user.id, quoted.author.id))) {
-              throw new ForbiddenError('No puedes interactuar con las publicaciones de este usuario.');
-            }
-            targetPublication = quoted;
-            pubType = 'quote';
-          } else {
-            embeds.push({
-              type: 'link', url: preview.url, title: clampText(preview.title, 200),
-              description: clampText(preview.description, 200), site_name: 'Oomfy',
-            });
-          }
-        } else if (preview.type !== 'quote') {
-          embeds.push(preview);
-        }
-      }
+    const { embeds, quotedPublication } = await ContentEmbedResolver.resolveForContent(content, {
+      userId: user.id,
+      allowQuotePromotion: !input.target_id && !targetPublication && pubType === 'default',
+      throwOnBlockedQuote: true,
+      budgetMs: 4500,
+    });
+    if (quotedPublication) {
+      targetPublication = quotedPublication;
+      pubType = 'quote';
     }
 
     const [limitedMedia, { iconUrl, bannerUrl }] = await Promise.all([

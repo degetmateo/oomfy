@@ -53,9 +53,10 @@ export class UpvoteService {
       sender: user,
       type: 'upvote',
       targetPublicationId: pubId,
+      targetPublication: { ...pub, upvotes_count: currentUpvotes + 1 },
       push: {
         title: `${user.name} le dio me gusta`,
-        body: pub.content ? `"${pub.content.slice(0, 80)}"` : 'a tu publicación.',
+        body: pub.content ? `"${pub.content.slice(0, 80)}"` : (pub.images?.[0]?.url || 'a tu publicación.'),
         url: `/publication/${pubId}`,
         category: 'upvotes',
       },
