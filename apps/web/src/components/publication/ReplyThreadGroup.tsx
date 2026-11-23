@@ -21,7 +21,7 @@ const isChildOf = (child?: Publication | null, parent?: Publication | null): boo
 
 export const ReplyThreadGroup: React.FC<Props> = ({ reply, rootAuthorId, rootAuthorUsername, onDelete }) => {
   const { items, remaining, isLoadingMore, loadMore } = useSubthreadPagination(
-    reply.id, 'subthread', reply.subthread_preview || [], reply.subthread_remaining_count || 0, 5
+    reply.id, 'subthread', reply.subthread_preview, reply.subthread_remaining_count || 0, 5
   );
 
   const hasSubthread = items.length > 0;

@@ -6,11 +6,11 @@ import { useSubthreadPagination } from '../../hooks/useSubthreadPagination.js';
 
 interface Props {
   rootPostId: string;
-  initialItems: Publication[];
-  initialRemaining: number;
+  initialItems?: Publication[];
+  initialRemaining?: number;
 }
 
-export const AuthorThreadPreview: React.FC<Props> = ({ rootPostId, initialItems, initialRemaining }) => {
+export const AuthorThreadPreview: React.FC<Props> = ({ rootPostId, initialItems, initialRemaining = 0 }) => {
   const { items, remaining, isLoadingMore, loadMore } = useSubthreadPagination(
     rootPostId, 'author', initialItems, initialRemaining, 4
   );

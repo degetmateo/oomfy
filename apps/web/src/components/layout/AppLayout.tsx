@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Navbar } from './Navbar.js';
 import { Aside } from './Aside.js';
 import { MobileBottomNav } from './MobileBottomNav.js';
@@ -10,6 +10,7 @@ import { PixelDialogModal } from '../common/PixelDialogModal.js';
 import { PublicationToastBanner } from '../common/PublicationToastBanner.js';
 import { TermsAcceptanceModal } from '../legal/TermsAcceptanceModal.js';
 import { PushReconnectBanner } from '../notifications/PushReconnectBanner.js';
+import { RouteErrorBoundary } from '../common/RouteErrorBoundary.js';
 import { useUIStore } from '../../stores/uiStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useRouteScroll } from '../../hooks/useRouteScroll.js';
@@ -19,6 +20,7 @@ export const AppLayout: React.FC = () => {
   const { isPostModalOpen, closePostModal } = useUIStore();
   const { isAuthenticated } = useAuthStore();
   const location = useLocation();
+  const navigate = useNavigate();
   const isChatsRoute = location.pathname.startsWith('/chats');
   useRouteScroll();
   useVirtualKeyboard();
@@ -39,7 +41,9 @@ export const AppLayout: React.FC = () => {
         } border-x-0 md:border-r border-dark-border`}
       >
         <PushReconnectBanner />
-        <Outlet />
+        <RouteErrorBoundary resetKey={`${location.pathname}${location.search}`} onNavigateHome={() => navigate('/')}>
+          <Outlet />
+        </RouteErrorBoundary>
       </main>
 
       {!isChatsRoute && <Aside />}

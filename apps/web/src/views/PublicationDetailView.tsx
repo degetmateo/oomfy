@@ -22,6 +22,8 @@ import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { RouteScrollStore } from '../stores/routeScrollStore.js';
 import { usePublicationModel } from '../hooks/usePublicationModel.js';
 
+const EMPTY_PUBLICATIONS: Publication[] = [];
+
 const PublicationDetailContent: React.FC<{ id: string }> = ({ id }) => {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
@@ -54,13 +56,13 @@ const PublicationDetailContent: React.FC<{ id: string }> = ({ id }) => {
   const rawPub: Publication | undefined = data?.publication;
   const cachedPub = publicationIdentityMap.get(id);
   const publication = usePublicationModel(rawPub || cachedPub || id) || rawPub || cachedPub;
-  const ancestors: Publication[] = data?.ancestors || [];
-  const replies: Publication[] = data?.replies || data?.thread || [];
+  const ancestors: Publication[] = data?.ancestors || EMPTY_PUBLICATIONS;
+  const replies: Publication[] = data?.replies || data?.thread || EMPTY_PUBLICATIONS;
 
   useEffect(() => {
     if (!publication || !targetArticleRef.current || ancestors.length === 0) return;
     if (navigationType === 'POP' && RouteScrollStore.get(`${location.pathname}${location.search}`) > 0) return;
-    const timer = setTimeout(() => targetArticleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    const timer = setTimeout(() => targetArticleRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }), 100);
     return () => clearTimeout(timer);
   }, [id, Boolean(publication), ancestors.length]);
 

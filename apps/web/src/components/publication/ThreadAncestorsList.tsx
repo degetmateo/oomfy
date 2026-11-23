@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { ArrowUp, RefreshCw } from 'lucide-react';
 import { Publication } from '@oomfy/shared';
 import { ThreadAncestorCard } from './ThreadAncestorCard.js';
@@ -16,24 +16,32 @@ export const ThreadAncestorsList: React.FC<Props> = ({
 }) => {
   const [earlierAncestors, setEarlierAncestors] = useState<Publication[]>([]);
   const [hasMore, setHasMore] = useState(hasMoreInitial);
-  const [remaining, setRemaining] = useState(Math.max(0, totalAncestors - initialAncestors.length));
+  const [remaining, setRemaining] = useState<number>(Math.max(0, totalAncestors - initialAncestors.length));
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setEarlierAncestors([]);
+  }, [publicationId]);
+
+  const initialCount = initialAncestors.length;
+  useEffect(() => {
     setHasMore(hasMoreInitial);
-    setRemaining(Math.max(0, totalAncestors - initialAncestors.length));
-  }, [initialAncestors, hasMoreInitial, totalAncestors]);
+    setRemaining(Math.max(0, totalAncestors - initialCount));
+  }, [publicationId, initialCount, hasMoreInitial, totalAncestors]);
 
-  const allAncestors = [...earlierAncestors, ...initialAncestors];
+  const allAncestors = useMemo(
+    () => (earlierAncestors.length === 0 ? initialAncestors : [...earlierAncestors, ...initialAncestors]),
+    [earlierAncestors, initialAncestors]
+  );
+  const firstAncestorId = allAncestors[0]?.id || '';
 
-  const loadEarlier = async () => {
-    if (isLoadingMore || !hasMore || allAncestors.length === 0) return;
+  const loadEarlier = useCallback(async () => {
+    if (isLoadingMore || !hasMore || !firstAncestorId) return;
     setIsLoadingMore(true);
-    const firstAncestor = allAncestors[0];
     const prevScrollHeight = document.documentElement.scrollHeight;
     try {
-      const res = await ApiClient.get<any>(`/publications/${publicationId}/ancestors?before_id=${firstAncestor.id}&limit=4`);
+      const res = await ApiClient.get<any>(`/publications/${publicationId}/ancestors?before_id=${firstAncestorId}&limit=4`);
       const data = res.data;
       if (data?.ancestors?.length > 0) {
         setEarlierAncestors((prev) => [...data.ancestors, ...prev]);
@@ -50,17 +58,17 @@ export const ThreadAncestorsList: React.FC<Props> = ({
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [publicationId, isLoadingMore, hasMore, firstAncestorId]);
 
   useEffect(() => {
-    if (!hasMore || isLoadingMore) return;
+    if (!hasMore || isLoadingMore || !firstAncestorId) return;
     const observer = new IntersectionObserver(
       (entries) => { if (entries[0]?.isIntersecting) loadEarlier(); },
       { threshold: 0.1, rootMargin: '100px 0px 0px 0px' }
     );
     if (sentinelRef.current) observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [hasMore, isLoadingMore, allAncestors]);
+  }, [hasMore, isLoadingMore, firstAncestorId, loadEarlier]);
 
   if (allAncestors.length === 0 && !hasMore) return null;
 

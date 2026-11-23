@@ -24,6 +24,8 @@ interface Props {
   onDelete?: (id: string) => void;
 }
 
+const EMPTY_THREAD_ITEMS: Publication[] = [];
+
 const PublicationCardBase: React.FC<Props> = ({
   post: rawPost, index, hideBottomBorder = false, hideThreadPreview = false, onDelete,
 }) => {
@@ -50,7 +52,7 @@ const PublicationCardBase: React.FC<Props> = ({
     return deferClass ? <div className={deferClass}>{sharedEl}</div> : sharedEl;
   }
 
-  const threadItems = hideThreadPreview ? [] : (post.author_thread_preview || []);
+  const threadItems = hideThreadPreview ? EMPTY_THREAD_ITEMS : (post.author_thread_preview || EMPTY_THREAD_ITEMS);
   const hasThread = threadItems.length > 0;
   const showLine = hasThread || (hideBottomBorder && !hideThreadPreview);
   const hideBorder = hasThread || hideBottomBorder;
