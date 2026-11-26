@@ -1,9 +1,14 @@
-import { Notification, PublicUser } from '@oomfy/shared';
+import { AuthorSnapshot, Notification, PublicUser } from '@oomfy/shared';
 import { ObservableSubject, Listener } from './ObservableSubject.js';
 import { userIdentityMap } from './UserIdentityMap.js';
 import { publicationIdentityMap } from './PublicationIdentityMap.js';
 
+function isGroupedInteractionNotif(n: Notification): boolean {
+  return Boolean((n.type === 'upvote' || n.type === 'share') && n.target_publication_id);
+}
+
 export class NotificationIdentityMap {
+  private static readonly MAX_NOTIFICATIONS = 500;
   private static instance: NotificationIdentityMap;
   private byId = new Map<string, Notification>();
   private orderedIds: string[] = [];
@@ -14,15 +19,25 @@ export class NotificationIdentityMap {
   private constructor() { userIdentityMap.onUserSynced((u) => this.syncSender(u)); }
   public static getInstance(): NotificationIdentityMap { return (this.instance ??= new NotificationIdentityMap()); }
 
-  private rebuildCache(): void { this.listCache = this.orderedIds.map((id) => this.byId.get(id)!).filter(Boolean); }
+  private trimToMax(): void {
+    if (this.orderedIds.length <= NotificationIdentityMap.MAX_NOTIFICATIONS) return;
+    const dropped = this.orderedIds.slice(NotificationIdentityMap.MAX_NOTIFICATIONS);
+    this.orderedIds = this.orderedIds.slice(0, NotificationIdentityMap.MAX_NOTIFICATIONS);
+    for (const id of dropped) this.byId.delete(id);
+  }
+
+  private rebuildCache(): void {
+    this.trimToMax();
+    this.listCache = this.orderedIds.map((id) => this.byId.get(id)!).filter(Boolean);
+  }
   public getNotifications(): Notification[] { return this.listCache; }
   public getPendingCount(): number { return this.pendingCount; }
   public subscribeList(l: Listener): () => void { return this.subject.subscribe('__list__', l); }
   public subscribeCount(l: Listener): () => void { return this.subject.subscribe('__count__', l); }
 
   private ingestRelatedEntities(items: Notification[], fetchedAt: number): void {
-    const senders = items.map((n) => n.sender).filter((s) => Boolean(s?.username)) as unknown as PublicUser[];
-    if (senders.length > 0) userIdentityMap.ingest(senders, fetchedAt, false);
+    const users = items.flatMap((n) => [n.sender, ...(n.actors || [])]).filter((s) => Boolean(s?.username)) as unknown as PublicUser[];
+    if (users.length > 0) userIdentityMap.ingest(users, fetchedAt, false);
     const pubs = items.map((n) => n.target_publication).filter(Boolean);
     if (pubs.length > 0) publicationIdentityMap.ingest(pubs, fetchedAt);
   }
@@ -45,12 +60,36 @@ export class NotificationIdentityMap {
   public prependRealtime(notif: Notification): void {
     if (!notif?.id) return;
     this.ingestRelatedEntities([notif], Date.now());
-    const isNew = !this.byId.has(notif.id);
-    this.byId.set(notif.id, notif);
-    if (isNew) {
-      this.orderedIds = [notif.id, ...this.orderedIds];
-      if (notif.status !== 'seen') this.pendingCount += 1;
+
+    const isGrouped = isGroupedInteractionNotif(notif);
+    let existingMatch: Notification | undefined = this.byId.get(notif.id);
+    const idsToReplace = new Set<string>([notif.id]);
+
+    if (isGrouped) {
+      const targetPubLower = String(notif.target_publication_id).toLowerCase();
+      for (const id of this.orderedIds) {
+        const candidate = this.byId.get(id);
+        if (
+          candidate &&
+          candidate.type === notif.type &&
+          candidate.target_publication_id &&
+          String(candidate.target_publication_id).toLowerCase() === targetPubLower
+        ) {
+          if (!existingMatch) existingMatch = candidate;
+          idsToReplace.add(id);
+        }
+      }
     }
+
+    const wasPending = existingMatch?.status === 'pending';
+    for (const oldId of idsToReplace) this.byId.delete(oldId);
+    this.byId.set(notif.id, notif);
+    this.orderedIds = [notif.id, ...this.orderedIds.filter((id) => !idsToReplace.has(id))];
+
+    if (notif.status !== 'seen' && !wasPending) {
+      this.pendingCount += 1;
+    }
+
     this.rebuildCache();
     this.subject.notifyMany(['__list__', '__count__']);
   }
@@ -71,9 +110,21 @@ export class NotificationIdentityMap {
 
   private syncSender(user: PublicUser): void {
     let changed = false;
+    const matchesUser = (a?: AuthorSnapshot | null) =>
+      Boolean(a && (a.id === user.id || a.username?.toLowerCase() === user.username.toLowerCase()));
+    const patchActor = (a: AuthorSnapshot): AuthorSnapshot => ({
+      ...a, name: user.name, username: user.username, icon_url: user.icon_url, banner_url: user.banner_url, role: user.role,
+    });
+
     for (const [id, n] of this.byId.entries()) {
-      if (n.sender?.id === user.id || n.sender?.username?.toLowerCase() === user.username.toLowerCase()) {
-        this.byId.set(id, { ...n, sender: { ...n.sender, name: user.name, username: user.username, icon_url: user.icon_url, banner_url: user.banner_url, role: user.role } });
+      const senderMatch = matchesUser(n.sender);
+      const actorsMatch = Array.isArray(n.actors) && n.actors.some(matchesUser);
+      if (senderMatch || actorsMatch) {
+        this.byId.set(id, {
+          ...n,
+          sender: senderMatch ? patchActor(n.sender) : n.sender,
+          ...(Array.isArray(n.actors) ? { actors: n.actors.map((a) => (matchesUser(a) ? patchActor(a) : a)) } : {}),
+        });
         changed = true;
       }
     }

@@ -5,12 +5,17 @@ import { notificationIdentityMap } from '../models/NotificationIdentityMap.js';
 
 interface NotificationPageResponse {
   success: boolean;
-  data: { notifications: Notification[]; pendingCount: number };
+  data: { notifications: Notification[]; pendingCount: number; hasMore?: boolean; nextCursor?: string | null };
 }
 
 export class NotificationController {
   public static getNextPageParam(lastPage?: NotificationPageResponse): string | undefined {
-    const notifs = lastPage?.data?.notifications;
+    const data = lastPage?.data;
+    if (!data) return undefined;
+    if (typeof data.hasMore === 'boolean') {
+      return data.hasMore && data.nextCursor ? data.nextCursor : undefined;
+    }
+    const notifs = data.notifications;
     return Array.isArray(notifs) && notifs.length >= 20 ? notifs[notifs.length - 1]?.id : undefined;
   }
 
@@ -48,18 +53,29 @@ export class NotificationController {
     const nextCount = notificationIdentityMap.getPendingCount();
     queryClient.setQueryData(['notifications-unread-count'], { success: true, count: nextCount });
     let updatedList = false;
+    const isGrouped = (notif.type === 'upvote' || notif.type === 'share') && Boolean(notif.target_publication_id);
+    const shouldReplace = (n: Notification) =>
+      n.id === notif.id ||
+      (isGrouped && n.type === notif.type && Boolean(n.target_publication_id) &&
+        String(n.target_publication_id).toLowerCase() === String(notif.target_publication_id).toLowerCase());
+
     queryClient.setQueryData(['notifications-infinite-list'], (old: any) => {
       if (!old?.pages?.length) return old;
-      const firstPage = old.pages[0];
-      const existing: Notification[] = firstPage?.data?.notifications || [];
-      if (existing.some((n) => n.id === notif.id)) {
-        updatedList = true;
-        return old;
-      }
       updatedList = true;
+      const cleanedPages = old.pages.map((page: any) => ({
+        ...page,
+        data: page?.data ? {
+          ...page.data,
+          notifications: Array.isArray(page.data.notifications)
+            ? page.data.notifications.filter((n: Notification) => !shouldReplace(n))
+            : page.data.notifications,
+        } : page?.data,
+      }));
+      const firstPage = cleanedPages[0];
+      const existing: Notification[] = firstPage?.data?.notifications || [];
       return {
         ...old,
-        pages: [{ ...firstPage, data: { ...firstPage.data, notifications: [notif, ...existing] } }, ...old.pages.slice(1)],
+        pages: [{ ...firstPage, data: { ...firstPage.data, notifications: [notif, ...existing] } }, ...cleanedPages.slice(1)],
       };
     });
     if (!updatedList) queryClient.invalidateQueries({ queryKey: ['notifications-infinite-list'] });

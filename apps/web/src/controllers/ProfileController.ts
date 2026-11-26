@@ -8,6 +8,7 @@ import { PublicationCacheService } from '../services/PublicationCacheService.js'
 
 export interface ProfileEditDraft {
   name: string;
+  pronouns: string;
   bio: string;
   location: string;
   link: string;
@@ -23,7 +24,7 @@ export class ProfileController {
   public static createDraft(user: PublicUser): ProfileEditDraft {
     const model = userIdentityMap.get(user.username) || user;
     return {
-      name: model.name || '', bio: model.bio || '', location: model.location || '', link: model.link || '',
+      name: model.name || '', pronouns: model.pronouns || '', bio: model.bio || '', location: model.location || '', link: model.link || '',
       bannerPreview: model.banner_url || null, iconPreview: model.icon_url || null,
       bannerFile: null, iconFile: null, bannerAction: 'none', iconAction: 'none',
     };
@@ -46,9 +47,11 @@ export class ProfileController {
     const formData = new FormData();
     let hasChanges = false;
     const trimmedName = draft.name.trim();
+    const trimmedPronouns = draft.pronouns.trim();
     const normalizedLink = this.resolveDraftLink(draft.link);
 
     if (trimmedName !== (base.name || '')) { formData.append('name', trimmedName); hasChanges = true; }
+    if (trimmedPronouns !== (base.pronouns || '')) { formData.append('pronouns', trimmedPronouns); hasChanges = true; }
     if (draft.bio !== (base.bio || '')) { formData.append('bio', draft.bio); hasChanges = true; }
     if (draft.location !== (base.location || '')) { formData.append('location', draft.location); hasChanges = true; }
     if ((normalizedLink || '') !== (base.link || '')) { formData.append('link', normalizedLink || ''); hasChanges = true; }
@@ -70,7 +73,7 @@ export class ProfileController {
     if (!hasChanges) return modelBase;
 
     userIdentityMap.patch(modelBase.username, (prev) => ({
-      ...prev, name: draft.name.trim() || prev.name, bio: draft.bio, location: draft.location, link: normalizedLink,
+      ...prev, name: draft.name.trim() || prev.name, pronouns: draft.pronouns.trim() || null, bio: draft.bio, location: draft.location, link: normalizedLink,
     }));
 
     try {

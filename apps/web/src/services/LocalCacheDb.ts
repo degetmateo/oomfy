@@ -31,33 +31,17 @@ function openDatabase(): Promise<IDBDatabase | null> {
   return dbPromise;
 }
 
-export async function getCacheEntry<T>(key: string): Promise<T | null> {
+export async function listCacheKeys(): Promise<string[]> {
   const db = await openDatabase();
-  if (!db) return (memoryFallback.get(key) as T) ?? null;
+  if (!db) return Array.from(memoryFallback.keys());
   return new Promise((resolve) => {
     try {
       const tx = db.transaction(STORE_NAME, 'readonly');
-      const req = tx.objectStore(STORE_NAME).get(key);
-      req.onsuccess = () => resolve((req.result as T) ?? null);
-      req.onerror = () => resolve((memoryFallback.get(key) as T) ?? null);
+      const req = tx.objectStore(STORE_NAME).getAllKeys();
+      req.onsuccess = () => resolve((req.result || []).map(String));
+      req.onerror = () => resolve(Array.from(memoryFallback.keys()));
     } catch {
-      resolve((memoryFallback.get(key) as T) ?? null);
-    }
-  });
-}
-
-export async function setCacheEntry<T>(key: string, value: T): Promise<void> {
-  memoryFallback.set(key, value);
-  const db = await openDatabase();
-  if (!db) return;
-  await new Promise<void>((resolve) => {
-    try {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).put(value, key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    } catch {
-      resolve();
+      resolve(Array.from(memoryFallback.keys()));
     }
   });
 }
@@ -76,6 +60,61 @@ export async function deleteCacheEntry(key: string): Promise<void> {
       resolve();
     }
   });
+}
+
+export async function pruneOtherScopes(keepPrefixes: string[]): Promise<void> {
+  const keys = await listCacheKeys();
+  const toDelete = keys.filter((k) => !keepPrefixes.some((prefix) => k === prefix || k.startsWith(prefix)));
+  await Promise.all(toDelete.map((k) => deleteCacheEntry(k)));
+}
+
+async function tryWriteIdb<T>(db: IDBDatabase, key: string, value: T): Promise<'ok' | 'quota' | 'err'> {
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(value, key);
+      tx.oncomplete = () => resolve('ok');
+      tx.onerror = () => {
+        const name = tx.error?.name || '';
+        resolve(name === 'QuotaExceededError' ? 'quota' : 'err');
+      };
+      tx.onabort = () => {
+        const name = tx.error?.name || '';
+        resolve(name === 'QuotaExceededError' ? 'quota' : 'err');
+      };
+    } catch (err: any) {
+      resolve(err?.name === 'QuotaExceededError' ? 'quota' : 'err');
+    }
+  });
+}
+
+export async function getCacheEntry<T>(key: string): Promise<T | null> {
+  const db = await openDatabase();
+  if (!db) return (memoryFallback.get(key) as T) ?? null;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => resolve((req.result as T) ?? null);
+      req.onerror = () => resolve((memoryFallback.get(key) as T) ?? null);
+    } catch {
+      resolve((memoryFallback.get(key) as T) ?? null);
+    }
+  });
+}
+
+export async function setCacheEntry<T>(key: string, value: T, activeScope?: string): Promise<void> {
+  memoryFallback.set(key, value);
+  const db = await openDatabase();
+  if (!db) return;
+  const status = await tryWriteIdb(db, key, value);
+  if (status === 'quota') {
+    const keepPrefixes = activeScope
+      ? [`oomfy_queries_${activeScope}`, `oomfy_entities_${activeScope}`]
+      : [key];
+    await pruneOtherScopes(keepPrefixes).catch(() => {});
+    await tryWriteIdb(db, key, value);
+  }
 }
 
 export async function clearLocalCacheDb(): Promise<void> {

@@ -17,7 +17,7 @@ export class PublicationInteractionDecorator {
     const userVariants = MongoIdHelper.idVariants(userId);
     const db = MongoDatabase.getDb();
 
-    const [userUpvotes, userShares, userQuotes] = await Promise.all([
+    const [userUpvotes, userShares, userQuotes, userBookmarks] = await Promise.all([
       db.collection('upvotes').find({
         user_id: { $in: userVariants },
         publication_id: { $in: allPostVariants },
@@ -42,6 +42,10 @@ export class PublicationInteractionDecorator {
           ],
         }],
       }).toArray(),
+      db.collection('bookmarks').find({
+        user_id: { $in: userVariants },
+        publication_id: { $in: allPostVariants },
+      }).toArray(),
     ]);
 
     const upvotedSet = new Set(
@@ -57,23 +61,29 @@ export class PublicationInteractionDecorator {
         (q.parent_publication_id?.toString() || q.target_publication_id?.toString() || '').toLowerCase()
       )
     );
+    const bookmarkedSet = new Set(
+      userBookmarks.map((b: any) => (b.publication_id?.toString() || b.publication_id || '').toLowerCase())
+    );
 
     for (const post of posts) {
       const pid = (post.id || '').toLowerCase();
       post.is_upvoted = upvotedSet.has(pid);
       post.is_shared = sharedSet.has(pid);
       post.is_quoted = quotedSet.has(pid);
+      post.is_bookmarked = bookmarkedSet.has(pid);
       if (post.target_publication) {
         const tid = (post.target_publication.id || '').toLowerCase();
         post.target_publication.is_upvoted = upvotedSet.has(tid);
         post.target_publication.is_shared = sharedSet.has(tid);
         post.target_publication.is_quoted = quotedSet.has(tid);
+        post.target_publication.is_bookmarked = bookmarkedSet.has(tid);
       }
       for (const preview of [...(post.author_thread_preview || []), ...(post.subthread_preview || [])]) {
         const sid = (preview.id || '').toLowerCase();
         preview.is_upvoted = upvotedSet.has(sid);
         preview.is_shared = sharedSet.has(sid);
         preview.is_quoted = quotedSet.has(sid);
+        preview.is_bookmarked = bookmarkedSet.has(sid);
       }
     }
 

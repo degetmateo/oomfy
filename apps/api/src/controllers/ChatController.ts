@@ -22,7 +22,7 @@ export class ChatController {
     try {
       const user = req.user!;
       const files = (req.files as Express.Multer.File[]) || [];
-      const { chat_id, content, reply_to_id, gif_url } = req.body;
+      const { chat_id, content, reply_to_id, shared_publication_id, gif_url } = req.body;
       const uploadedUrls: string[] = Array.isArray(req.body.media_urls) ? [...req.body.media_urls] : [];
 
       for (const file of files.slice(0, 4)) {
@@ -30,16 +30,35 @@ export class ChatController {
         if (upload.url) uploadedUrls.push(upload.url);
       }
 
-      if (!content?.trim() && !gif_url && uploadedUrls.length === 0) {
+      if (!content?.trim() && !gif_url && uploadedUrls.length === 0 && !shared_publication_id) {
         throw new BadRequestError('El mensaje no puede estar vacío.');
       }
 
       const msg = await MessageService.sendMessage(
         chat_id,
         { id: user.id, username: user.username, name: user.name || user.username, role: user.role },
-        { content, reply_to_id: reply_to_id || null, gif_url: gif_url || null, media_urls: uploadedUrls.slice(0, 4) }
+        {
+          content,
+          reply_to_id: reply_to_id || null,
+          shared_publication_id: shared_publication_id || null,
+          gif_url: gif_url || null,
+          media_urls: uploadedUrls.slice(0, 4),
+        }
       );
       res.status(201).json({ success: true, data: msg });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public static async sharePublication(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = req.user!;
+      const result = await MessageService.sharePublicationToRecipients(
+        { id: user.id, username: user.username, name: user.name || user.username, role: user.role },
+        req.body
+      );
+      res.status(201).json({ success: true, data: result });
     } catch (err) {
       next(err);
     }

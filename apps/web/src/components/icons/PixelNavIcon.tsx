@@ -1,6 +1,16 @@
 import React from 'react';
+import { Bell, Bookmark, Compass, Home, Mail, Settings, Shield, User } from 'lucide-react';
 
-export type NavIconType = 'home' | 'explore' | 'notifications' | 'messages' | 'member' | 'settings';
+export type NavIconType =
+  | 'home'
+  | 'explore'
+  | 'notifications'
+  | 'messages'
+  | 'bookmarks'
+  | 'member'
+  | 'settings'
+  | 'admin'
+  | 'moderation';
 
 interface Props {
   name: NavIconType;
@@ -9,20 +19,32 @@ interface Props {
   size?: number;
 }
 
+const ICONS: Record<NavIconType, React.ComponentType<any>> = {
+  home: Home,
+  explore: Compass,
+  notifications: Bell,
+  messages: Mail,
+  bookmarks: Bookmark,
+  member: User,
+  settings: Settings,
+  admin: Shield,
+  moderation: Shield,
+};
+
 export const PixelNavIcon: React.FC<Props> = ({ name, active = false, className = '', size = 22 }) => {
-  const state = active ? 'on' : 'off';
-  const ext = name === 'explore' ? 'png' : 'svg';
-  const src = `/assets/nav/${name}-${state}.${ext}`;
+  const Icon = ICONS[name] || Home;
 
   return (
-    <img
-      src={src}
-      alt={name}
+    <Icon
       width={size}
       height={size}
-      className={`inline-block pixel-button select-none ${className}`}
-      style={{ imageRendering: 'pixelated' }}
+      size={size}
+      strokeWidth={active ? 2.3 : 1.9}
+      fill={active ? 'currentColor' : 'none'}
+      fillOpacity={active ? 0.16 : 0}
+      aria-hidden="true"
+      data-nav-icon={name}
+      className={`inline-block flex-shrink-0 select-none ${active ? 'text-brand-400' : ''} ${className}`}
     />
   );
 };
-

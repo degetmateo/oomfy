@@ -11,7 +11,7 @@ import { ImageMemoryCache } from '../utils/imageCache.js';
 const PREFETCH_STALE_MS = 2 * 60 * 1000;
 const STATIC_TOP_ROUTES = new Set([
   'signin', 'signup', 'verify', 'reset-password', 'explore', 'notifications',
-  'chats', 'settings', 'admin', 'moderation', 'terms', 'privacy', 'external',
+  'chats', 'bookmarks', 'settings', 'admin', 'moderation', 'terms', 'privacy', 'external',
 ]);
 const nextCursorParam = (lastPage: { data?: Publication[] }) =>
   Array.isArray(lastPage?.data) && lastPage.data.length >= 20 ? lastPage.data[lastPage.data.length - 1]?.id : undefined;
@@ -73,6 +73,11 @@ export class RoutePrefetchService {
     }
     if (cleanPath === '/chats') {
       queryClient.prefetchQuery({ queryKey: ['chats'], queryFn: () => ApiClient.get<any>('/chats'), staleTime: PREFETCH_STALE_MS }).catch(() => {});
+      return;
+    }
+    if (cleanPath === '/bookmarks') {
+      queryClient.prefetchQuery({ queryKey: ['bookmark-folders'], queryFn: () => ApiClient.get<any>('/bookmarks/folders').then((r) => r?.data || []), staleTime: PREFETCH_STALE_MS }).catch(() => {});
+      queryClient.prefetchQuery({ queryKey: ['bookmarks', 'all'], queryFn: () => ApiClient.get<any>('/bookmarks?limit=50&offset=0').then((r) => r?.data || { items: [], hasMore: false }), staleTime: PREFETCH_STALE_MS }).catch(() => {});
       return;
     }
     const profileMatch = cleanPath.match(/^\/([a-zA-Z0-9_]{3,30})$/);

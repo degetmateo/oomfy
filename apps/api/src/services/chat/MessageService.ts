@@ -1,9 +1,12 @@
 import { v7 as uuidv7 } from 'uuid';
-import { ChatMessage, LIMITS } from '@oomfy/shared';
+import { ChatMessage, LIMITS, Publication } from '@oomfy/shared';
 import { MongoMessageRepository } from '../../infrastructure/repositories/mongo/MongoMessageRepository.js';
 import { MongoChatRepository } from '../../infrastructure/repositories/mongo/MongoChatRepository.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
 import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
+import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
+import { PublicationMapper } from '../../infrastructure/repositories/mongo/PublicationMapper.js';
+import { ChatService } from './ChatService.js';
 import { WebPushService } from '../notifications/WebPushService.js';
 import { NotificationIconHelper } from '../notifications/NotificationIconHelper.js';
 import { MentionNotificationHelper } from '../publications/MentionNotificationHelper.js';
@@ -14,6 +17,7 @@ import { BadRequestError, NotFoundError, ForbiddenError } from '../../errors/App
 export interface SendMessagePayload {
   content?: string;
   reply_to_id?: string | null;
+  shared_publication_id?: string | null;
   gif_url?: string | null;
   media_urls?: string[];
 }
@@ -52,12 +56,28 @@ export class MessageService {
       replyTo = { id: original.id, content: original.content, sender_username: original.sender?.username || 'usuario', sender_name: original.sender?.name };
     }
 
-    const { embeds, quotedPublication } = await ContentEmbedResolver.resolveForContent(content, {
+    let explicitSharedPublication: Publication | null = null;
+    if (data.shared_publication_id) {
+      const pub = await MongoPublicationRepository.findById(data.shared_publication_id, sender.id);
+      if (!pub) throw new NotFoundError('Publicación no encontrada.');
+      if (pub.author?.id && pub.author.id !== sender.id && (await MongoBlockRepository.isBlockedEitherWay(sender.id, pub.author.id))) {
+        throw new ForbiddenError('No puedes compartir publicaciones de este usuario.');
+      }
+      const targetPub = pub.type === 'shared' && pub.target_publication ? pub.target_publication : pub;
+      explicitSharedPublication = PublicationMapper.stripViewerFlags({
+        ...targetPub,
+        images: PublicationMapper.sanitizeImages(targetPub.images),
+        embeds: PublicationMapper.sanitizeEmbeds(targetPub.embeds),
+      });
+    }
+
+    const { embeds, quotedPublication: resolvedQuoted } = await ContentEmbedResolver.resolveForContent(content, {
       userId: sender.id,
-      allowQuotePromotion: true,
+      allowQuotePromotion: !explicitSharedPublication,
       throwOnBlockedQuote: false,
       budgetMs: 4500,
     });
+    const quotedPublication = explicitSharedPublication || resolvedQuoted;
 
     const message = await MongoMessageRepository.insertMessage({
       id: messageId, chat_id: chatId, sender_id: sender.id, sender: senderObj,
@@ -65,7 +85,7 @@ export class MessageService {
       media_urls: data.media_urls || [], gif_url: data.gif_url || null,
       embeds, quoted_publication: quotedPublication,
     });
-    const snippet = content || (data.gif_url ? 'GIF' : data.media_urls?.length ? 'Imagen' : 'Mensaje');
+    const snippet = content || (quotedPublication ? 'Compartió una publicación' : data.gif_url ? 'GIF' : data.media_urls?.length ? 'Imagen' : 'Mensaje');
     await MongoChatRepository.updateLastMessage(chatId, { id: messageId, content: snippet, sender_id: sender.id, created_at: (message as any).created_at });
     SocketGateway.broadcastChatMessage(chatId, message);
     const chatIcon = await NotificationIconHelper.resolveSenderIcon(senderObj);
@@ -77,6 +97,47 @@ export class MessageService {
     }
     await MentionNotificationHelper.notifyChatMentions(message, participants, senderObj);
     return message;
+  }
+
+  public static async sharePublicationToRecipients(
+    sender: { id: string; username: string; name: string; role?: string },
+    input: { publication_id: string; recipient_usernames: string[]; content?: string }
+  ): Promise<{
+    sent: Array<{ username: string; chatId: string; messageId: string }>;
+    failed: Array<{ username: string; reason: string }>;
+  }> {
+    const pub = await MongoPublicationRepository.findById(input.publication_id, sender.id);
+    if (!pub) throw new NotFoundError('Publicación no encontrada.');
+    if (pub.author?.id && pub.author.id !== sender.id && (await MongoBlockRepository.isBlockedEitherWay(sender.id, pub.author.id))) {
+      throw new ForbiddenError('No puedes compartir publicaciones de este usuario.');
+    }
+
+    const recipients = Array.from(
+      new Set(input.recipient_usernames.map((u) => u.trim().toLowerCase()).filter(Boolean))
+    ).slice(0, 20);
+    if (recipients.length === 0) throw new BadRequestError('Selecciona al menos un destinatario.');
+
+    const sent: Array<{ username: string; chatId: string; messageId: string }> = [];
+    const failed: Array<{ username: string; reason: string }> = [];
+
+    for (const username of recipients) {
+      try {
+        const chat = await ChatService.getOrCreatePrivateChat(sender, username);
+        const msg = await this.sendMessage(chat.id, sender, {
+          content: input.content || '',
+          shared_publication_id: input.publication_id,
+        });
+        sent.push({ username, chatId: chat.id, messageId: msg.id });
+      } catch (err: any) {
+        failed.push({ username, reason: err?.message || 'No se pudo enviar el mensaje.' });
+      }
+    }
+
+    if (sent.length === 0 && failed.length > 0) {
+      throw new BadRequestError(failed[0].reason || 'No se pudo enviar la publicación.');
+    }
+
+    return { sent, failed };
   }
 
   public static async getChatMessages(chatId: string, userId: string, limit = 30, olderId?: string): Promise<any[]> {

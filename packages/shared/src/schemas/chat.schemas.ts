@@ -20,6 +20,7 @@ export const SendMessageSchema = z.object({
     .optional()
     .default(''),
   reply_to_id: z.preprocess(emptyToNull, safeEntityIdSchema.nullable().optional()),
+  shared_publication_id: z.preprocess(emptyToNull, safeEntityIdSchema.nullable().optional()),
   gif_url: z.preprocess(emptyToNull, httpUrlSchema('URL de GIF inválida.').nullable().optional()),
   media_urls: z.preprocess(
     (v) => {
@@ -37,5 +38,26 @@ export const SendMessageAdminSchema = SendMessageSchema.extend({
   content: z.string().optional().default(''),
 });
 
+export const SharePublicationMessageSchema = z.object({
+  publication_id: safeEntityIdSchema,
+  recipient_usernames: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1)
+        .max(LIMITS.USERNAME_MAX)
+        .regex(USERNAME_REGEX, { error: 'Nombre de usuario inválido.' })
+    )
+    .min(1, { error: 'Selecciona al menos un destinatario.' })
+    .max(20, { error: 'Máximo 20 destinatarios a la vez.' }),
+  content: z
+    .string()
+    .max(LIMITS.MESSAGE_CONTENT_MAX, { error: `Máximo ${LIMITS.MESSAGE_CONTENT_MAX} caracteres.` })
+    .optional()
+    .default(''),
+});
+
 export type CreateChatInput = z.infer<typeof CreateChatSchema>;
 export type SendMessageInput = z.infer<typeof SendMessageSchema>;
+export type SharePublicationMessageInput = z.infer<typeof SharePublicationMessageSchema>;

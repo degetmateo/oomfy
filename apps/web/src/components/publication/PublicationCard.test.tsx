@@ -28,7 +28,7 @@ describe('PublicationCard Component', () => {
     comments_count: 3,
   };
 
-  it('renders author information, badges and content', () => {
+  it('renders author information and content without role badge on publications', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
@@ -39,7 +39,7 @@ describe('PublicationCard Component', () => {
 
     expect(screen.getByText('Pixel Master')).toBeInTheDocument();
     expect(screen.getByText('@pixeldev')).toBeInTheDocument();
-    expect(screen.getByText('[ADMIN]')).toBeInTheDocument();
+    expect(screen.queryByText('[ADMIN]')).not.toBeInTheDocument();
     expect(screen.getByText('Probando el diseño retro pixel de oomfy!')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();

@@ -2,6 +2,7 @@ import { PostgresPool } from '../../infrastructure/database/postgres/PostgresPoo
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
+import { MongoBookmarkRepository } from '../../infrastructure/repositories/mongo/MongoBookmarkRepository.js';
 import { PushSubscriptionRepository } from '../../infrastructure/repositories/mongo/PushSubscriptionRepository.js';
 import { PostgresSessionRepository } from '../../infrastructure/repositories/postgres/PostgresSessionRepository.js';
 import { PasswordHasher } from '../../infrastructure/adapters/PasswordHasher.js';
@@ -15,7 +16,7 @@ export class AccountLifecycleService {
   public static async exportMyData(userId: string) {
     const pool = PostgresPool.getInstance();
     const { rows } = await pool.query(
-      `SELECT id, username, name, email, role, status, bio, location, link, terms_accepted, terms_accepted_at, created_at, updated_at
+      `SELECT id, username, name, email, role, status, bio, pronouns, location, link, terms_accepted, terms_accepted_at, created_at, updated_at
        FROM members WHERE id = $1`,
       [userId]
     );
@@ -86,6 +87,7 @@ export class AccountLifecycleService {
       db.collection('messages').deleteMany({ sender_id: { $in: variants } }),
       db.collection('chats').updateMany({ participant_ids: { $in: variants } }, { $pull: { participant_ids: { $in: variants }, participants: { id: { $in: variants } } } as any }),
       PushSubscriptionRepository.deleteByUserId(userId),
+      MongoBookmarkRepository.deleteByUserId(userId),
       MongoMemberRepository.deleteById(userId),
     ]);
     await db.collection('chats').deleteMany({ participant_ids: { $size: 0 } });

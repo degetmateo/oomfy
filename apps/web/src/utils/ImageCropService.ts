@@ -51,7 +51,11 @@ export class ImageCropService {
     ctx.drawImage(image, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
 
     return new Promise<File>((resolve, reject) => {
-      const mimeType = originalFile.type.startsWith('image/png') ? 'image/png' : 'image/jpeg';
+      const mimeType = originalFile.type === 'image/png'
+        ? 'image/png'
+        : originalFile.type === 'image/webp'
+          ? 'image/webp'
+          : 'image/jpeg';
       canvas.toBlob(
         (blob) => {
           if (!blob) {
@@ -61,7 +65,7 @@ export class ImageCropService {
           resolve(new File([blob], originalFile.name, { type: mimeType, lastModified: Date.now() }));
         },
         mimeType,
-        0.92
+        0.95
       );
     });
   }

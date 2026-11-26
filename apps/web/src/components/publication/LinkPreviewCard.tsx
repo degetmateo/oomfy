@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PublicationEmbed } from '@oomfy/shared';
 import { MediaGrid } from './MediaGrid.js';
-import { PixelBadge } from '../icons/PixelBadge.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { FormattedText } from '../common/FormattedText.js';
 import { UrlHelper } from '../../utils/UrlHelper.js';
@@ -39,7 +38,6 @@ export const LinkPreviewCard: React.FC<Props> = ({ embeds = [], targetPublicatio
           <div className="flex items-center gap-2 flex-wrap">
             <PixelAvatar src={targetPublication.author?.icon_url} username={targetPublication.author?.username} sizeClass="w-5 h-5" />
             <span className="font-bold text-[0.8125rem] text-white truncate">{targetPublication.author?.name}</span>
-            {targetPublication.author?.role && <PixelBadge role={targetPublication.author.role} />}
             <span className="text-xs text-dark-muted truncate">@{targetPublication.author?.username}</span>
             {targetPublication.created_at && (
               <span title={formatExactDateTime(targetPublication.created_at)} className="text-xs text-dark-muted">

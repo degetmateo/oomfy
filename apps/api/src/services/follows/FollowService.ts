@@ -73,6 +73,26 @@ export class FollowService {
     return { message: `Dejaste de seguir a @${followed.username}.` };
   }
 
+  public static async removeFollower(currentUserId: string, followerParam: string): Promise<{ message: string; removed: boolean }> {
+    const followerUser = await this.resolveTargetUser(followerParam);
+    if (followerUser.id === currentUserId) {
+      throw new BadRequestError('No puedes eliminarte como seguidor.');
+    }
+    const removed = await MongoFollowRepository.unfollow(followerUser.id, currentUserId);
+    if (removed) {
+      await Promise.all([
+        MongoMemberRepository.incrementCounters(followerUser.id, { followed_count: -1 }),
+        MongoMemberRepository.incrementCounters(currentUserId, { follower_count: -1 }),
+      ]);
+    }
+    return {
+      message: removed
+        ? `Eliminaste a @${followerUser.username} de tus seguidores.`
+        : `@${followerUser.username} no te sigue.`,
+      removed,
+    };
+  }
+
   public static async getFollowers(targetParam: string, limit = 20, offset = 0, olderId?: string, viewerId?: string): Promise<PublicUser[]> {
     const user = await this.resolveTargetUser(targetParam);
     const edges = await MongoFollowRepository.getFollowers(user.id, user.username, Math.min(Math.max(1, limit || 20), 50), offset, olderId);

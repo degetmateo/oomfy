@@ -9,6 +9,7 @@ export class MongoMemberMapper {
       name: doc.name || doc.username,
       role: doc.role || 'member',
       bio: doc.bio || null,
+      pronouns: doc.pronouns || null,
       location: doc.location || null,
       link: doc.link || null,
       icon_url: doc.icon?.url || doc.icon_url || null,
@@ -31,7 +32,7 @@ export class MongoMemberMapper {
       id: user.id,
       username: user.username,
     };
-    for (const key of ['name', 'role', 'bio', 'location', 'link', 'created_at', 'terms_accepted', 'terms_accepted_at', 'pinned_publication_id', 'show_online_status'] as const) {
+    for (const key of ['name', 'role', 'bio', 'pronouns', 'location', 'link', 'created_at', 'terms_accepted', 'terms_accepted_at', 'pinned_publication_id', 'show_online_status'] as const) {
       if (user[key] !== undefined) setFields[key] = user[key];
     }
     if (user.icon_url !== undefined) {

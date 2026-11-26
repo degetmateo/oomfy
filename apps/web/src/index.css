@@ -249,3 +249,14 @@ dialog::backdrop {
     border-bottom: 1px solid #2a2a2a;
   }
 }
+
+.bookmark-drag-handle {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.is-dragging-bookmarks,
+.is-dragging-bookmarks * {
+  cursor: grabbing !important;
+}

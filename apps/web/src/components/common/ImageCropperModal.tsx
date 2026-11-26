@@ -22,13 +22,17 @@ export const ImageCropperModal: React.FC<Props> = ({
 }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [aspect, setAspect] = useState<number | 'free'>(initialAspect);
-  const [bounds, setBounds] = useState({ width: 340, height: 260 });
+  const [bounds, setBounds] = useState<{ width: number; height: number } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
-  const { crop, setCrop, selectAll, onDragStart, onDragMove, onDragEnd } = useCropBox({ bounds, aspectRatio: aspect });
+  const { crop, setCrop, selectAll, onDragStart, onDragMove, onDragEnd } = useCropBox({
+    bounds: bounds || { width: 340, height: 260 },
+    aspectRatio: aspect,
+  });
 
   useEffect(() => {
-    if (!file || !isOpen) { setImageSrc(null); return; }
+    if (!file || !isOpen) { setImageSrc(null); setBounds(null); return; }
+    setBounds(null);
     const url = URL.createObjectURL(file);
     setImageSrc(url);
     setAspect(initialAspect);
@@ -36,9 +40,18 @@ export const ImageCropperModal: React.FC<Props> = ({
   }, [file, isOpen, initialAspect]);
 
   const handleImageLoad = () => {
-    if (!imgRef.current) return;
-    const w = imgRef.current.clientWidth || 340;
-    const h = imgRef.current.clientHeight || 260;
+    const img = imgRef.current;
+    if (!img) return;
+    const rect = img.getBoundingClientRect();
+    let w = Math.round(rect.width || img.clientWidth);
+    let h = Math.round(rect.height || img.clientHeight);
+    if ((!w || !h) && img.naturalWidth > 0 && img.naturalHeight > 0) {
+      const scale = Math.min(440 / img.naturalWidth, 360 / img.naturalHeight, 1);
+      w = Math.max(1, Math.round(img.naturalWidth * scale));
+      h = Math.max(1, Math.round(img.naturalHeight * scale));
+    }
+    w = w || 340;
+    h = h || 260;
     setBounds({ width: w, height: h });
     setCrop(computeInitialCropRect(w, h, aspect));
   };
@@ -46,7 +59,7 @@ export const ImageCropperModal: React.FC<Props> = ({
   if (!isOpen || !file || !imageSrc) return null;
 
   const handleConfirmCrop = async () => {
-    if (!imgRef.current || isProcessing) return;
+    if (!imgRef.current || !bounds || isProcessing) return;
     setIsProcessing(true);
     try {
       const cropped = await ImageCropService.cropFromRect(imgRef.current, bounds, crop, file);
@@ -81,9 +94,9 @@ export const ImageCropperModal: React.FC<Props> = ({
           <button type="button" onClick={onClose} className="p-1 hover:bg-dark-border text-dark-muted hover:text-white"><X className="w-4 h-4" /></button>
         </div>
         <div className="relative min-h-[260px] max-h-[380px] bg-[#0e0e0e] flex items-center justify-center overflow-hidden p-2">
-          <div className="relative inline-block overflow-hidden" style={{ width: bounds.width, height: bounds.height }}>
+          <div className="relative inline-block overflow-hidden" style={bounds ? { width: bounds.width, height: bounds.height } : undefined}>
             <img ref={imgRef} src={imageSrc} alt="Para recortar" onLoad={handleImageLoad} draggable={false} className="max-h-[360px] max-w-full object-contain pointer-events-none block mx-auto" />
-            <CropBoxView crop={crop} onHandleMouseDown={(h, e) => onDragStart(h, e.clientX, e.clientY)} onHandleTouchStart={(h, e) => onDragStart(h, e.touches[0].clientX, e.touches[0].clientY)} />
+            {bounds && <CropBoxView crop={crop} onHandleMouseDown={(h, e) => onDragStart(h, e.clientX, e.clientY)} onHandleTouchStart={(h, e) => onDragStart(h, e.touches[0].clientX, e.touches[0].clientY)} />}
           </div>
         </div>
         <ImageCropperControls aspectRatio={aspect} onAspectChange={(a) => { setAspect(a); selectAll(); }} onSelectAll={selectAll} onReset={handleImageLoad} allowAspectChange={allowAspectChange} />

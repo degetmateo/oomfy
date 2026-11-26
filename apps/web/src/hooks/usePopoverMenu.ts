@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect, useId, useCallback } from 'react';
 
-const MENU_WIDTH = 192;
+const DEFAULT_MENU_WIDTH = 192;
 const VIEWPORT_MARGIN = 8;
 
 function hasPopoverSupport(): boolean {
@@ -15,7 +15,8 @@ function hasAnchorSupport(): boolean {
   return typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('position-area', 'block-end');
 }
 
-export function usePopoverMenu() {
+export function usePopoverMenu(options?: { width?: number }) {
+  const menuWidth = options?.width ?? DEFAULT_MENU_WIDTH;
   const safeId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const menuId = `pub-menu-${safeId}`;
   const anchorName = `--pub-menu-${safeId}`;
@@ -44,10 +45,10 @@ export function usePopoverMenu() {
     const top = openAbove
       ? Math.max(VIEWPORT_MARGIN, rect.top - 4 - height)
       : Math.min(window.innerHeight - height - VIEWPORT_MARGIN, Math.max(VIEWPORT_MARGIN, rect.bottom + 4));
-    const left = Math.max(VIEWPORT_MARGIN, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - VIEWPORT_MARGIN));
+    const left = Math.max(VIEWPORT_MARGIN, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - VIEWPORT_MARGIN));
     setCoords({ top, left });
     return true;
-  }, [isDeferred, supportsAnchor, supportsPopover]);
+  }, [isDeferred, menuWidth, supportsAnchor, supportsPopover]);
 
   const closeMenu = useCallback((restoreFocus = false) => {
     restoreFocusRef.current = restoreFocus;
@@ -113,7 +114,27 @@ export function usePopoverMenu() {
       if (!menuRef.current?.contains(t) && !triggerRef.current?.contains(t)) closeMenu(false);
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (!supportsPopover && e.key === 'Escape') { e.stopPropagation(); closeMenu(true); }
+      const container = menuRef.current;
+      if (!container) return;
+      if (e.key === 'Escape') {
+        if (!supportsPopover) { e.stopPropagation(); closeMenu(true); }
+        return;
+      }
+      if (e.key === 'Tab') {
+        closeMenu(false);
+        return;
+      }
+      if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+      const items = Array.from(container.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'));
+      if (items.length === 0) return;
+      const currentIdx = items.indexOf(document.activeElement as HTMLButtonElement);
+      const nextIdx =
+        e.key === 'Home' ? 0
+          : e.key === 'End' ? items.length - 1
+            : (currentIdx + (e.key === 'ArrowUp' ? -1 : 1) + items.length) % items.length;
+      e.preventDefault();
+      e.stopPropagation();
+      items[nextIdx]?.focus({ preventScroll: true });
     };
     if (useJsPos) {
       window.addEventListener('scroll', onScrollOrResize, true);
@@ -121,13 +142,13 @@ export function usePopoverMenu() {
     }
     if (!supportsPopover) {
       document.addEventListener('pointerdown', onPointerDown, true);
-      document.addEventListener('keydown', onKeyDown);
     }
+    document.addEventListener('keydown', onKeyDown, true);
     return () => {
       window.removeEventListener('scroll', onScrollOrResize, true);
       window.removeEventListener('resize', onScrollOrResize);
       document.removeEventListener('pointerdown', onPointerDown, true);
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('keydown', onKeyDown, true);
     };
   }, [isOpen, useJsPos, supportsPopover, updatePosition, closeMenu]);
 

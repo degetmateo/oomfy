@@ -79,7 +79,10 @@ export function registerSocketLifecycleHandlers(
         MongoNotificationRepository.listSince(user.id, sinceDate, 20),
         activeChatId ? MongoMessageRepository.listChatMessagesSince(activeChatId, sinceDate, 50) : Promise.resolve([] as ChatMessage[]),
       ]);
-      const missed_notifications = await NotificationService.populateTargetPublications(rawMissedNotifs, user.id);
+      const missed_notifications = await NotificationService.populateTargetPublications(
+        NotificationService.collapseGroupedNotifications(rawMissedNotifs),
+        user.id
+      );
       const missed_messages: Record<string, ChatMessage[]> = {};
       if (activeChatId && activeMissedMsgs.length > 0) missed_messages[activeChatId] = activeMissedMsgs;
 

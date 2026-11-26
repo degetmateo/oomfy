@@ -15,11 +15,15 @@ function readItem(type: 'localStorage' | 'sessionStorage', key: string): string 
   }
 }
 
-function writeItem(type: 'localStorage' | 'sessionStorage', key: string, value: string): void {
+function writeItem(type: 'localStorage' | 'sessionStorage', key: string, value: string): boolean {
   try {
-    getStore(type)?.setItem(key, value);
+    const store = getStore(type);
+    if (!store) return false;
+    store.setItem(key, value);
+    return true;
   } catch {
-    /* ignore when storage is restricted on mobile WebViews */
+    /* ignore when storage is restricted or full on mobile WebViews */
+    return false;
   }
 }
 
@@ -32,8 +36,8 @@ function removeItem(type: 'localStorage' | 'sessionStorage', key: string): void 
 }
 
 export const safeLocalGet = (key: string): string | null => readItem('localStorage', key);
-export const safeLocalSet = (key: string, val: string): void => writeItem('localStorage', key, val);
+export const safeLocalSet = (key: string, val: string): boolean => writeItem('localStorage', key, val);
 export const safeLocalRemove = (key: string): void => removeItem('localStorage', key);
 export const safeSessionGet = (key: string): string | null => readItem('sessionStorage', key);
-export const safeSessionSet = (key: string, val: string): void => writeItem('sessionStorage', key, val);
+export const safeSessionSet = (key: string, val: string): boolean => writeItem('sessionStorage', key, val);
 export const safeSessionRemove = (key: string): void => removeItem('sessionStorage', key);

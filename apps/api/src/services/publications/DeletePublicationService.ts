@@ -1,5 +1,6 @@
 import { MongoPublicationRepository } from '../../infrastructure/repositories/mongo/MongoPublicationRepository.js';
 import { MongoMemberRepository } from '../../infrastructure/repositories/mongo/MongoMemberRepository.js';
+import { MongoBookmarkRepository } from '../../infrastructure/repositories/mongo/MongoBookmarkRepository.js';
 import { MongoDatabase } from '../../infrastructure/database/mongo/MongoDatabase.js';
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { ImgBBStorageAdapter } from '../../infrastructure/adapters/ImgBBStorageAdapter.js';
@@ -28,9 +29,12 @@ export class DeletePublicationService {
     await MongoPublicationRepository.deleteById(pubId);
     if (authorId) await MongoMemberRepository.incrementCounters(authorId, { publication_count: -1 });
 
-    await MongoDatabase.getDb().collection('upvotes').deleteMany({
-      publication_id: { $in: MongoIdHelper.idVariants(pubId) },
-    });
+    await Promise.all([
+      MongoDatabase.getDb().collection('upvotes').deleteMany({
+        publication_id: { $in: MongoIdHelper.idVariants(pubId) },
+      }),
+      MongoBookmarkRepository.deleteByPublicationId(pubId),
+    ]);
 
     for (const img of rawDoc.images || []) {
       if (img?.delete_url) ImgBBStorageAdapter.delete(img.delete_url).catch(() => {});

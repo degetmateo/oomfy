@@ -5,6 +5,7 @@ export interface CachedInteractionFlags {
   is_upvoted?: boolean;
   is_shared?: boolean;
   is_quoted?: boolean;
+  is_bookmarked?: boolean;
   updatedAt: number;
 }
 
@@ -26,14 +27,15 @@ export class PublicationInteractionCache {
 
   public record(
     id: string,
-    patch: Partial<Pick<CachedInteractionFlags, 'is_upvoted' | 'is_shared' | 'is_quoted'>>,
+    patch: Partial<Pick<CachedInteractionFlags, 'is_upvoted' | 'is_shared' | 'is_quoted' | 'is_bookmarked'>>,
     ts = Date.now()
   ): void {
     const key = id.toLowerCase();
     const hasAny =
       typeof patch.is_upvoted === 'boolean' ||
       typeof patch.is_shared === 'boolean' ||
-      typeof patch.is_quoted === 'boolean';
+      typeof patch.is_quoted === 'boolean' ||
+      typeof patch.is_bookmarked === 'boolean';
     if (!hasAny) return;
     const prev = this.map.get(key);
     if (prev && ts < prev.updatedAt && ts !== 0) return;
@@ -41,6 +43,7 @@ export class PublicationInteractionCache {
       is_upvoted: typeof patch.is_upvoted === 'boolean' ? patch.is_upvoted : prev?.is_upvoted,
       is_shared: typeof patch.is_shared === 'boolean' ? patch.is_shared : prev?.is_shared,
       is_quoted: typeof patch.is_quoted === 'boolean' ? patch.is_quoted : prev?.is_quoted,
+      is_bookmarked: typeof patch.is_bookmarked === 'boolean' ? patch.is_bookmarked : prev?.is_bookmarked,
       updatedAt: Math.max(prev?.updatedAt || 0, ts),
     };
     this.map.delete(key);
@@ -62,6 +65,7 @@ export class PublicationInteractionCache {
       is_upvoted: preferCacheWhenFresh ? (cached.is_upvoted ?? pub.is_upvoted) : (pub.is_upvoted ?? cached.is_upvoted),
       is_shared: preferCacheWhenFresh ? (cached.is_shared ?? pub.is_shared) : (pub.is_shared ?? cached.is_shared),
       is_quoted: preferCacheWhenFresh ? (cached.is_quoted ?? pub.is_quoted) : (pub.is_quoted ?? cached.is_quoted),
+      is_bookmarked: preferCacheWhenFresh ? (cached.is_bookmarked ?? pub.is_bookmarked) : (pub.is_bookmarked ?? cached.is_bookmarked),
     };
   }
 

@@ -17,6 +17,7 @@ export interface User {
   name: string;
   email: string;
   bio: string | null;
+  pronouns?: string | null;
   location: string | null;
   link: string | null;
   role: Role;
@@ -39,6 +40,7 @@ export interface PublicUser {
   name: string;
   role: Role;
   bio: string | null;
+  pronouns?: string | null;
   location: string | null;
   link: string | null;
   created_at: string;

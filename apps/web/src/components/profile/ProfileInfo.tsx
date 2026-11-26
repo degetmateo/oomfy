@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { PixelBadge } from '../icons/PixelBadge.js';
 import { FormattedText } from '../common/FormattedText.js';
 import { resolveMediaUrl } from '../../utils/mediaUrl.js';
@@ -22,24 +22,36 @@ export const ProfileInfo: React.FC<Props> = ({ user: rawUser, isOwnProfile = fal
   const liveUser = useUserModel(rawUser);
   const user = liveUser || rawUser;
   const actions = useProfileActions(user);
+  const [avatarError, setAvatarError] = useState(false);
+  const resolvedIconUrl = resolveMediaUrl(user.icon_url);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [user.icon_url]);
 
   return (
     <div className="px-4 pb-4 border-b border-dark-border relative bg-dark-bg font-mono">
       <div className="flex justify-between items-end -mt-10 sm:-mt-16 mb-3">
         <div
-          onClick={() => user.icon_url && onAvatarClick?.(user.icon_url)}
-          className={`w-20 h-20 sm:w-28 sm:h-28 border-2 border-dark-border bg-dark-card overflow-hidden flex items-center justify-center font-bold text-2xl text-brand-400 ${
-            user.icon_url ? 'cursor-pointer hover:opacity-90' : ''
+          onClick={() => resolvedIconUrl && !avatarError && onAvatarClick?.(user.icon_url!)}
+          className={`w-20 h-20 sm:w-28 sm:h-28 aspect-square flex-shrink-0 border-2 border-dark-border bg-dark-card overflow-hidden flex items-center justify-center font-bold text-2xl text-brand-400 ${
+            resolvedIconUrl && !avatarError ? 'cursor-pointer hover:opacity-90' : ''
           }`}
         >
-          {user.icon_url ? (
+          {resolvedIconUrl && !avatarError ? (
             <img
-              key={user.icon_url}
-              src={resolveMediaUrl(user.icon_url) || ''}
+              key={resolvedIconUrl}
+              src={resolvedIconUrl}
               alt={user.username}
-              onLoad={() => ImageMemoryCache.mark(resolveMediaUrl(user.icon_url))}
-              decoding={ImageMemoryCache.has(resolveMediaUrl(user.icon_url)) ? 'sync' : 'auto'}
-              className="w-full h-full object-cover"
+              width={112}
+              height={112}
+              loading="eager"
+              fetchpriority="high"
+              onLoad={() => ImageMemoryCache.mark(resolvedIconUrl)}
+              onError={() => setAvatarError(true)}
+              decoding={ImageMemoryCache.has(resolvedIconUrl) ? 'sync' : 'async'}
+              style={{ imageRendering: 'auto' }}
+              className="block w-full h-full object-cover"
             />
           ) : (
             user.username.slice(0, 2).toUpperCase()
@@ -56,9 +68,12 @@ export const ProfileInfo: React.FC<Props> = ({ user: rawUser, isOwnProfile = fal
             isBlocked={actions.isBlocked}
             hasBlockedViewer={actions.hasBlockedViewer}
             isLoadingBlock={actions.isLoadingBlock}
+            followsYou={actions.followsYou}
+            isRemovingFollower={actions.isRemovingFollower}
             onEditClick={onEditClick}
             onReportClick={() => actions.setIsReportOpen(true)}
             onBlockToggle={actions.handleBlockToggle}
+            onRemoveFollower={actions.handleRemoveFollower}
             onStartChat={actions.handleStartChat}
             onFollowToggle={actions.handleFollowToggle}
             onMouseEnter={() => actions.setIsHovering(true)}
@@ -76,7 +91,17 @@ export const ProfileInfo: React.FC<Props> = ({ user: rawUser, isOwnProfile = fal
             </span>
           )}
         </div>
-        <p className="text-xs text-dark-muted">@{user.username}</p>
+        <div className="flex items-center gap-2 flex-wrap mt-0.5">
+          <p className="text-xs text-dark-muted">@{user.username}</p>
+          {user.pronouns && (
+            <span
+              aria-label={`Pronombres: ${user.pronouns}`}
+              className="text-[11px] px-1.5 py-0.5 bg-dark-card border border-dark-border text-dark-text/90 font-mono"
+            >
+              {user.pronouns}
+            </span>
+          )}
+        </div>
       </div>
       {user.bio && (
         <FormattedText text={user.bio} authorId={user.id} className="mt-2 text-xs text-dark-text leading-relaxed whitespace-pre-line font-sans block" />

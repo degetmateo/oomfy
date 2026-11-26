@@ -49,6 +49,18 @@ export interface AnimeEmbed {
   season_year?: number | null;
 }
 
+export interface WikipediaEmbed {
+  type: 'wikipedia';
+  url: string;
+  title?: string;
+  article_description?: string;
+  description?: string;
+  thumbnail_url?: string;
+  image?: string | null;
+  site_name?: string;
+  language?: string;
+}
+
 export interface GenericEmbed {
   type: 'twitter' | 'tiktok' | 'youtube' | 'link';
   url: string;
@@ -64,7 +76,7 @@ export interface GenericEmbed {
   video_id?: string;
 }
 
-export type PublicationEmbed = SpotifyEmbed | AnimeEmbed | GenericEmbed;
+export type PublicationEmbed = SpotifyEmbed | AnimeEmbed | WikipediaEmbed | GenericEmbed;
 
 export interface Publication {
   id: string; // UUID v7
@@ -84,6 +96,7 @@ export interface Publication {
   is_upvoted?: boolean;
   is_quoted?: boolean;
   is_shared?: boolean;
+  is_bookmarked?: boolean;
   reports_count?: number;
   target_publication?: Publication | null;
   author_thread_preview?: Publication[];

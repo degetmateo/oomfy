@@ -44,7 +44,7 @@ export default defineConfig({
     port: 5173,
     headers: DEV_SECURITY_HEADERS,
     proxy: {
-      '^/(auth|members|publications|interactions|follows|notifications|chats|sessions|aux|settings|reports|staff|admin|health|api)': {
+      '^/(auth|members|publications|interactions|bookmarks|follows|notifications|chats|sessions|aux|settings|reports|staff|admin|health|api)': {
         target: 'http://localhost:4000',
         changeOrigin: true,
         bypass: (req) => {

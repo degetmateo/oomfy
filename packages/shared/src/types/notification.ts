@@ -7,6 +7,9 @@ export interface Notification {
   id: string; // UUID v7
   recipient_id: string;
   sender: AuthorSnapshot;
+  actors?: AuthorSnapshot[];
+  actor_ids?: string[];
+  actors_count?: number;
   type: NotificationType;
   target_publication_id: string | null;
   target_publication?: Publication | null;

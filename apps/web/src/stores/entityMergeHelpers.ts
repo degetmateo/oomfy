@@ -29,6 +29,7 @@ export function collectPublications(
         is_upvoted: existing.is_upvoted ?? item.is_upvoted,
         is_shared: existing.is_shared ?? item.is_shared,
         is_quoted: existing.is_quoted ?? item.is_quoted,
+        is_bookmarked: existing.is_bookmarked ?? item.is_bookmarked,
       });
     }
   }
@@ -47,6 +48,7 @@ export function mergePublicationEntity(
       is_upvoted: prev.is_upvoted, upvotes_count: Math.max(0, prev.upvotes_count || 0),
       is_shared: prev.is_shared, shares_count: Math.max(0, prev.shares_count || 0),
       is_quoted: prev.is_quoted, quotes_count: Math.max(0, prev.quotes_count || 0),
+      is_bookmarked: prev.is_bookmarked,
       comments_count: Math.max(0, prev.comments_count || 0),
     };
   }
@@ -63,6 +65,7 @@ export function mergePublicationEntity(
     is_shared: incoming.is_shared ?? prev.is_shared,
     shares_count: shares,
     is_quoted: incoming.is_quoted ?? prev.is_quoted,
+    is_bookmarked: incoming.is_bookmarked ?? prev.is_bookmarked,
     quotes_count: quotes,
     comments_count: comments,
   };

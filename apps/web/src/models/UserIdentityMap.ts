@@ -6,6 +6,7 @@ type UserSyncListener = (user: PublicUser) => void;
 type PinnedListener = (pub: Publication, mode: 'seed' | 'ingest', fetchedAt: number) => void;
 
 export class UserIdentityMap {
+  private static readonly MAX_USERS = 300;
   private static instance: UserIdentityMap;
   private users = new Map<string, PublicUser>();
   private fetchedAt = new Map<string, number>();
@@ -17,6 +18,21 @@ export class UserIdentityMap {
   public static getInstance(): UserIdentityMap {
     if (!this.instance) this.instance = new UserIdentityMap();
     return this.instance;
+  }
+
+  private touch(key: string, value: PublicUser): void {
+    this.users.delete(key);
+    this.users.set(key, value);
+  }
+
+  private evictIfNeeded(): void {
+    while (this.users.size > UserIdentityMap.MAX_USERS) {
+      const oldest = this.users.keys().next().value;
+      if (oldest === undefined) break;
+      this.users.delete(oldest);
+      this.fetchedAt.delete(oldest);
+      this.fullProfileAt.delete(oldest);
+    }
   }
 
   public onUserSynced(listener: UserSyncListener): () => void {
@@ -39,7 +55,11 @@ export class UserIdentityMap {
   }
 
   public get(username?: string | null): PublicUser | undefined {
-    return username ? this.users.get(username.toLowerCase()) : undefined;
+    if (!username) return undefined;
+    const key = username.toLowerCase();
+    const found = this.users.get(key);
+    if (found) this.touch(key, found);
+    return found;
   }
 
   public isStale(username?: string | null, ttlMs = 60_000, requireFull = false): boolean {
@@ -58,6 +78,7 @@ export class UserIdentityMap {
     if (!this.users.has(key)) {
       const normalized = normalizeUserCounters(user);
       this.users.set(key, normalized);
+      this.evictIfNeeded();
       this.emitPinned(normalized, 'seed', 0);
       this.subject.notify(key);
     }
@@ -73,13 +94,14 @@ export class UserIdentityMap {
       const prevFull = this.fullProfileAt.get(key) || 0;
       const allowOverwriteVisual = isFullProfile || (fetchedAt >= prevFull && fetchedAt >= prevFetched);
       const next = mergeUserDefined(prev, u, allowOverwriteVisual);
-      this.users.set(key, next);
+      this.touch(key, next);
       this.fetchedAt.set(key, Math.max(prevFetched, fetchedAt));
       if (isFullProfile) this.fullProfileAt.set(key, Math.max(prevFull, fetchedAt));
       changed.push(key);
       if (u.pinned_publication) this.emitPinned(next, fetchedAt === 0 ? 'seed' : 'ingest', fetchedAt);
       if (hasVisualUserChange(prev, next) || (isFullProfile && !prev)) this.emitSync(next);
     }
+    this.evictIfNeeded();
     if (changed.length > 0) this.subject.notifyMany(changed);
   }
 
@@ -89,8 +111,13 @@ export class UserIdentityMap {
     if (!current) return undefined;
     const next = normalizeUserCounters(updater(current));
     const nextKey = next.username.toLowerCase();
-    if (nextKey !== key) this.users.delete(key);
-    this.users.set(nextKey, next);
+    if (nextKey !== key) {
+      this.users.delete(key);
+      this.fetchedAt.delete(key);
+      this.fullProfileAt.delete(key);
+    }
+    this.touch(nextKey, next);
+    this.evictIfNeeded();
     this.emitPinned(next, 'ingest', Date.now());
     this.subject.notifyMany(nextKey !== key ? [key, nextKey] : [key]);
     if (hasVisualUserChange(current, next)) this.emitSync(next);

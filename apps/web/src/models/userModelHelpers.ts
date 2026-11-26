@@ -1,7 +1,7 @@
 import { PublicUser } from '@oomfy/shared';
 
 const SYNC_FIELDS = ['name', 'username', 'role', 'icon_url', 'banner_url'] as const;
-const VISUAL_KEYS = new Set(['name', 'icon_url', 'banner_url', 'bio', 'location', 'link', 'role']);
+const VISUAL_KEYS = new Set(['name', 'icon_url', 'banner_url', 'bio', 'pronouns', 'location', 'link', 'role']);
 
 export function isDynamicMemberMediaUrl(url?: string | null): boolean {
   return Boolean(url && /^(\/api)?\/members\/[^/]+\/(icon|banner)$/.test(url.trim()));

@@ -44,7 +44,7 @@ export const EditProfileMedia: React.FC<Props> = ({
   return (
     <>
       <div className="relative h-32 bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
-        {resolvedBanner && <img src={resolvedBanner} alt="Banner" className="w-full h-full object-cover" />}
+        {resolvedBanner && <img src={resolvedBanner} alt="Banner" style={{ imageRendering: 'auto' }} className="block w-full h-full object-cover" />}
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center gap-3">
           <button type="button" onClick={() => bannerInputRef.current?.click()} className="p-2 bg-black/60 hover:bg-black/80 border border-white/40 text-white" title="Cambiar banner">
             <Camera className="w-5 h-5" />
@@ -59,9 +59,9 @@ export const EditProfileMedia: React.FC<Props> = ({
       </div>
 
       <div className="px-4 -mt-10 mb-4 relative z-10 flex">
-        <div className="relative w-20 h-20 bg-[#161616] border-2 border-dark-border overflow-hidden group">
+        <div className="relative w-20 h-20 aspect-square flex-shrink-0 bg-[#161616] border-2 border-dark-border overflow-hidden group">
           {resolvedIcon ? (
-            <img src={resolvedIcon} alt="Avatar" className="w-full h-full object-cover" />
+            <img src={resolvedIcon} alt="Avatar" width={80} height={80} style={{ imageRendering: 'auto' }} className="block w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-brand-400 font-bold text-xl bg-brand-950/40">
               {username.slice(0, 2).toUpperCase()}

@@ -62,8 +62,11 @@ export const PublicationContentBlocks: React.FC<Props> = ({
           initialShares={Math.max(0, post.shares_count || 0)}
           initialIsShared={Boolean(post.is_shared)}
           initialIsQuoted={Boolean(post.is_quoted)}
+          initialIsBookmarked={Boolean(post.is_bookmarked)}
           quotesCount={Math.max(0, post.quotes_count || 0)}
           commentsCount={resolvedComments}
+          authorUsername={post.author?.username}
+          contentPreview={post.content}
           onCommentClick={() => navigate(`/publication/${post.id}`)}
           onQuoteClick={handleQuote}
         />

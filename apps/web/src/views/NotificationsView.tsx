@@ -27,13 +27,24 @@ export const NotificationsView: React.FC = () => {
       placeholderData: () => NotificationController.getPlaceholderData(),
       retry: 2,
       retryOnMount: true,
-      staleTime: 10 * 60 * 1000,
+      staleTime: 60 * 1000,
       gcTime: 30 * 60 * 1000,
       enabled: isAuthenticated,
     });
 
   const queryNotifications = data?.pages?.flatMap((page) => page?.data?.notifications || []) || [];
-  const allNotifications = modelNotifications.length > 0 ? modelNotifications : queryNotifications;
+  const allNotifications = React.useMemo(() => {
+    if (!data?.pages?.length) return modelNotifications;
+    const modelMap = new Map(modelNotifications.map((n) => [n.id, n]));
+    const seenIds = new Set<string>();
+    const merged: Notification[] = [];
+    for (const item of queryNotifications) {
+      if (!item?.id || seenIds.has(item.id)) continue;
+      seenIds.add(item.id);
+      merged.push(modelMap.get(item.id) || item);
+    }
+    return merged;
+  }, [data?.pages?.length, queryNotifications, modelNotifications]);
   const recoveredErrorRef = useRef(false);
 
   useEffect(() => {
@@ -63,7 +74,7 @@ export const NotificationsView: React.FC = () => {
 
   const loadMoreRef = useInfiniteScroll(() => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-  }, Boolean(hasNextPage));
+  }, Boolean(hasNextPage && !isFetchingNextPage));
 
   if (!isAuthenticated) return <Navigate to="/signin" replace />;
 
@@ -87,7 +98,19 @@ export const NotificationsView: React.FC = () => {
                 <NotificationItem key={notif.id} notif={notif} isUnread={notif.status === 'pending' || sessionUnreadIds.has(notif.id)} />
               ))}
             </div>
-            <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">{isFetchingNextPage && <span>Cargando más notificaciones...</span>}</div>
+            <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">
+              {isFetchingNextPage ? (
+                <span>Cargando más notificaciones...</span>
+              ) : hasNextPage ? (
+                <button
+                  type="button"
+                  onClick={() => void fetchNextPage()}
+                  className="px-3 py-1.5 border border-dark-border hover:border-brand-500 text-dark-text hover:text-brand-400 pixel-button transition-colors"
+                >
+                  Cargar más notificaciones
+                </button>
+              ) : null}
+            </div>
           </>
         ) : <div className="p-8 text-center text-xs text-dark-muted"><p className="font-semibold text-white">No tienes notificaciones pendientes.</p></div>}
       </div>

@@ -4,7 +4,6 @@ import { Publication } from '@oomfy/shared';
 import { PublicationMenu } from './PublicationMenu.js';
 import { PublicationReplyBanner } from './PublicationReplyBanner.js';
 import { PublicationContentBlocks } from './PublicationContentBlocks.js';
-import { PixelBadge } from '../icons/PixelBadge.js';
 import { PixelShare } from '../icons/PixelShare.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { formatExactDateTime } from '../../utils/formatTime.js';
@@ -50,7 +49,6 @@ export const PublicationDetailArticle: React.FC<Props> = ({
               <span onClick={() => navigate(`/${publication.author.username}`)} className="font-bold text-white hover:text-brand-400 cursor-pointer truncate">
                 {publication.author.name}
               </span>
-              <PixelBadge role={publication.author.role} />
             </div>
             <span onClick={() => navigate(`/${publication.author.username}`)} className="text-dark-muted text-[0.8125rem] cursor-pointer hover:underline truncate block">
               @{publication.author.username}

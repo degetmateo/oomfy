@@ -46,14 +46,15 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false, 
           data-no-card-nav="true"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => openZoom(e, singleImg.resolvedUrl)}
-          className="w-full overflow-hidden bg-dark-card border border-dark-border cursor-pointer group"
+          className="w-fit max-w-full overflow-hidden bg-dark-card border border-dark-border hover:border-brand-500/60 transition-colors cursor-pointer"
         >
           <img
             src={singleImg.resolvedUrl}
             alt="Adjunto de publicación"
             onLoad={() => ImageMemoryCache.mark(singleImg.resolvedUrl)}
             onError={() => setFailedUrls((prev) => ({ ...prev, [singleImg.resolvedUrl]: true }))}
-            className={`block w-full object-cover ${compact ? 'aspect-[16/9] max-h-[240px]' : 'aspect-[16/10] max-h-[420px]'} group-hover:scale-[1.01] transition-transform duration-200`}
+            style={{ imageRendering: 'auto' }}
+            className={`block max-w-full w-auto h-auto object-contain ${compact ? 'max-h-[280px]' : 'max-h-[560px] sm:max-h-[600px]'}`}
             {...getImgLoadingProps(singleImg.resolvedUrl, 0)}
           />
         </div>

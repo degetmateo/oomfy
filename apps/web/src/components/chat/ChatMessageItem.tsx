@@ -37,7 +37,9 @@ export const ChatMessageItem: React.FC<Props> = ({
   return (
     <div
       id={`msg-${message.id}`} data-message-id={message.id} {...touchHandlers}
-      style={{ transform: `translateX(-${offset}px)`, transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)' }}
+      style={offset > 0 || isDragging
+        ? { transform: `translateX(-${offset}px)`, transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)' }
+        : undefined}
       className={`relative group flex gap-3 px-3 hover:bg-dark-card/40 transition-colors ${isFirstInGroup ? 'pt-2.5 pb-0.5 mt-2' : 'py-[3px]'} ${isSending ? 'opacity-70' : ''} ${isError ? 'bg-red-500/10 border-l-2 border-red-500' : ''} ${isHighlighted ? 'bg-brand-500/25 ring-1 ring-brand-500/60 ' : ''}`}
     >
       {offset > 0 && (

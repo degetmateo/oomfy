@@ -1,7 +1,9 @@
 import { QueryClient } from '@tanstack/react-query';
 import { ApiClient } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
+import { useToastStore } from '../stores/toastStore.js';
 import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
+import { publicationInteractionCache } from '../models/PublicationInteractionCache.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
 import { emitPublicationInteraction } from './publicationSocketHelper.js';
 
@@ -59,6 +61,44 @@ export class PublicationController {
       }
     } catch {
       PublicationCacheService.applyPatch(queryClient, postId, (p) => ({ ...p, is_shared: wasShared, shares_count: prevCount }));
+    } finally {
+      publicationIdentityMap.setInFlight(postId, -1);
+    }
+  }
+
+  public static async toggleBookmark(
+    postId: string,
+    queryClient: QueryClient | null | undefined,
+    onAuthRequired: () => void,
+    fallbackIsBookmarked = false
+  ): Promise<boolean> {
+    if (!useAuthStore.getState().isAuthenticated) {
+      onAuthRequired();
+      return fallbackIsBookmarked;
+    }
+    const current = publicationIdentityMap.get(postId);
+    const wasBookmarked = current?.is_bookmarked ?? fallbackIsBookmarked;
+    const nextBookmarked = !wasBookmarked;
+    const showToast = useToastStore.getState().showToast;
+
+    publicationIdentityMap.setInFlight(postId, 1);
+    publicationInteractionCache.record(postId, { is_bookmarked: nextBookmarked });
+    PublicationCacheService.applyPatch(queryClient, postId, (p) => ({ ...p, is_bookmarked: nextBookmarked }));
+    try {
+      if (wasBookmarked) {
+        await ApiClient.delete(`/bookmarks/${postId}`);
+      } else {
+        await ApiClient.post('/bookmarks', { publication_id: postId });
+      }
+      queryClient?.invalidateQueries({ queryKey: ['bookmarks'] });
+      queryClient?.invalidateQueries({ queryKey: ['bookmark-folders'] });
+      showToast(nextBookmarked ? 'Publicación guardada' : 'Publicación quitada de guardados', 'success');
+      return nextBookmarked;
+    } catch (err: any) {
+      publicationInteractionCache.record(postId, { is_bookmarked: wasBookmarked });
+      PublicationCacheService.applyPatch(queryClient, postId, (p) => ({ ...p, is_bookmarked: wasBookmarked }));
+      showToast(err?.message || 'No se pudo actualizar guardados', 'error');
+      return wasBookmarked;
     } finally {
       publicationIdentityMap.setInFlight(postId, -1);
     }

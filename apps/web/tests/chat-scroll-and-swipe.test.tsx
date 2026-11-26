@@ -72,7 +72,7 @@ describe('Chat Scroll, Swipe-to-Reply and Typing Indicator Updates', () => {
 
     fireEvent.touchEnd(item, { changedTouches: [{ clientX: 140, clientY: 100 }] });
     expect(onReply).toHaveBeenCalledWith(message);
-    expect(item.style.transform).toBe('translateX(-0px)');
+    expect(item.style.transform).toBe('');
   });
 
   it('maintains a fixed h-6 slot for ChatTypingIndicator to prevent layout shifts', () => {

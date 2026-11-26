@@ -17,10 +17,11 @@ export function buildNavItems(
     { to: '/explore', label: 'Explorar', icon: 'explore' },
     { to: '/notifications', label: 'Notificaciones', icon: 'notifications', badge: badges.pendingNotifs },
     { to: '/chats', label: 'Mensajes', icon: 'messages', badge: badges.unreadMessages },
+    { to: '/bookmarks', label: 'Guardados', icon: 'bookmarks' },
     { to: `/${user.username}`, label: 'Perfil', icon: 'member' },
     { to: '/settings', label: 'Configuración', icon: 'settings' },
-    ...(user.role === 'admin' ? [{ to: '/admin', label: 'Administración', icon: 'settings' as const }] : []),
-    ...(user.role === 'mod' ? [{ to: '/moderation', label: 'Moderación', icon: 'settings' as const }] : []),
+    ...(user.role === 'admin' ? [{ to: '/admin', label: 'Administración', icon: 'admin' as const }] : []),
+    ...(user.role === 'mod' ? [{ to: '/moderation', label: 'Moderación', icon: 'moderation' as const }] : []),
   ];
 }
 

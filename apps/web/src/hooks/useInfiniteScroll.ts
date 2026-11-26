@@ -4,7 +4,7 @@ export function useInfiniteScroll(onIntersect: () => void, enabled: boolean = tr
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!enabled || !ref.current) return;
+    if (!enabled || !ref.current || typeof IntersectionObserver === 'undefined') return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {

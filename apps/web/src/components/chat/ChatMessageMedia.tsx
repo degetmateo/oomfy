@@ -10,29 +10,35 @@ interface Props {
 export const ChatMessageMedia: React.FC<Props> = ({ mediaUrls, gifUrl, onImageClick }) => {
   const safeGif = resolveMediaUrl(gifUrl);
   const images = (mediaUrls || []).map((u) => resolveMediaUrl(u)).filter((u): u is string => Boolean(u));
-  if (images.length === 0 && !safeGif) return null;
+  const totalCount = (safeGif ? 1 : 0) + images.length;
+  if (totalCount === 0) return null;
+
+  const singleMediaClass = 'self-start max-h-96 sm:max-h-[420px] max-w-full w-auto h-auto cursor-pointer object-contain object-left rounded border border-dark-border hover:opacity-95 block';
+  const multiMediaClass = 'self-start max-h-80 sm:max-h-96 max-w-full w-auto h-auto cursor-pointer object-contain object-left rounded border border-dark-border hover:opacity-95 block';
 
   return (
-    <div className="mt-1.5 flex flex-col items-start gap-1.5 max-w-sm sm:max-w-md">
+    <div className="mt-1.5 flex flex-col items-start gap-1.5 max-w-full sm:max-w-md">
       {safeGif && (
         <img
           src={safeGif}
           alt="GIF"
           onClick={() => onImageClick?.(safeGif)}
-          className="self-start max-h-80 sm:max-h-96 max-w-full w-auto h-auto cursor-pointer object-contain object-left rounded border border-dark-border hover:opacity-95 block"
+          style={{ imageRendering: 'auto' }}
+          className={totalCount === 1 ? singleMediaClass : multiMediaClass}
           loading="lazy"
         />
       )}
 
       {images.length > 0 && (
-        <div className={`flex flex-wrap items-start gap-1.5 w-full`}>
+        <div className="flex flex-wrap items-start gap-1.5 w-full">
           {images.map((url, i) => (
             <img
               key={i}
               src={url}
               alt="Adjunto"
               onClick={() => onImageClick?.(url)}
-              className="self-start max-h-80 sm:max-h-96 max-w-full w-auto h-auto object-contain object-left rounded border border-dark-border cursor-pointer hover:opacity-95 block"
+              style={{ imageRendering: 'auto' }}
+              className={totalCount === 1 ? singleMediaClass : multiMediaClass}
               loading="lazy"
             />
           ))}

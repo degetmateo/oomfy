@@ -27,6 +27,7 @@ export class PublicationMapper {
     delete clean.is_upvoted;
     delete clean.is_shared;
     delete clean.is_quoted;
+    delete clean.is_bookmarked;
     if (clean.target_publication && typeof clean.target_publication === 'object') {
       clean.target_publication = PublicationMapper.stripViewerFlags(clean.target_publication);
     }

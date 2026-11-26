@@ -38,6 +38,7 @@ export class MongoMigrationRunner {
     const notifications = db.collection('notifications');
     await this.safeCreateIndex(notifications, { recipient_id: 1, created_at: -1 });
     await this.safeCreateIndex(notifications, { recipient_id: 1, status: 1 });
+    await this.safeCreateIndex(notifications, { recipient_id: 1, type: 1, target_publication_id: 1 });
 
     const blocks = db.collection('blocks');
     await this.safeCreateIndex(blocks, { blocker_id: 1, blocked_id: 1 }, { unique: true });
@@ -56,6 +57,16 @@ export class MongoMigrationRunner {
     const pushSubs = db.collection('push_subscriptions');
     await this.safeCreateIndex(pushSubs, { endpoint: 1 }, { unique: true });
     await this.safeCreateIndex(pushSubs, { user_id: 1, is_active: 1 });
+
+    const bookmarkFolders = db.collection('bookmark_folders');
+    await this.safeCreateIndex(bookmarkFolders, { user_id: 1, position: 1 });
+    await this.safeCreateIndex(bookmarkFolders, { user_id: 1, name_lower: 1 }, { unique: true });
+
+    const bookmarks = db.collection('bookmarks');
+    await this.safeCreateIndex(bookmarks, { user_id: 1, publication_id: 1 }, { unique: true });
+    await this.safeCreateIndex(bookmarks, { user_id: 1, folder_id: 1, position: 1 });
+    await this.safeCreateIndex(bookmarks, { user_id: 1, created_at: -1 });
+    await this.safeCreateIndex(bookmarks, { publication_id: 1 });
   }
 
   public static async run(): Promise<void> {

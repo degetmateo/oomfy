@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QueryClientContext } from '@tanstack/react-query';
 import { usePublicationModel } from './usePublicationModel.js';
@@ -10,6 +10,7 @@ export interface InteractionFallback {
   shares_count: number;
   is_shared: boolean;
   is_quoted: boolean;
+  is_bookmarked: boolean;
   quotes_count: number;
   comments_count: number;
 }
@@ -18,12 +19,18 @@ export function usePublicationActions(postId: string, fallback: InteractionFallb
   const navigate = useNavigate();
   const queryClient = useContext(QueryClientContext);
   const live = usePublicationModel(postId);
+  const [optimisticBookmarked, setOptimisticBookmarked] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    setOptimisticBookmarked(null);
+  }, [postId, live?.is_bookmarked]);
 
   const hasLive = Boolean(live);
   const isUpvoted = Boolean(live?.is_upvoted ?? fallback.is_upvoted);
   const rawUpvotes = hasLive ? (live?.upvotes_count ?? 0) : (fallback.upvotes_count || 0);
   const rawShares = hasLive ? (live?.shares_count ?? 0) : (fallback.shares_count || 0);
   const rawQuotes = hasLive ? (live?.quotes_count ?? 0) : (fallback.quotes_count || 0);
+  const isBookmarked = optimisticBookmarked ?? Boolean(live?.is_bookmarked ?? fallback.is_bookmarked);
 
   const current: InteractionFallback = {
     upvotes_count: Math.max(0, rawUpvotes, isUpvoted ? 1 : 0),
@@ -31,6 +38,7 @@ export function usePublicationActions(postId: string, fallback: InteractionFallb
     shares_count: Math.max(0, rawShares),
     is_shared: Boolean(live?.is_shared ?? fallback.is_shared),
     is_quoted: Boolean(live?.is_quoted ?? fallback.is_quoted),
+    is_bookmarked: isBookmarked,
     quotes_count: Math.max(0, rawQuotes),
     comments_count: Math.max(0, live?.comments_count || 0, fallback.comments_count || 0),
   };
@@ -45,5 +53,18 @@ export function usePublicationActions(postId: string, fallback: InteractionFallb
     return PublicationController.toggleShare(postId, queryClient, () => navigate('/signin'));
   };
 
-  return { state: current, toggleUpvote, toggleShare };
+  const toggleBookmark = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const targetNext = !current.is_bookmarked;
+    setOptimisticBookmarked(targetNext);
+    const resolved = await PublicationController.toggleBookmark(
+      postId,
+      queryClient,
+      () => navigate('/signin'),
+      current.is_bookmarked
+    );
+    setOptimisticBookmarked(resolved);
+  };
+
+  return { state: current, toggleUpvote, toggleShare, toggleBookmark };
 }

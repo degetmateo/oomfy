@@ -4,6 +4,7 @@ import { SpotifyEmbedAdapter } from './SpotifyEmbedAdapter.js';
 import { SocialOEmbedAdapter } from './SocialOEmbedAdapter.js';
 import { TikTokEmbedAdapter } from './TikTokEmbedAdapter.js';
 import { AnimeEmbedAdapter } from './AnimeEmbedAdapter.js';
+import { WikipediaEmbedAdapter } from './WikipediaEmbedAdapter.js';
 import { OpenGraphParser } from './OpenGraphParser.js';
 import { UrlExtractor } from './UrlExtractor.js';
 import { MongoPublicationRepository } from '../repositories/mongo/MongoPublicationRepository.js';
@@ -69,6 +70,10 @@ export class UrlPreviewAdapter {
       if (matchesDomain(host, 'myanimelist.net')) {
         const mal = await AnimeEmbedAdapter.fetchMyAnimeList(url);
         if (mal) return mal;
+      }
+      if (matchesDomain(host, 'wikipedia.org')) {
+        const wiki = await WikipediaEmbedAdapter.fetchArticle(url);
+        if (wiki) return wiki;
       }
 
       const isOomfyHost = matchesDomain(host, 'oomfy.online') || (!Environment.isProduction() && (host === 'localhost' || host === '127.0.0.1'));

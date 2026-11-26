@@ -2,6 +2,8 @@ import React, { useState, useId } from 'react';
 
 interface Props {
   label: string;
+  name?: string;
+  list?: string;
   value: string;
   onChange: (val: string) => void;
   maxLength?: number;
@@ -14,6 +16,8 @@ interface Props {
 
 export const PixelField: React.FC<Props> = ({
   label,
+  name,
+  list,
   value,
   onChange,
   maxLength = 50,
@@ -44,6 +48,7 @@ export const PixelField: React.FC<Props> = ({
       {isTextarea ? (
         <textarea
           id={inputId}
+          name={name}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           maxLength={maxLength}
@@ -56,6 +61,8 @@ export const PixelField: React.FC<Props> = ({
       ) : (
         <input
           id={inputId}
+          name={name}
+          list={list}
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}

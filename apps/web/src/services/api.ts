@@ -45,10 +45,15 @@ export class ApiClient {
     return this.refreshPromise;
   }
 
+  private static isHtmlResponse(res: Response): boolean {
+    return Boolean(res.headers?.get?.('content-type')?.toLowerCase().includes('text/html'));
+  }
+
   public static async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = getAccessToken();
     const isFormData = options.body instanceof FormData;
     const headers: Record<string, string> = {
+      Accept: 'application/json',
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers as Record<string, string>),
@@ -63,6 +68,9 @@ export class ApiClient {
       if (newToken) {
         headers.Authorization = `Bearer ${newToken}`;
         const retryRes = await fetch(`${this.BASE_URL}${endpoint}`, { ...options, credentials: 'include', headers });
+        if (this.isHtmlResponse(retryRes)) {
+          throw this.createHttpError('El servidor devolvió una respuesta inválida.', retryRes.status || 502);
+        }
         const retryData = await retryRes.json().catch(() => ({}));
         if (!retryRes.ok) throw this.createHttpError(retryData.message || 'Error en la petición.', retryRes.status);
         return retryData as T;
@@ -73,6 +81,9 @@ export class ApiClient {
       }
     }
 
+    if (this.isHtmlResponse(res)) {
+      throw this.createHttpError('El servidor devolvió una respuesta inválida.', res.status || 502);
+    }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw this.createHttpError(data.message || `Error ${res.status}: ${res.statusText}`, res.status);
     return data as T;

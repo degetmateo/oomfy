@@ -18,7 +18,7 @@ export class PostgresUserRepository {
     const q = `
       INSERT INTO members (id, username, name, email, password, role, status, terms_accepted, terms_accepted_at, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $8 THEN NOW() ELSE NULL END, NOW(), NOW())
-      RETURNING id, username, name, email, role, status, bio, location, link, terms_accepted, terms_accepted_at, created_at;
+      RETURNING id, username, name, email, role, status, bio, pronouns, location, link, terms_accepted, terms_accepted_at, created_at;
     `;
     const executor = client || PostgresPool.getInstance();
     const { rows } = await executor.query(q, [
@@ -32,7 +32,7 @@ export class PostgresUserRepository {
 
   public static async findByUsernameOrEmail(identifier: string): Promise<(User & { password: string }) | null> {
     const { rows } = await PostgresPool.getInstance().query(
-      `SELECT u.id, u.username, u.name, u.email, u.password, u.role, u.status, u.bio, u.location, u.link,
+      `SELECT u.id, u.username, u.name, u.email, u.password, u.role, u.status, u.bio, u.pronouns, u.location, u.link,
               u.terms_accepted, u.terms_accepted_at, u.created_at, i.url as icon_url, b.url as banner_url
        FROM members u LEFT JOIN icon i ON i.id = u.id LEFT JOIN banner b ON b.id = u.id
        WHERE LOWER(u.username) = LOWER($1) OR LOWER(u.email) = LOWER($1);`,
@@ -51,7 +51,7 @@ export class PostgresUserRepository {
 
   public static async findById(id: string): Promise<User | null> {
     const { rows } = await PostgresPool.getInstance().query(
-      `SELECT u.id, u.username, u.name, u.email, u.role, u.status, u.bio, u.location, u.link,
+      `SELECT u.id, u.username, u.name, u.email, u.role, u.status, u.bio, u.pronouns, u.location, u.link,
               u.terms_accepted, u.terms_accepted_at, u.created_at, i.url as icon_url, b.url as banner_url
        FROM members u LEFT JOIN icon i ON i.id = u.id LEFT JOIN banner b ON b.id = u.id
        WHERE u.id = $1;`,

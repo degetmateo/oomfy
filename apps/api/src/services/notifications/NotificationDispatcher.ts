@@ -1,5 +1,5 @@
 import { v7 as uuidv7 } from 'uuid';
-import { Publication, PushPreferences } from '@oomfy/shared';
+import { Notification, Publication, PushPreferences } from '@oomfy/shared';
 import { MongoNotificationRepository } from '../../infrastructure/repositories/mongo/MongoNotificationRepository.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
 import { NotificationIconHelper } from './NotificationIconHelper.js';
@@ -30,7 +30,7 @@ export class NotificationDispatcher {
       : null;
     const finalIcon = customPushIcon || (await NotificationIconHelper.resolveSenderIcon(input.sender));
 
-    const notif = {
+    const notif: Notification = {
       id: uuidv7(),
       recipient_id: input.recipientId,
       sender: {
@@ -41,27 +41,44 @@ export class NotificationDispatcher {
         icon_url: finalIcon !== NotificationIconHelper.DEFAULT_APP_ICON ? finalIcon : (input.sender.username ? `/members/${input.sender.username}/icon` : null),
         banner_url: null,
       },
-      type: input.type as any,
+      type: input.type,
       target_publication_id: input.targetPublicationId ?? null,
-      status: 'pending' as const,
+      status: 'pending',
       created_at: new Date().toISOString(),
     };
 
-    await MongoNotificationRepository.create(notif);
-    const socketPayload = input.targetPublication ? { ...notif, target_publication: input.targetPublication } : notif;
+    const isGroupable = (input.type === 'upvote' || input.type === 'share') && Boolean(input.targetPublicationId);
+    let saved: Notification = notif;
+    if (isGroupable) {
+      const grouped = await MongoNotificationRepository.upsertGroupedInteraction(notif);
+      saved = grouped.notification;
+    } else {
+      await MongoNotificationRepository.create(notif);
+    }
+
+    const actorsCount = Math.max(1, saved.actors_count || 1);
+    let pushTitle = input.push.title;
+    if (isGroupable && actorsCount > 1) {
+      const others = actorsCount - 1;
+      const actorName = saved.sender.name || saved.sender.username;
+      pushTitle = input.type === 'upvote'
+        ? `${actorName} y ${others} más indicaron que les gusta tu publicación`
+        : `${actorName} y ${others} más compartieron tu publicación`;
+    }
+
+    const socketPayload = input.targetPublication ? { ...saved, target_publication: input.targetPublication } : saved;
     SocketGateway.sendNotification(input.recipientId, socketPayload);
     WebPushService.sendPushToUser(
       input.recipientId,
       {
-        title: input.push.title,
+        title: pushTitle,
         body: input.push.body,
         url: input.push.url,
         icon: finalIcon,
         image: input.push.image || undefined,
-        tag: `notif-${input.type}-${input.sender.id}`,
+        tag: isGroupable ? `notif-${input.type}-${input.targetPublicationId}` : `notif-${input.type}-${input.sender.id}`,
       },
       input.push.category
     ).catch(() => {});
   }
 }
-

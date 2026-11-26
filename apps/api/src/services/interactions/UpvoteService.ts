@@ -4,6 +4,7 @@ import { MongoPublicationRepository } from '../../infrastructure/repositories/mo
 import { MongoIdHelper } from '../../infrastructure/repositories/mongo/MongoIdHelper.js';
 import { MongoBlockRepository } from '../../infrastructure/repositories/mongo/MongoBlockRepository.js';
 import { NotificationDispatcher } from '../notifications/NotificationDispatcher.js';
+import { MongoNotificationRepository } from '../../infrastructure/repositories/mongo/MongoNotificationRepository.js';
 import { SocketGateway } from '../../socket/SocketGateway.js';
 import { ForbiddenError, NotFoundError } from '../../errors/AppError.js';
 
@@ -80,6 +81,9 @@ export class UpvoteService {
     if (deletedCount > 0) {
       await MongoPublicationRepository.incrementCounters(pubId, { upvotes_count: -1 });
       SocketGateway.broadcastPublicationInteraction({ postId: pubId, upvotes_count: nextCount });
+      if (pub.author?.id && pub.author.id !== userId) {
+        MongoNotificationRepository.removeActorFromGroup(pub.author.id, 'upvote', pubId, userId).catch(() => {});
+      }
     }
 
     return { upvoted: false, upvotes_count: nextCount };

@@ -14,6 +14,7 @@ function withInteractionFlags(pub: Publication, preferCache: boolean): Publicati
 }
 
 export class PublicationIdentityMap {
+  private static readonly MAX_ENTITIES = 400;
   private static instance: PublicationIdentityMap;
   private entities = new Map<string, Publication>();
   private inFlight = new Map<string, number>();
@@ -36,7 +37,31 @@ export class PublicationIdentityMap {
     return this.instance;
   }
 
-  public get(id?: string | null): Publication | undefined { return id ? this.entities.get(id.toLowerCase()) : undefined; }
+  private touch(key: string, value?: Publication): void {
+    const existing = value ?? this.entities.get(key);
+    if (!existing) return;
+    this.entities.delete(key);
+    this.entities.set(key, existing);
+  }
+
+  private evictIfNeeded(): void {
+    if (this.entities.size <= PublicationIdentityMap.MAX_ENTITIES) return;
+    for (const key of this.entities.keys()) {
+      if (this.entities.size <= PublicationIdentityMap.MAX_ENTITIES) break;
+      if ((this.inFlight.get(key) || 0) > 0) continue;
+      this.entities.delete(key);
+      this.fetchedAt.delete(key);
+      this.mutatedAt.delete(key);
+    }
+  }
+
+  public get(id?: string | null): Publication | undefined {
+    if (!id) return undefined;
+    const key = id.toLowerCase();
+    const found = this.entities.get(key);
+    if (found) this.touch(key, found);
+    return found;
+  }
   public getFetchedAt(id?: string | null): number { return id ? (this.fetchedAt.get(id.toLowerCase()) || 0) : 0; }
   public isStale(id?: string | null, ttlMs = 60_000): boolean {
     const ts = this.getFetchedAt(id);
@@ -66,6 +91,7 @@ export class PublicationIdentityMap {
         changed.push(key);
       }
     }
+    this.evictIfNeeded();
     if (changed.length > 0) this.subject.notifyMany(changed);
   }
 
@@ -82,8 +108,15 @@ export class PublicationIdentityMap {
       );
       const merged = mergePublicationEntity(prev, canonical, keepLocal);
       if (markFetched && fetchedAt > 0) this.fetchedAt.set(key, Math.max(this.fetchedAt.get(key) || 0, fetchedAt));
-      if (prev !== merged) { this.entities.set(key, merged); changed.push(key); }
+      if (prev !== merged) {
+        this.touch(key, merged);
+        if (!this.entities.has(key)) this.entities.set(key, merged);
+        changed.push(key);
+      } else if (prev) {
+        this.touch(key, prev);
+      }
     }
+    this.evictIfNeeded();
     if (changed.length > 0) this.subject.notifyMany(changed);
   }
 
@@ -92,7 +125,7 @@ export class PublicationIdentityMap {
     const current = this.entities.get(key);
     if (!current) return undefined;
     const next = normalizePubCounters(updater(current));
-    this.entities.set(key, next);
+    this.touch(key, next);
     const now = Date.now();
     publicationInteractionCache.record(key, next, markMutated ? now : 0);
     if (markMutated) this.mutatedAt.set(key, now);

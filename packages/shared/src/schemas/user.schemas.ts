@@ -23,6 +23,15 @@ export const UpdateProfileSchema = z.object({
     .max(LIMITS.BIO_MAX, { error: `Máximo ${LIMITS.BIO_MAX} caracteres.` })
     .nullable()
     .optional(),
+  pronouns: z.preprocess(
+    emptyToNull,
+    z
+      .string()
+      .trim()
+      .max(LIMITS.PRONOUNS_MAX, { error: `Máximo ${LIMITS.PRONOUNS_MAX} caracteres.` })
+      .nullable()
+      .optional()
+  ),
   location: z
     .string()
     .max(LIMITS.LOCATION_MAX, { error: `Máximo ${LIMITS.LOCATION_MAX} caracteres.` })

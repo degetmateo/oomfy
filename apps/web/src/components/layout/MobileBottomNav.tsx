@@ -18,7 +18,7 @@ export const MobileBottomNav: React.FC = () => {
   const links = buildNavItems(user, badges);
 
   return (
-    <nav aria-label="Navegación móvil" className="md:hidden mobile-keyboard-hide fixed bottom-0 left-0 right-0 z-40 bg-[#161616]/95 backdrop-blur border-t border-dark-border py-2 px-2 flex justify-around items-center font-mono select-none touch-manipulation">
+    <nav aria-label="Navegación móvil" className="md:hidden mobile-keyboard-hide fixed bottom-0 left-0 right-0 z-40 bg-[#161616]/95 backdrop-blur border-t border-dark-border py-2 px-1 flex justify-around items-center font-mono select-none touch-manipulation">
       {links.map(({ to, label, icon, badge }) => (
         <NavLink
           key={to}
@@ -30,7 +30,7 @@ export const MobileBottomNav: React.FC = () => {
           onTouchStart={() => RoutePrefetchService.prefetchRouteData(queryClient, to)}
           onClick={() => { if (location.pathname === to) window.scrollTo?.({ top: 0, behavior: 'smooth' }); }}
           className={({ isActive }) =>
-            `p-2 flex items-center justify-center relative touch-manipulation active:scale-90 active:opacity-75 transition-all duration-75 ${
+            `p-1.5 flex items-center justify-center relative touch-manipulation active:scale-90 active:opacity-75 transition-all duration-75 ${
               isActive ? 'text-brand-400' : 'text-dark-muted'
             }`
           }
@@ -38,7 +38,7 @@ export const MobileBottomNav: React.FC = () => {
           {({ isActive }) => (
             <>
               <div className="relative">
-                <PixelNavIcon name={icon} active={isActive} size={24} />
+                <PixelNavIcon name={icon} active={isActive} size={22} />
                 {Boolean(badge && badge > 0) && (
                   <span className="absolute -top-1.5 -right-2 px-1 text-[9px] font-bold bg-brand-500 text-black border border-brand-400">
                     {(badge ?? 0) > 9 ? '9+' : badge}

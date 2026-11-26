@@ -29,7 +29,10 @@ describe('Notifications Unread Count & Dispatcher', () => {
   });
 
   it('NotificationDispatcher persists notification, emits socket event, sends push, and skips self-notifications', async () => {
-    const createSpy = vi.spyOn(MongoNotificationRepository, 'create').mockResolvedValue();
+    const upsertSpy = vi.spyOn(MongoNotificationRepository, 'upsertGroupedInteraction').mockImplementation(async (n) => ({
+      notification: { ...n, actors: [n.sender], actor_ids: [n.sender.id], actors_count: 1 },
+      wasAlreadyPending: false,
+    }));
     const socketSpy = vi.spyOn(SocketGateway, 'sendNotification').mockImplementation(() => {});
     const pushSpy = vi.spyOn(WebPushService, 'sendPushToUser').mockResolvedValue(0);
 
@@ -37,13 +40,13 @@ describe('Notifications Unread Count & Dispatcher', () => {
       recipientId: 'u-1', sender: { id: 'u-1', username: 'alice', name: 'Alice', role: 'member' },
       type: 'upvote', targetPublicationId: 'pub-1', push: { title: 'Test', body: 'Body', url: '/publication/pub-1', category: 'upvotes' },
     });
-    expect(createSpy).not.toHaveBeenCalled();
+    expect(upsertSpy).not.toHaveBeenCalled();
 
     await NotificationDispatcher.dispatch({
       recipientId: 'u-2', sender: { id: 'u-1', username: 'alice', name: 'Alice', role: 'member' },
       type: 'upvote', targetPublicationId: 'pub-1', push: { title: 'Alice liked', body: 'Hi', url: '/publication/pub-1', category: 'upvotes' },
     });
-    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(upsertSpy).toHaveBeenCalledTimes(1);
     expect(socketSpy).toHaveBeenCalledWith('u-2', expect.objectContaining({ type: 'upvote', target_publication_id: 'pub-1' }));
     expect(pushSpy).toHaveBeenCalledWith('u-2', expect.objectContaining({ title: 'Alice liked', body: 'Hi', url: '/publication/pub-1' }), 'upvotes');
   });

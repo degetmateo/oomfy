@@ -9,6 +9,9 @@ import {
 export type { ChatSnapshot };
 
 export class ChatIdentityMap {
+  private static readonly MAX_CHATS = 100;
+  private static readonly MAX_MESSAGE_THREADS = 25;
+  private static readonly MAX_MESSAGES_PER_THREAD = 150;
   private static instance: ChatIdentityMap;
   private chats = new Map<string, any>();
   private chatsCache: any[] = [];
@@ -24,7 +27,16 @@ export class ChatIdentityMap {
 
   public getChats(): any[] { return this.chatsCache; }
   public getChat(id?: string | null): any | undefined { return id ? this.chats.get(id.toLowerCase()) : undefined; }
-  public getMessages(id?: string | null): any[] | undefined { return id ? this.messagesByChat.get(id.toLowerCase()) : undefined; }
+  public getMessages(id?: string | null): any[] | undefined {
+    if (!id) return undefined;
+    const key = id.toLowerCase();
+    const list = this.messagesByChat.get(key);
+    if (list) {
+      this.messagesByChat.delete(key);
+      this.messagesByChat.set(key, list);
+    }
+    return list;
+  }
   public hasMore(id?: string | null): boolean { return id ? Boolean(this.hasMoreByChat.get(id.toLowerCase())) : false; }
   public isChatsStale(ttlMs = 30_000): boolean { return this.chatsFetchedAt === 0 || Date.now() - this.chatsFetchedAt >= ttlMs; }
   public isMessagesStale(id?: string | null, ttlMs = 60_000): boolean {
@@ -45,11 +57,28 @@ export class ChatIdentityMap {
     }
     if (parts.length > 0) userIdentityMap.ingest(parts, fetchedAt, false);
     if (markFetched) this.chatsFetchedAt = Math.max(this.chatsFetchedAt, fetchedAt);
-    this.rebuildChats(); this.subject.notify('__chats__');
+    this.rebuildChats();
+    if (this.chats.size > ChatIdentityMap.MAX_CHATS) {
+      const keep = new Set(this.chatsCache.slice(0, ChatIdentityMap.MAX_CHATS).map((c) => c.id.toLowerCase()));
+      for (const k of this.chats.keys()) if (!keep.has(k)) this.chats.delete(k);
+      this.rebuildChats();
+    }
+    this.subject.notify('__chats__');
   }
 
   private commitMessages(key: string, next: any[], lastMsg: any): void {
-    this.messagesByChat.set(key, next);
+    const trimmed = next.length > ChatIdentityMap.MAX_MESSAGES_PER_THREAD
+      ? next.slice(-ChatIdentityMap.MAX_MESSAGES_PER_THREAD)
+      : next;
+    this.messagesByChat.delete(key);
+    this.messagesByChat.set(key, trimmed);
+    while (this.messagesByChat.size > ChatIdentityMap.MAX_MESSAGE_THREADS) {
+      const oldestKey = this.messagesByChat.keys().next().value;
+      if (oldestKey === undefined) break;
+      this.messagesByChat.delete(oldestKey);
+      this.hasMoreByChat.delete(oldestKey);
+      this.messagesFetchedAt.delete(oldestKey);
+    }
     if (lastMsg && applyLastMessageToChat(this.chats, key, lastMsg)) this.rebuildChats();
     this.subject.notifyMany([`msg:${key}`, '__chats__']);
   }

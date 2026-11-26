@@ -11,6 +11,7 @@ const followWriteLimiter = createRateLimiter({ windowMs: 60_000, max: 40, prefix
 
 router.post('/:username/block', AuthGuard.requireAuth, followWriteLimiter, ValidateRequest.params(UsernameParamSchema), BlockController.block);
 router.delete('/:username/block', AuthGuard.requireAuth, followWriteLimiter, ValidateRequest.params(UsernameParamSchema), BlockController.unblock);
+router.delete('/followers/:username', AuthGuard.requireAuth, followWriteLimiter, ValidateRequest.params(UsernameParamSchema), FollowController.removeFollower);
 router.post('/:username', AuthGuard.requireAuth, followWriteLimiter, ValidateRequest.params(UsernameParamSchema), FollowController.follow);
 router.delete('/:username', AuthGuard.requireAuth, followWriteLimiter, ValidateRequest.params(UsernameParamSchema), FollowController.unfollow);
 router.get('/:username/followers', AuthGuard.optionalAuth, ValidateRequest.params(UsernameParamSchema), ValidateRequest.query(PaginationQuerySchema), FollowController.getFollowers);

@@ -42,14 +42,17 @@ describe('Publication Cards Unified Spacing, Mobile Thread Typography & Full-Ble
     });
   });
 
-  it('fills 100% of single and multi-image MediaGrid slots with object-cover and proper LCP fetchpriority', () => {
+  it('fits single image in MediaGrid without zoom/crop while keeping multi-image grid object-cover and LCP fetchpriority', () => {
     const img1 = [{ url: 'https://cdn.example.com/1.jpg', source: 'imgbb' as const, index: 0 }];
     const { container, rerender } = render(<MediaGrid images={img1} priority />);
     let imgs = container.querySelectorAll('img');
     expect(imgs).toHaveLength(1);
-    expect(imgs[0].className).toContain('object-cover');
-    expect(imgs[0].className).toContain('w-full');
-    expect(imgs[0].className).not.toContain('object-contain');
+    expect(imgs[0].className).toContain('object-contain');
+    expect(imgs[0].className).toContain('max-w-full');
+    expect(imgs[0].className).toContain('w-auto');
+    expect(imgs[0].className).toContain('h-auto');
+    expect(imgs[0].className).not.toContain('object-cover');
+    expect(imgs[0].className).not.toContain('aspect-[16/10]');
     expect(imgs[0].getAttribute('loading')).toBe('eager');
     expect(imgs[0].getAttribute('fetchpriority')).toBe('high');
 

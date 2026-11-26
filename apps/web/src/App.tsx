@@ -7,6 +7,7 @@ import { ExploreView } from './views/ExploreView.js';
 import { TopicHubView } from './views/TopicHubView.js';
 import { NotificationsView } from './views/NotificationsView.js';
 import { ChatsView } from './views/ChatsView.js';
+import { BookmarksView } from './views/BookmarksView.js';
 import { SettingsView } from './views/SettingsView.js';
 import { AdminView } from './views/AdminView.js';
 import { ModerationView } from './views/ModerationView.js';
@@ -50,9 +51,9 @@ export const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (import.meta.env.MODE === 'test') return;
+    if (import.meta.env.MODE === 'test' || isBooting) return;
     QueryPersistenceService.hydrateFromLocalDb(queryClient, userId || 'guest').catch(() => {});
-  }, [userId]);
+  }, [isBooting, userId]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -69,6 +70,7 @@ export const App: React.FC = () => {
                 <Route path="/t/:tag" element={<ProtectedRoute><TopicHubView /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><NotificationsView /></ProtectedRoute>} />
                 <Route path="/chats" element={<ProtectedRoute><ChatsView /></ProtectedRoute>} />
+                <Route path="/bookmarks" element={<ProtectedRoute><BookmarksView /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><SettingsView /></ProtectedRoute>} />
                 <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminView /></ProtectedRoute>} />
                 <Route path="/moderation" element={<ProtectedRoute requiredRole={['admin', 'mod']}><ModerationView /></ProtectedRoute>} />

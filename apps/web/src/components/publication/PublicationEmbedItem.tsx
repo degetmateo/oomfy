@@ -4,6 +4,7 @@ import { PublicationEmbed } from '@oomfy/shared';
 import { ExternalLink, Film, MessageCircle, Play, X } from 'lucide-react';
 import { SpotifyPlayer } from './SpotifyPlayer.js';
 import { AnimeEmbedCard } from './AnimeEmbedCard.js';
+import { WikipediaEmbedCard } from './WikipediaEmbedCard.js';
 import { EmbedCardShell } from './EmbedCardShell.js';
 import { UrlHelper } from '../../utils/UrlHelper.js';
 import { resolveMediaUrl } from '../../utils/mediaUrl.js';
@@ -38,6 +39,10 @@ export const PublicationEmbedItem: React.FC<Props> = ({ embed, isHiddenSlide = f
 
   if (embed.type === 'anilist' || embed.type === 'myanimelist') {
     return <AnimeEmbedCard embed={embed} href={href} onOpen={openLink} isHiddenSlide={isHiddenSlide} />;
+  }
+
+  if (embed.type === 'wikipedia') {
+    return <WikipediaEmbedCard embed={embed} href={href} onOpen={openLink} isHiddenSlide={isHiddenSlide} />;
   }
 
   const thumb = resolveMediaUrl(embed.thumbnail_url || embed.image);

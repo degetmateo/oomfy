@@ -71,9 +71,10 @@ export const TimelineFeedList: React.FC<{
   isFetchingNextPage: boolean;
   hasNextPage?: boolean;
   loadMoreRef: React.RefObject<HTMLDivElement>;
+  listContainerRef?: React.RefObject<HTMLDivElement>;
   emptyTitle: string;
   emptySubtitle: string;
-}> = ({ posts, isLoading, isFetchingNextPage, hasNextPage, loadMoreRef, emptyTitle, emptySubtitle }) => {
+}> = ({ posts, isLoading, isFetchingNextPage, hasNextPage, loadMoreRef, listContainerRef, emptyTitle, emptySubtitle }) => {
   if (isLoading) return <div className="p-8 text-center text-xs text-dark-muted">Cargando publicaciones...</div>;
   if (posts.length === 0) {
     return (
@@ -85,8 +86,12 @@ export const TimelineFeedList: React.FC<{
   }
   return (
     <>
-      <div className="divide-y divide-dark-border">
-        {posts.map((post, idx) => <PublicationCard key={post.id} post={post} index={idx} />)}
+      <div ref={listContainerRef} tabIndex={-1} className="divide-y divide-dark-border outline-none">
+        {posts.map((post, idx) => (
+          <div key={post.id} data-feed-post-id={post.id}>
+            <PublicationCard post={post} index={idx} />
+          </div>
+        ))}
       </div>
       <div ref={loadMoreRef} className="py-4 text-center text-xs text-dark-muted">
         {isFetchingNextPage && <span>Cargando más publicaciones...</span>}

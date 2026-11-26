@@ -71,12 +71,18 @@ export class ProfileService {
       ProfileMediaService.applyMediaUpdate('banner', userId, input.banner_action, files.banner),
     ]);
 
+    const normalizedPronouns =
+      input.pronouns !== undefined
+        ? (typeof input.pronouns === 'string' ? (input.pronouns.trim() || null) : null)
+        : undefined;
+
     const pool = PostgresPool.getInstance();
     const fields: string[] = [];
     const values: any[] = [];
     let idx = 1;
     if (input.name !== undefined) { fields.push(`name = $${idx++}`); values.push(input.name); }
     if (input.bio !== undefined) { fields.push(`bio = $${idx++}`); values.push(input.bio); }
+    if (normalizedPronouns !== undefined) { fields.push(`pronouns = $${idx++}`); values.push(normalizedPronouns); }
     if (input.location !== undefined) { fields.push(`location = $${idx++}`); values.push(input.location); }
     if (normalizedLink !== undefined) { fields.push(`link = $${idx++}`); values.push(normalizedLink); }
     if (fields.length > 0) {
@@ -87,6 +93,7 @@ export class ProfileService {
     const mongoUpdates: Partial<PublicUser> & { id: string; username: string } = { id: userId, username: existingUser.username };
     if (input.name !== undefined) mongoUpdates.name = input.name;
     if (input.bio !== undefined) mongoUpdates.bio = input.bio;
+    if (normalizedPronouns !== undefined) mongoUpdates.pronouns = normalizedPronouns;
     if (input.location !== undefined) mongoUpdates.location = input.location;
     if (normalizedLink !== undefined) mongoUpdates.link = normalizedLink;
     if (iconUrl !== undefined) mongoUpdates.icon_url = iconUrl;

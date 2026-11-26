@@ -22,6 +22,16 @@ export class FollowController {
     }
   }
 
+  public static async removeFollower(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { username } = req.params;
+      const result = await FollowService.removeFollower(req.user!.id, username);
+      res.status(200).json({ success: true, ...result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   public static async getFollowers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { username } = req.params;

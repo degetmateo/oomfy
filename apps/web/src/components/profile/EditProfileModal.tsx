@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useRef } from 'react';
+import React, { useContext, useState, useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { QueryClientContext } from '@tanstack/react-query';
 import { X } from 'lucide-react';
@@ -24,6 +24,7 @@ function detachFileBuffer(file: File, apply: (cloned: File) => void): void {
 export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpdated }) => {
   const queryClient = useContext(QueryClientContext);
   const dialog = useDialogStore();
+  const pronounsListId = useId();
   const [draft, setDraft] = useState<ProfileEditDraft>(() => ProfileController.createDraft(user));
   const [isSaving, setIsSaving] = useState(false);
   const wasOpenRef = useRef(false);
@@ -98,11 +99,34 @@ export const EditProfileModal: React.FC<Props> = ({ user, isOpen, onClose, onUpd
         </div>
         <EditProfileMedia username={user.username} bannerPreview={draft.bannerPreview} iconPreview={draft.iconPreview} onBannerChange={setBanner} onBannerRemove={removeBanner} onIconChange={setIcon} />
         <div className="p-4 space-y-3">
-          <PixelField label="Nombre" value={draft.name} onChange={(v) => setDraft((p) => ({ ...p, name: v }))} maxLength={LIMITS.NAME_MAX} />
-          <PixelField label="Biografía" value={draft.bio} onChange={(v) => setDraft((p) => ({ ...p, bio: v }))} maxLength={LIMITS.BIO_MAX} isTextarea />
-          <PixelField label="Ubicación" value={draft.location} onChange={(v) => setDraft((p) => ({ ...p, location: v }))} maxLength={LIMITS.LOCATION_MAX} />
+          <PixelField label="Nombre" name="name" value={draft.name} onChange={(v) => setDraft((p) => ({ ...p, name: v }))} maxLength={LIMITS.NAME_MAX} />
+          <PixelField
+            label="Pronombres"
+            name="pronouns"
+            list={pronounsListId}
+            value={draft.pronouns}
+            onChange={(v) => setDraft((p) => ({ ...p, pronouns: v }))}
+            maxLength={LIMITS.PRONOUNS_MAX}
+            placeholder="ej. he/him, she/her, they/them"
+            autoCapitalize="none"
+            spellCheck={false}
+          />
+          <datalist id={pronounsListId}>
+            <option value="he/him" />
+            <option value="she/her" />
+            <option value="they/them" />
+            <option value="he/they" />
+            <option value="she/they" />
+            <option value="él/lo" />
+            <option value="ella/la" />
+            <option value="elle/le" />
+            <option value="any pronouns" />
+          </datalist>
+          <PixelField label="Biografía" name="bio" value={draft.bio} onChange={(v) => setDraft((p) => ({ ...p, bio: v }))} maxLength={LIMITS.BIO_MAX} isTextarea />
+          <PixelField label="Ubicación" name="location" value={draft.location} onChange={(v) => setDraft((p) => ({ ...p, location: v }))} maxLength={LIMITS.LOCATION_MAX} />
           <PixelField
             label="Sitio web"
+            name="link"
             value={draft.link}
             onChange={(v) => setDraft((p) => ({ ...p, link: v }))}
             maxLength={LIMITS.LINK_MAX}
