@@ -9,6 +9,18 @@ export function useChatsListModel(): any[] {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
+export function useChatModel(chatId?: string | null): any | undefined {
+  const subscribe = useCallback(
+    (cb: () => void) => (chatId ? chatIdentityMap.subscribeChat(chatId, cb) : () => {}),
+    [chatId]
+  );
+  const getSnapshot = useCallback(
+    () => (chatId ? chatIdentityMap.getChat(chatId) : undefined),
+    [chatId]
+  );
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
 export function useChatMessagesModel(chatId?: string | null): any[] {
   const subscribe = useCallback(
     (cb: () => void) => (chatId ? chatIdentityMap.subscribeMessages(chatId, cb) : () => {}),
@@ -18,5 +30,23 @@ export function useChatMessagesModel(chatId?: string | null): any[] {
     () => (chatId ? chatIdentityMap.getMessages(chatId) ?? EMPTY_LIST : EMPTY_LIST),
     [chatId]
   );
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+export function useChatTypingModel(chatId?: string | null): string | null {
+  const subscribe = useCallback(
+    (cb: () => void) => (chatId ? chatIdentityMap.subscribeTyping(chatId, cb) : () => {}),
+    [chatId]
+  );
+  const getSnapshot = useCallback(
+    () => (chatId ? chatIdentityMap.getTyping(chatId) : null),
+    [chatId]
+  );
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+export function useAllChatsTypingModel(): Record<string, string> {
+  const subscribe = useCallback((cb: () => void) => chatIdentityMap.subscribeAllTyping(cb), []);
+  const getSnapshot = useCallback(() => chatIdentityMap.getAllTyping(), []);
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

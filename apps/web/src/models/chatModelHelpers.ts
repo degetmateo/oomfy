@@ -2,6 +2,12 @@ import { PublicUser } from '@oomfy/shared';
 
 export interface ChatSnapshot { chats: any[]; messagesByChat: Record<string, any[]>; }
 
+function safeTimeMs(raw?: string | null): number {
+  if (!raw) return 0;
+  const ms = new Date(raw).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}
+
 export function mergeMessagesList(existing: any[], incoming: any[], mode: 'replace' | 'prepend' | 'append'): any[] {
   const map = new Map<string, any>();
   const base = mode === 'replace' ? incoming : mode === 'prepend' ? [...incoming, ...existing] : [...existing, ...incoming];
@@ -11,7 +17,7 @@ export function mergeMessagesList(existing: any[], incoming: any[], mode: 'repla
     map.set(m.id, prev ? { ...prev, ...m } : m);
   }
   return Array.from(map.values()).sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    (a, b) => safeTimeMs(a.created_at) - safeTimeMs(b.created_at)
   );
 }
 
@@ -20,13 +26,22 @@ export function extractMessageSnippet(msg: any): string {
   return msg.content || (msg.gif_url ? 'GIF' : msg.media_urls?.length ? 'Imagen' : 'Mensaje');
 }
 
-export function applyLastMessageToChat(chats: Map<string, any>, key: string, msg: any): boolean {
+export function applyLastMessageToChat(chats: Map<string, any>, key: string, msg: any | null): boolean {
   const chat = chats.get(key);
-  if (!chat || !msg) return false;
+  if (!chat) return false;
+  if (msg === null) {
+    if (!chat.last_message) return false;
+    chats.set(key, { ...chat, last_message: null });
+    return true;
+  }
+  if (!msg) return false;
+  const msgTs = safeTimeMs(msg.created_at);
+  const prevTs = safeTimeMs(chat.updated_at);
+  const nextUpdatedAt = msgTs >= prevTs ? (msg.created_at || chat.updated_at) : chat.updated_at;
   chats.set(key, {
     ...chat,
     last_message: { id: msg.id, content: extractMessageSnippet(msg), sender_id: msg.sender_id, created_at: msg.created_at },
-    updated_at: msg.created_at || chat.updated_at,
+    updated_at: nextUpdatedAt,
   });
   return true;
 }
@@ -40,9 +55,11 @@ export function patchParticipantEntity(part: any, u: PublicUser): any {
 }
 
 export function sortChatsDesc(chats: Iterable<any>): any[] {
-  return Array.from(chats).sort(
-    (a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime()
-  );
+  return Array.from(chats).sort((a, b) => {
+    const tsA = Math.max(safeTimeMs(a?.last_message?.created_at), safeTimeMs(a?.updated_at), safeTimeMs(a?.created_at));
+    const tsB = Math.max(safeTimeMs(b?.last_message?.created_at), safeTimeMs(b?.updated_at), safeTimeMs(b?.created_at));
+    return tsB - tsA;
+  });
 }
 
 export function syncParticipantInStores(chats: Map<string, any>, messagesByChat: Map<string, any[]>, user: PublicUser): string[] {
@@ -52,7 +69,7 @@ export function syncParticipantInStores(chats: Map<string, any>, messagesByChat:
     const nextParts = chat.participants.map((p: any) => patchParticipantEntity(p, user));
     if (nextParts.some((p: any, i: number) => p !== chat.participants[i])) {
       chats.set(k, { ...chat, participants: nextParts });
-      changed.push('__chats__');
+      changed.push(`chat:${k}`, '__chats__');
     }
   }
   for (const [k, list] of messagesByChat.entries()) {

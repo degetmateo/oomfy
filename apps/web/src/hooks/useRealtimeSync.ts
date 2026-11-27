@@ -10,6 +10,7 @@ import { notificationIdentityMap } from '../models/NotificationIdentityMap.js';
 import { chatIdentityMap } from '../models/ChatIdentityMap.js';
 import { NotificationController } from '../controllers/NotificationController.js';
 import { PublicationController } from '../controllers/PublicationController.js';
+import { syncChatListQueryOnMessage } from './chatHookHelpers.js';
 
 export function useRealtimeSync(): void {
   const queryClient = useQueryClient();
@@ -31,6 +32,7 @@ export function useRealtimeSync(): void {
       leftAtRef.current = 0;
       useEntityRegistryStore.getState().clearRegistry();
       notificationIdentityMap.clear();
+      chatIdentityMap.clear();
       if (wasAuthRef.current) queryClient.clear();
       wasAuthRef.current = false;
       return;
@@ -111,9 +113,34 @@ export function useRealtimeSync(): void {
     const onNotification = (notif: any) => NotificationController.receiveRealtimeNotification(notif, queryClient);
     const onInteraction = (data: any) => PublicationController.applyRealtimeInteraction(data, queryClient);
     const onChatMessage = (msg: any) => {
-      if (msg?.sender_id === userId) return;
-      queryClient.invalidateQueries({ queryKey: ['unread-messages-count'] });
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      if (!msg?.chat_id || !msg?.id) return;
+      const activeCid = SocketClient.getActiveChatId?.()?.toLowerCase();
+      const isVisible = typeof document === 'undefined' || document.visibilityState === 'visible';
+      const isChatActive = Boolean(activeCid && activeCid === msg.chat_id.toLowerCase() && isVisible);
+      const existed = chatIdentityMap.receiveRealtimeMessage(msg, userId, isChatActive);
+      syncChatListQueryOnMessage(queryClient, msg, userId, isChatActive ? msg.chat_id : null);
+      if (!existed) {
+        queryClient.invalidateQueries({ queryKey: ['chats'] });
+      }
+      if (!isChatActive && msg.sender_id !== userId) {
+        queryClient.invalidateQueries({ queryKey: ['unread-messages-count'] });
+      }
+    };
+    const onUserTyping = (d: { chatId?: string; userId?: string; username?: string }) => {
+      if (d?.chatId && d.username && d.userId !== userId) {
+        chatIdentityMap.setTyping(d.chatId, d.username);
+      }
+    };
+    const onUserStopTyping = (d: { chatId?: string; userId?: string }) => {
+      if (d?.chatId && d.userId !== userId) {
+        chatIdentityMap.clearTyping(d.chatId);
+      }
+    };
+    const onDeleteMessage = (d: { chatId?: string; messageId?: string }) => {
+      if (d?.chatId && d?.messageId) {
+        chatIdentityMap.removeMessage(d.chatId, d.messageId);
+        queryClient.invalidateQueries({ queryKey: ['chats'] });
+      }
     };
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') emitLeave();
@@ -141,6 +168,10 @@ export function useRealtimeSync(): void {
     socket.on('notification', onNotification);
     socket.on('publication-interaction-updated', onInteraction);
     socket.on('new_chat_message', onChatMessage);
+    socket.on('new-message', onChatMessage);
+    socket.on('user-typing', onUserTyping);
+    socket.on('user-stop-typing', onUserStopTyping);
+    socket.on('delete-message', onDeleteMessage);
     socket.on('client:sync', onClientSync);
     socket.on('connect', syncBadgesAndLists);
     window.addEventListener('focus', syncBadgesAndLists);
@@ -152,6 +183,10 @@ export function useRealtimeSync(): void {
       socket.off('notification', onNotification);
       socket.off('publication-interaction-updated', onInteraction);
       socket.off('new_chat_message', onChatMessage);
+      socket.off('new-message', onChatMessage);
+      socket.off('user-typing', onUserTyping);
+      socket.off('user-stop-typing', onUserStopTyping);
+      socket.off('delete-message', onDeleteMessage);
       socket.off('client:sync', onClientSync);
       socket.off('connect', syncBadgesAndLists);
       window.removeEventListener('focus', syncBadgesAndLists);

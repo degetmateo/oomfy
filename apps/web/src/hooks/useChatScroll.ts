@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
 import { useViewActive } from '../contexts/ViewActivityContext.js';
 
 export function useChatScroll() {
@@ -10,14 +10,40 @@ export function useChatScroll() {
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const isAutoScrollRef = useRef(true);
+  const savedScrollTopRef = useRef<number | null>(null);
+  const prevViewActiveRef = useRef(isViewActive);
   const highlightTimeoutRef = useRef<any>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
   const lastContentHeightRef = useRef(0);
   const isPrependingRef = useRef(false);
   const prependSnapshotRef = useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
   const programmaticScrollUntilRef = useRef(0);
+  const programmaticTypeRef = useRef<'instant' | 'smooth'>('instant');
 
   isAutoScrollRef.current = isAutoScrollEnabled;
+
+  useLayoutEffect(() => {
+    const wasActive = prevViewActiveRef.current;
+    prevViewActiveRef.current = isViewActive;
+    const el = scrollContainerRef.current;
+    if (!el || wasActive === isViewActive) return;
+
+    if (wasActive && !isViewActive) {
+      if (el.clientHeight > 0) {
+        savedScrollTopRef.current = el.scrollTop;
+      }
+      return;
+    }
+
+    if (!wasActive && isViewActive) {
+      programmaticScrollUntilRef.current = Date.now() + 120;
+      if (isAutoScrollRef.current) {
+        el.scrollTop = el.scrollHeight;
+      } else if (savedScrollTopRef.current !== null) {
+        el.scrollTop = savedScrollTopRef.current;
+      }
+    }
+  }, [isViewActive]);
 
   const contentRef = useCallback((node: HTMLDivElement | null) => {
     if (observerRef.current) {
@@ -49,10 +75,15 @@ export function useChatScroll() {
   }, []);
 
   const handleScroll = useCallback(() => {
-    if (!isViewActiveRef.current || isPrependingRef.current || Date.now() < programmaticScrollUntilRef.current) return;
+    if (!isViewActiveRef.current || isPrependingRef.current) return;
     const el = scrollContainerRef.current;
-    if (el && el.clientHeight === 0) return;
+    if (!el || el.clientHeight === 0) return;
     const isAtBottom = checkIfAtBottom();
+    if (Date.now() < programmaticScrollUntilRef.current) {
+      if (programmaticTypeRef.current === 'smooth' || isAtBottom) return;
+      programmaticScrollUntilRef.current = 0;
+    }
+    savedScrollTopRef.current = el.scrollTop;
     if (isAutoScrollRef.current !== isAtBottom) {
       setIsAutoScrollEnabled(isAtBottom);
       isAutoScrollRef.current = isAtBottom;
@@ -62,8 +93,10 @@ export function useChatScroll() {
   const snapToBottomImmediate = useCallback(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
+    programmaticTypeRef.current = 'instant';
     programmaticScrollUntilRef.current = Date.now() + 100;
     el.scrollTop = el.scrollHeight;
+    savedScrollTopRef.current = el.scrollTop;
     setIsAutoScrollEnabled(true);
     isAutoScrollRef.current = true;
   }, []);
@@ -72,9 +105,11 @@ export function useChatScroll() {
     const el = scrollContainerRef.current;
     if (!el) return;
     if (force || isAutoScrollRef.current) {
+      programmaticTypeRef.current = behavior === 'smooth' ? 'smooth' : 'instant';
       if (behavior === 'smooth') programmaticScrollUntilRef.current = Date.now() + 450;
       if (behavior !== 'instant' && typeof el.scrollTo === 'function') el.scrollTo({ top: el.scrollHeight, behavior });
       else el.scrollTop = el.scrollHeight;
+      savedScrollTopRef.current = el.scrollHeight;
       setIsAutoScrollEnabled(true);
       isAutoScrollRef.current = true;
     }
@@ -94,6 +129,7 @@ export function useChatScroll() {
     const snap = prependSnapshotRef.current;
     if (!el || !snap) return false;
     el.scrollTop = snap.scrollTop + (el.scrollHeight - snap.scrollHeight);
+    savedScrollTopRef.current = el.scrollTop;
     prependSnapshotRef.current = null;
     const release = () => { isPrependingRef.current = false; };
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(release);

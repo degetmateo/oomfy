@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiClient } from '../services/api.js';
 import { SocketClient } from '../services/socket.js';
 import { chatIdentityMap } from '../models/ChatIdentityMap.js';
-import { useChatsListModel } from './useChatModel.js';
+import { useAllChatsTypingModel, useChatsListModel } from './useChatModel.js';
 import { syncChatListQueryOnMessage } from './chatHookHelpers.js';
 
 export function useChatsList(userId?: string, selectedChatId?: string | null, isViewActive = true) {
@@ -12,8 +12,9 @@ export function useChatsList(userId?: string, selectedChatId?: string | null, is
   const wasViewActiveRef = useRef(isViewActive);
   const isViewActiveRef = useRef(isViewActive);
   isViewActiveRef.current = isViewActive;
-  const [typingChats, setTypingChats] = useState<Record<string, string>>({});
-  const typingTimersRef = useRef<Record<string, any>>({});
+  const selectedChatIdRef = useRef(selectedChatId);
+  selectedChatIdRef.current = selectedChatId;
+  const typingChats = useAllChatsTypingModel();
   const modelChats = useChatsListModel();
 
   const { data: chatsData, isLoading, refetch } = useQuery<{ success: boolean; data: any[] }>({
@@ -53,51 +54,50 @@ export function useChatsList(userId?: string, selectedChatId?: string | null, is
 
   useEffect(() => {
     const socket = SocketClient.getSocket();
-    const clearChatTyping = (cid: string) => {
-      if (typingTimersRef.current[cid]) clearTimeout(typingTimersRef.current[cid]);
-      setTypingChats((prev) => { if (!prev[cid]) return prev; const { [cid]: _, ...rest } = prev; return rest; });
-    };
 
     const handleNewChatMessage = (msg: any) => {
-      const msgChatId = msg.chat_id?.toLowerCase();
-      if (msgChatId) clearChatTyping(msgChatId);
-      const isActive = isViewActiveRef.current && selectedChatId?.toLowerCase() === msgChatId;
-      let found = Boolean(msg.chat_id && chatIdentityMap.getChat(msg.chat_id));
-      if (msg.chat_id) {
-        chatIdentityMap.upsertMessage(msg.chat_id, msg);
-        chatIdentityMap.patchChat(msg.chat_id, (c) => ({
-          ...c, unread_count: isActive ? 0 : (c.unread_count || 0) + (msg.sender_id !== userId ? 1 : 0),
-        }));
-      }
-      if (syncChatListQueryOnMessage(queryClient, msg, userId, isViewActiveRef.current ? selectedChatId : null)) found = true;
-      if (!found) queryClient.invalidateQueries({ queryKey: ['chats'] });
+      if (!msg?.chat_id || !msg?.id) return;
+      const msgChatId = msg.chat_id.toLowerCase();
+      const currentSelected = selectedChatIdRef.current;
+      const isActive = isViewActiveRef.current && currentSelected?.toLowerCase() === msgChatId;
+      const existedInModel = chatIdentityMap.receiveRealtimeMessage(msg, userId, isActive);
+      const syncedQuery = syncChatListQueryOnMessage(queryClient, msg, userId, isViewActiveRef.current ? currentSelected : null);
+      if (!existedInModel && !syncedQuery) queryClient.invalidateQueries({ queryKey: ['chats'] });
       queryClient.invalidateQueries({ queryKey: ['unread-messages-count'] });
     };
 
     const handleTyping = (d: { chatId: string; userId: string; username: string }) => {
-      if (!d?.chatId || d.userId === userId) return;
-      const cid = d.chatId.toLowerCase();
-      setTypingChats((prev) => ({ ...prev, [cid]: d.username }));
-      if (typingTimersRef.current[cid]) clearTimeout(typingTimersRef.current[cid]);
-      typingTimersRef.current[cid] = setTimeout(() => clearChatTyping(cid), 4000);
+      if (!d?.chatId || !d.username || d.userId === userId) return;
+      chatIdentityMap.setTyping(d.chatId, d.username);
     };
     const handleStopTyping = (d: { chatId: string; userId: string }) => {
-      if (d?.chatId && d.userId !== userId) clearChatTyping(d.chatId.toLowerCase());
+      if (d?.chatId && d.userId !== userId) chatIdentityMap.clearTyping(d.chatId);
     };
 
-    socket.on('new_chat_message', handleNewChatMessage); socket.on('user-typing', handleTyping); socket.on('user-stop-typing', handleStopTyping);
+    socket.on('new_chat_message', handleNewChatMessage);
+    socket.on('user-typing', handleTyping);
+    socket.on('user-stop-typing', handleStopTyping);
     return () => {
-      socket.off('new_chat_message', handleNewChatMessage); socket.off('user-typing', handleTyping); socket.off('user-stop-typing', handleStopTyping);
-      Object.values(typingTimersRef.current).forEach(clearTimeout);
+      socket.off('new_chat_message', handleNewChatMessage);
+      socket.off('user-typing', handleTyping);
+      socket.off('user-stop-typing', handleStopTyping);
     };
-  }, [queryClient, selectedChatId, userId]);
+  }, [queryClient, userId]);
 
-  const markChatOpened = (chatId: string) => {
-    chatIdentityMap.patchChat(chatId, (c) => ({ ...c, unread_count: 0 }));
-    queryClient.setQueryData(['chats'], (old: any) =>
-      old?.data ? { ...old, data: old.data.map((c: any) => c.id?.toLowerCase() === chatId.toLowerCase() ? { ...c, unread_count: 0 } : c) } : old
-    );
-  };
+  const markChatOpened = useCallback((chatId: string) => {
+    if ((chatIdentityMap.getChat(chatId)?.unread_count ?? 0) > 0) {
+      chatIdentityMap.patchChat(chatId, (c) => ({ ...c, unread_count: 0 }));
+    }
+    queryClient.setQueryData(['chats'], (old: any) => {
+      if (!old?.data) return old;
+      const target = old.data.find((c: any) => c.id?.toLowerCase() === chatId.toLowerCase());
+      if (!target || !target.unread_count) return old;
+      return {
+        ...old,
+        data: old.data.map((c: any) => (c.id?.toLowerCase() === chatId.toLowerCase() ? { ...c, unread_count: 0 } : c)),
+      };
+    });
+  }, [queryClient]);
 
   return { chats, isLoading: isLoading && chats.length === 0, markChatOpened, typingChats };
 }

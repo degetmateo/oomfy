@@ -383,3 +383,30 @@ dialog::backdrop {
   padding-left: max(1rem, env(safe-area-inset-left, 0px));
   padding-right: max(1rem, env(safe-area-inset-right, 0px));
 }
+
+/* Persisted mounted chat thread pool */
+.spa-chat-thread-active {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  content-visibility: visible;
+}
+
+.spa-chat-thread-inactive {
+  display: none;
+}
+
+@supports (content-visibility: hidden) {
+  .spa-chat-thread-inactive {
+    display: flex;
+    flex-direction: column;
+    content-visibility: hidden;
+    position: absolute;
+    inset: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+}

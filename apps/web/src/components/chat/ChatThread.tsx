@@ -11,16 +11,18 @@ import { ReportModal } from '../modals/ReportModal.js';
 import { ImageViewerModal } from '../common/ImageViewerModal.js';
 import { useChatMessages } from '../../hooks/useChatMessages.js';
 import { useChatScroll } from '../../hooks/useChatScroll.js';
-import { useViewActive } from '../../contexts/ViewActivityContext.js';
+import { useCloseOnViewInactive, useViewActive } from '../../contexts/ViewActivityContext.js';
 
 interface Props { chat: any; currentUserId: string; }
 
-export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
+const ChatThreadBase: React.FC<Props> = ({ chat, currentUserId }) => {
   const queryClient = useQueryClient();
   const isViewActive = useViewActive();
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [reportingMessage, setReportingMessage] = useState<any | null>(null);
   const [activeImage, setActiveImage] = useState<string | null>(null);
+  useCloseOnViewInactive(Boolean(reportingMessage), () => setReportingMessage(null));
+  useCloseOnViewInactive(Boolean(activeImage), () => setActiveImage(null));
   const {
     scrollContainerRef, contentRef, showScrollBottomButton, highlightedMessageId,
     handleScroll, scrollToBottom, scrollToMessage, snapToBottomImmediate, beginPrepend, restoreScrollAfterPrepend,
@@ -30,6 +32,7 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
   const mountedWithMessagesRef = useRef(!isLoading && messages.length > 0);
 
   useLayoutEffect(() => {
+    if (!isViewActive) return;
     if (restoreScrollAfterPrepend()) return;
     if (!initialAnchoredRef.current && !isLoading && messages.length > 0) {
       initialAnchoredRef.current = true;
@@ -42,7 +45,7 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
         Boolean(el && el.scrollHeight - el.scrollTop - el.clientHeight > 4);
       if (needsJsSnap) snapToBottomImmediate();
     }
-  }, [isLoading, messages.length, restoreScrollAfterPrepend, snapToBottomImmediate]);
+  }, [isViewActive, isLoading, messages.length, restoreScrollAfterPrepend, snapToBottomImmediate]);
 
   useEffect(() => {
     if (!replyingTo || !isViewActive) return;
@@ -121,3 +124,5 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
     </div>
   );
 };
+
+export const ChatThread = React.memo(ChatThreadBase);
