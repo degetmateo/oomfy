@@ -247,7 +247,7 @@ export const MobileSideDrawer: React.FC = () => {
             className="mobile-drawer-sheet bg-dark-bg border-r border-dark-border text-dark-text flex flex-col justify-between shadow-2xl"
           >
             <div>
-              <div className="p-4 border-b border-dark-border">
+              <div className="p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] border-b border-dark-border">
                 <div className="flex items-start justify-between gap-2">
                   <Link
                     to={`/${user.username}`}

@@ -1,4 +1,6 @@
 import React from 'react';
+import fs from 'fs';
+import path from 'path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -262,5 +264,21 @@ describe('Mobile Navigation Drawer, Enlarged Bottom Nav & Explore Search Icon', 
     fireEvent.click(screen.getByRole('link', { name: 'Guardados' }));
     expect(useUIStore.getState().isMobileDrawerOpen).toBe(false);
     expect(dialog?.hasAttribute('open')).toBe(false);
+  });
+
+  it('enables viewport-fit=cover and adapts MobileBottomNav safe-area inset padding for rounded/notched screens', () => {
+    const html = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+    expect(html).toContain('viewport-fit=cover');
+
+    const css = fs.readFileSync(path.resolve(process.cwd(), 'src/index.css'), 'utf-8');
+    expect(css).toContain('.mobile-bottom-nav');
+    expect(css).toContain('env(safe-area-inset-bottom, 0px)');
+    expect(css).toContain('env(safe-area-inset-left, 0px)');
+    expect(css).toContain('env(safe-area-inset-right, 0px)');
+    expect(css).toContain('scroll-padding-bottom');
+
+    const { container } = renderWithProviders(<MobileBottomNav />);
+    const nav = container.querySelector('nav[aria-label="Navegación móvil"]');
+    expect(nav?.className).toContain('mobile-bottom-nav');
   });
 });

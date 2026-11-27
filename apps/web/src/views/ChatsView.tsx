@@ -76,7 +76,7 @@ export const ChatsView: React.FC = () => {
       <div className={`${!selectedChatId ? 'hidden md:flex' : 'fixed inset-0 z-50 md:relative md:inset-auto md:z-auto'} flex-1 flex flex-col h-full min-w-0 bg-dark-bg overflow-hidden mobile-chat-container`}>
         {selectedChat && other && user ? (
           <>
-            <header className="sticky top-0 z-20 bg-dark-bg/95 border-b border-dark-border px-3 sm:px-4 py-2.5 flex items-center gap-3 select-none flex-shrink-0">
+            <header className="sticky top-0 z-20 bg-dark-bg/95 border-b border-dark-border px-3 sm:px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] flex items-center gap-3 select-none flex-shrink-0">
               <button onClick={() => { setSelectedChatId(null); setSearchParams({}, { replace: true }); }} className="md:hidden p-2 -ml-1.5 text-dark-muted hover:text-brand-400 hover:bg-dark-border/40 transition-colors rounded select-none flex-shrink-0" title="Volver" aria-label="Volver atrás">
                 <ArrowLeft className="w-6 h-6" />
               </button>

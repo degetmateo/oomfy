@@ -49,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-20 backdrop-blur-md bg-dark-bg/85 border-b border-dark-border px-4 sm:px-6 py-3.5 flex items-center gap-3 select-none">
+    <header className="sticky top-0 z-20 backdrop-blur-md bg-dark-bg/85 border-b border-dark-border px-4 sm:px-6 pb-3.5 safe-top-header flex items-center gap-3 select-none">
       {shouldShowDrawerTrigger && <MobileDrawerTrigger />}
       {shouldShowBack && (
         <button
