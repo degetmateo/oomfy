@@ -8,6 +8,7 @@ import { useEntityRegistryStore } from '../stores/entityRegistryStore.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { ApiClient } from '../services/api.js';
 import { useFollowMutation } from './useFollowMutation.js';
+import { useCloseOnViewInactive } from '../contexts/ViewActivityContext.js';
 
 export function useProfileActions(user: PublicUser) {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export function useProfileActions(user: PublicUser) {
   const [followsYou, setFollowsYou] = useState(Boolean(user.follows_you));
   const [isRemovingFollower, setIsRemovingFollower] = useState(false);
   const { isFollowing, isLoadingFollow, toggleFollow } = useFollowMutation(user);
+  useCloseOnViewInactive(isReportOpen, () => setIsReportOpen(false));
 
   useEffect(() => {
     setIsBlocked(Boolean(user.is_blocked));

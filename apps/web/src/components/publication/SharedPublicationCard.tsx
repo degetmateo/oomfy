@@ -28,7 +28,7 @@ export const SharedPublicationCard: React.FC<Props> = ({ post: rawPost, canDelet
   });
 
   return (
-    <article {...cardHandlers} className="p-3.5 sm:p-4 border-b border-dark-border hover:bg-dark-card/40 transition-colors cursor-pointer font-mono relative">
+    <article {...cardHandlers} data-scroll-anchor={`post-${post.id}`} className="p-3.5 sm:p-4 border-b border-dark-border hover:bg-dark-card/40 transition-colors cursor-pointer font-mono relative">
       <div className="flex items-center justify-between text-xs text-dark-muted mb-2.5 font-mono">
         <div data-no-card-nav="true" onClick={(e) => { e.stopPropagation(); navigate(`/${post.author.username}`); }} className="flex items-center gap-1.5 cursor-pointer hover:underline">
           <PixelShare active size={16} />

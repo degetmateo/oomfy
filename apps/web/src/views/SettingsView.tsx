@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Shield, Key, Laptop, Smartphone, Sparkles } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
 import { CachedTabPanel } from '../components/common/CachedTabPanel.js';
@@ -10,11 +10,14 @@ import { SessionsSettingsTab } from '../components/settings/SessionsSettingsTab.
 import { AppPwaSettingsTab } from '../components/settings/AppPwaSettingsTab.js';
 import { LogoutSection } from '../components/settings/LogoutSection.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
+import { useViewActive } from '../contexts/ViewActivityContext.js';
+import { useViewSearchParams } from '../hooks/useViewSearchParams.js';
 
 type Tab = 'account' | 'customization' | 'security' | 'sessions' | 'app';
 
 export const SettingsView: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const isViewActive = useViewActive();
+  const [searchParams, setSearchParams] = useViewSearchParams();
   const validTabs: Tab[] = ['account', 'customization', 'security', 'sessions', 'app'];
   const tabParam = searchParams.get('tab') as Tab | null;
   const [activeTab, setActiveTab] = useState<Tab>(
@@ -22,10 +25,11 @@ export const SettingsView: React.FC = () => {
   );
 
   useEffect(() => {
+    if (!isViewActive) return;
     if (tabParam && validTabs.includes(tabParam) && tabParam !== activeTab) {
       setActiveTab(tabParam);
     }
-  }, [tabParam]);
+  }, [tabParam, isViewActive]);
 
   const selectTab = (tab: Tab) => {
     setActiveTab(tab);

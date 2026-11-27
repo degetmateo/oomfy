@@ -5,6 +5,7 @@ import { MoreHorizontal, Trash2, Copy, Check, Flag, BarChart2, Pin } from 'lucid
 import { useAuthStore } from '../../stores/authStore.js';
 import { usePinPublication } from '../../hooks/usePinPublication.js';
 import { usePopoverMenu } from '../../hooks/usePopoverMenu.js';
+import { useCloseOnViewInactive } from '../../contexts/ViewActivityContext.js';
 import { ReportModal } from '../modals/ReportModal.js';
 
 interface Props {
@@ -23,6 +24,7 @@ export const PublicationMenu: React.FC<Props> = ({ postId, authorId, authorUsern
   const { menuId, triggerRef, menuRef, isOpen, supportsPopover, useJsPos, coords, closeMenu, toggleFallback } = usePopoverMenu();
   const [copied, setCopied] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  useCloseOnViewInactive(isReportOpen, () => setIsReportOpen(false));
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();

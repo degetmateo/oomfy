@@ -5,6 +5,7 @@ import { ExternalLink, Music2, Play, X } from 'lucide-react';
 import { UrlHelper } from '../../utils/UrlHelper.js';
 import { resolveMediaUrl } from '../../utils/mediaUrl.js';
 import { EmbedCardShell } from './EmbedCardShell.js';
+import { useCloseOnViewInactive } from '../../contexts/ViewActivityContext.js';
 
 interface SpotifyPlayerProps {
   embeds?: SpotifyEmbed[];
@@ -24,6 +25,7 @@ function buildDarkSpotifyIframeUrl(rawUrl?: string | null): string | null {
 const SpotifySingleCard: React.FC<{ embed: SpotifyEmbed; isHiddenSlide?: boolean }> = ({ embed, isHiddenSlide }) => {
   const navigate = useNavigate();
   const [playing, setPlaying] = useState(false);
+  useCloseOnViewInactive(playing, () => setPlaying(false));
   const darkIframeUrl = buildDarkSpotifyIframeUrl(embed.iframe_url);
   const thumb = resolveMediaUrl(embed.thumbnail_url);
   const href = `/external?url=${encodeURIComponent(embed.url)}`;

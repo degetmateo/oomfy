@@ -28,7 +28,7 @@ export const ReplyThreadGroup: React.FC<Props> = ({ reply, rootAuthorId, rootAut
   const showAuthorIndicator = Boolean(reply.has_author_reply && reply.author.id !== rootAuthorId);
 
   return (
-    <div className="border-b border-dark-border">
+    <div data-scroll-anchor={`reply-${reply.id}`} className="border-b border-dark-border">
       {showAuthorIndicator && (
         <div className="px-4 pt-2.5 pb-0.5 flex items-center gap-1.5 text-xs font-mono text-brand-400 font-bold">
           <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" />

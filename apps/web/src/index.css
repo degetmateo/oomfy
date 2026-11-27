@@ -151,19 +151,28 @@ dialog::backdrop {
   }
 }
 
-/* Preserved SPA sub-tab state caching & below-the-fold feed rendering optimization */
-.spa-tab-panel-inactive {
-  content-visibility: hidden;
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-  pointer-events: none;
+/* Preserved SPA view & sub-tab state caching + below-the-fold feed optimization */
+.spa-view-active,
+.spa-tab-panel-active {
+  content-visibility: visible;
 }
 
-@supports not (content-visibility: hidden) {
+.spa-view-inactive,
+.spa-tab-panel-inactive {
+  display: none;
+}
+
+@supports (content-visibility: hidden) {
+  .spa-view-inactive,
   .spa-tab-panel-inactive {
-    display: none;
+    display: block;
+    content-visibility: hidden;
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
   }
 }
 
@@ -259,4 +268,89 @@ dialog::backdrop {
 .is-dragging-bookmarks,
 .is-dragging-bookmarks * {
   cursor: grabbing !important;
+}
+
+/* Mobile left slide-out navigation drawer (scroll-snap + dialog top-layer) */
+.mobile-drawer {
+  --drawer-width: min(20em, 82dvw, 100dvw - 24px);
+  --drawer-backdrop: 0;
+  inset: 0;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.mobile-drawer::backdrop {
+  background: #000;
+  opacity: calc(var(--drawer-backdrop) * 0.65);
+}
+
+.mobile-drawer-scroller {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--drawer-width) 100%;
+  height: 100svh;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  overscroll-behavior: none;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.mobile-drawer-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mobile-drawer-scroller {
+    scroll-behavior: smooth;
+  }
+}
+
+.mobile-drawer-scroller::after {
+  content: "";
+  display: block;
+  scroll-snap-align: end;
+  scroll-initial-target: nearest;
+}
+
+.mobile-drawer-sheet {
+  height: 100svh;
+  scroll-snap-align: start;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  @property --drawer-backdrop {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+  }
+
+  .mobile-drawer {
+    timeline-scope: --drawer-fade;
+    animation: fade-drawer-backdrop linear both;
+    animation-timeline: --drawer-fade;
+  }
+
+  .mobile-drawer-scroller {
+    scroll-timeline: --drawer-fade x;
+  }
+
+  @keyframes fade-drawer-backdrop {
+    0% {
+      --drawer-backdrop: 1;
+    }
+    100% {
+      --drawer-backdrop: 0;
+    }
+  }
 }

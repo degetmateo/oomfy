@@ -26,7 +26,7 @@ export const PublicationDetailArticle: React.FC<Props> = ({
   const navigate = useNavigate();
 
   return (
-    <article ref={articleRef} className="p-4 sm:p-5 border-b border-dark-border bg-dark-card/20 relative flex flex-col gap-3.5">
+    <article ref={articleRef} data-scroll-anchor={`detail-${publication.id}`} className="p-4 sm:p-5 border-b border-dark-border bg-dark-card/20 relative flex flex-col gap-3.5">
       {publication.type === 'shared' && (
         <div className="flex items-center gap-1.5 text-xs text-dark-muted font-mono">
           <PixelShare active size={16} /><span>Compartido por @{publication.author.username}</span>

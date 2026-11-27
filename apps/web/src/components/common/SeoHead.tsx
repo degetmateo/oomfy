@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { SITE_URL as BASE_URL } from '@oomfy/shared';
 import { resolveMediaUrl } from '../../utils/mediaUrl.js';
+import { useViewActive } from '../../contexts/ViewActivityContext.js';
 
 export interface SeoHeadProps {
   title: string;
@@ -41,7 +42,10 @@ export const SeoHead: React.FC<SeoHeadProps> = ({
   noIndex = false,
   jsonLd = null,
 }) => {
+  const isViewActive = useViewActive();
+
   useEffect(() => {
+    if (!isViewActive) return;
     const cleanDesc = description.replace(/\s+/g, ' ').trim().slice(0, 160);
     const safeOgImage = resolveMediaUrl(ogImage) || `${BASE_URL}/assets/oomfy-logo-black-bg.png`;
     const canonicalUrl = canonicalPath.startsWith('http')
@@ -77,7 +81,7 @@ export const SeoHead: React.FC<SeoHeadProps> = ({
     } else if (scriptEl) {
       scriptEl.remove();
     }
-  }, [title, description, canonicalPath, ogImage, ogType, noIndex, jsonLd]);
+  }, [isViewActive, title, description, canonicalPath, ogImage, ogType, noIndex, jsonLd]);
 
   return null;
 };

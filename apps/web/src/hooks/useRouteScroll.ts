@@ -19,6 +19,15 @@ export function useRouteScroll(): void {
   const isRestoringRef = useRef(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || !('scrollRestoration' in window.history)) return;
+    const prevRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    return () => {
+      window.history.scrollRestoration = prevRestoration;
+    };
+  }, []);
+
+  useEffect(() => {
     const onScroll = () => {
       if (!isRestoringRef.current) {
         RouteScrollStore.set(activeKeyRef.current, window.scrollY || 0);
@@ -42,14 +51,18 @@ export function useRouteScroll(): void {
 
     let cancelled = false;
     let scheduled = false;
-    const cancel = () => { cancelled = true; isRestoringRef.current = false; };
+    let rafId = 0;
+    const cancel = () => {
+      cancelled = true;
+      isRestoringRef.current = false;
+    };
     const events = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const;
     events.forEach((ev) => window.addEventListener(ev, cancel, { passive: true, once: true }));
 
     const scheduleRestore = () => {
       if (cancelled || scheduled) return;
       scheduled = true;
-      requestAnimationFrame(() => {
+      rafId = requestAnimationFrame(() => {
         scheduled = false;
         if (cancelled) return;
         safeScrollTo(targetY);
@@ -67,6 +80,7 @@ export function useRouteScroll(): void {
       observer.disconnect();
       clearTimeout(timer);
       events.forEach((ev) => window.removeEventListener(ev, cancel));
+      if (rafId) cancelAnimationFrame(rafId);
       isRestoringRef.current = false;
     };
   }, [viewKey]);

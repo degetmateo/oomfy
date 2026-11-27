@@ -21,6 +21,7 @@ import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { RouteScrollStore } from '../stores/routeScrollStore.js';
 import { usePublicationModel } from '../hooks/usePublicationModel.js';
+import { useViewActive, useRevalidateOnViewResume } from '../contexts/ViewActivityContext.js';
 
 const EMPTY_PUBLICATIONS: Publication[] = [];
 
@@ -29,6 +30,7 @@ const PublicationDetailContent: React.FC<{ id: string }> = ({ id }) => {
   const navigationType = useNavigationType();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const isViewActive = useViewActive();
   const { user, isAuthenticated } = useAuthStore();
   const { openPostModal } = useUIStore();
   const dialog = useDialogStore();
@@ -53,6 +55,8 @@ const PublicationDetailContent: React.FC<{ id: string }> = ({ id }) => {
     enabled: Boolean(id),
   });
 
+  useRevalidateOnViewResume(() => refetch(), 60_000);
+
   const rawPub: Publication | undefined = data?.publication;
   const cachedPub = publicationIdentityMap.get(id);
   const publication = usePublicationModel(rawPub || cachedPub || id) || rawPub || cachedPub;
@@ -60,11 +64,11 @@ const PublicationDetailContent: React.FC<{ id: string }> = ({ id }) => {
   const replies: Publication[] = data?.replies || data?.thread || EMPTY_PUBLICATIONS;
 
   useEffect(() => {
-    if (!publication || !targetArticleRef.current || ancestors.length === 0) return;
+    if (!isViewActive || !publication || !targetArticleRef.current || ancestors.length === 0) return;
     if (navigationType === 'POP' && RouteScrollStore.get(`${location.pathname}${location.search}`) > 0) return;
     const timer = setTimeout(() => targetArticleRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }), 100);
     return () => clearTimeout(timer);
-  }, [id, Boolean(publication), ancestors.length]);
+  }, [isViewActive, id, Boolean(publication), ancestors.length]);
 
   if (isLoading && !publication) return <div className="p-8 text-center text-dark-muted font-mono">Cargando publicación...</div>;
   if ((error || !publication) && !isLoading) return <div className="p-8 text-center text-red-400 font-mono">Publicación no encontrada.</div>;

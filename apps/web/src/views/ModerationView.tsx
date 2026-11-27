@@ -4,9 +4,11 @@ import { ShieldAlert } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
 import { PullToRefresh } from '../components/common/PullToRefresh.js';
 import { AdminReportsList } from '../components/admin/AdminReportsList.js';
+import { useViewActive } from '../contexts/ViewActivityContext.js';
 
 export const ModerationView: React.FC = () => {
   const queryClient = useQueryClient();
+  const isViewActive = useViewActive();
   const isFetching = useIsFetching({ queryKey: ['staff-reports'] }) > 0;
 
   const handleRefresh = useCallback(() => {
@@ -14,10 +16,11 @@ export const ModerationView: React.FC = () => {
   }, [queryClient]);
 
   useEffect(() => {
+    if (!isViewActive) return;
     const onVisible = () => { if (document.visibilityState === 'visible') void handleRefresh(); };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [handleRefresh]);
+  }, [isViewActive, handleRefresh]);
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>

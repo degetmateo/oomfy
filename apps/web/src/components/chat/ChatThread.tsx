@@ -11,11 +11,13 @@ import { ReportModal } from '../modals/ReportModal.js';
 import { ImageViewerModal } from '../common/ImageViewerModal.js';
 import { useChatMessages } from '../../hooks/useChatMessages.js';
 import { useChatScroll } from '../../hooks/useChatScroll.js';
+import { useViewActive } from '../../contexts/ViewActivityContext.js';
 
 interface Props { chat: any; currentUserId: string; }
 
 export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
   const queryClient = useQueryClient();
+  const isViewActive = useViewActive();
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [reportingMessage, setReportingMessage] = useState<any | null>(null);
   const [activeImage, setActiveImage] = useState<string | null>(null);
@@ -43,13 +45,13 @@ export const ChatThread: React.FC<Props> = ({ chat, currentUserId }) => {
   }, [isLoading, messages.length, restoreScrollAfterPrepend, snapToBottomImmediate]);
 
   useEffect(() => {
-    if (!replyingTo) return;
+    if (!replyingTo || !isViewActive) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !e.defaultPrevented && !reportingMessage && !activeImage) setReplyingTo(null);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [replyingTo, reportingMessage, activeImage]);
+  }, [isViewActive, replyingTo, reportingMessage, activeImage]);
 
   const handleInputTyping = () => {
     const now = Date.now(), socket = SocketClient.getSocket();

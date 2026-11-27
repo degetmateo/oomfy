@@ -3,6 +3,7 @@ import { ArrowUp, RefreshCw } from 'lucide-react';
 import { Publication } from '@oomfy/shared';
 import { ThreadAncestorCard } from './ThreadAncestorCard.js';
 import { ApiClient } from '../../services/api.js';
+import { useViewActive } from '../../contexts/ViewActivityContext.js';
 
 interface Props {
   publicationId: string;
@@ -14,6 +15,7 @@ interface Props {
 export const ThreadAncestorsList: React.FC<Props> = ({
   publicationId, initialAncestors, hasMoreInitial = false, totalAncestors = 0,
 }) => {
+  const isViewActive = useViewActive();
   const [earlierAncestors, setEarlierAncestors] = useState<Publication[]>([]);
   const [hasMore, setHasMore] = useState(hasMoreInitial);
   const [remaining, setRemaining] = useState<number>(Math.max(0, totalAncestors - initialAncestors.length));
@@ -61,14 +63,14 @@ export const ThreadAncestorsList: React.FC<Props> = ({
   }, [publicationId, isLoadingMore, hasMore, firstAncestorId]);
 
   useEffect(() => {
-    if (!hasMore || isLoadingMore || !firstAncestorId) return;
+    if (!isViewActive || !hasMore || isLoadingMore || !firstAncestorId) return;
     const observer = new IntersectionObserver(
       (entries) => { if (entries[0]?.isIntersecting) loadEarlier(); },
       { threshold: 0.1, rootMargin: '100px 0px 0px 0px' }
     );
     if (sentinelRef.current) observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [hasMore, isLoadingMore, firstAncestorId, loadEarlier]);
+  }, [isViewActive, hasMore, isLoadingMore, firstAncestorId, loadEarlier]);
 
   if (allAncestors.length === 0 && !hasMore) return null;
 

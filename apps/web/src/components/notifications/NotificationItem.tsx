@@ -101,6 +101,7 @@ export const NotificationItem: React.FC<Props> = ({ notif, isUnread }) => {
   return (
     <article
       {...cardHandlers}
+      data-scroll-anchor={`notif-${notif.id}`}
       className={`p-4 hover:bg-dark-card/50 transition-colors flex gap-3.5 items-start cursor-pointer ${
         isUnread ? 'bg-brand-500/15 border-l-4 border-l-brand-400' : ''
       }`}

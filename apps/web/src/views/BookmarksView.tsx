@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bookmark } from 'lucide-react';
 import { BookmarkEntry, BookmarkFolder } from '@oomfy/shared';
@@ -13,13 +13,16 @@ import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDialogStore } from '../stores/dialogStore.js';
 import { useToastStore } from '../stores/toastStore.js';
+import { useViewActive, useRevalidateOnViewResume } from '../contexts/ViewActivityContext.js';
+import { useViewSearchParams } from '../hooks/useViewSearchParams.js';
 
 export const BookmarksView: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
+  const isViewActive = useViewActive();
   const dialog = useDialogStore();
   const showToast = useToastStore((s) => s.showToast);
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useViewSearchParams();
   const selectedFolder = searchParams.get('folder') || 'all';
 
   const handleSelectFolder = (folderId: string) => {
@@ -45,7 +48,12 @@ export const BookmarksView: React.FC = () => {
     staleTime: 30 * 1000,
   });
 
-  if (!isAuthenticated) return <Navigate to="/signin" replace />;
+  useRevalidateOnViewResume(
+    () => Promise.all([foldersQuery.refetch(), bookmarksQuery.refetch()]),
+    60_000
+  );
+
+  if (!isAuthenticated) return isViewActive ? <Navigate to="/signin" replace /> : null;
 
   const folders = foldersQuery.data || [];
   const items = bookmarksQuery.data?.items || [];

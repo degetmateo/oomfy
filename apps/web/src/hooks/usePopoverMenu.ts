@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect, useId, useCallback } from 'react';
+import { useCloseOnViewInactive } from '../contexts/ViewActivityContext.js';
 
 const DEFAULT_MENU_WIDTH = 192;
 const VIEWPORT_MARGIN = 8;
@@ -68,6 +69,8 @@ export function usePopoverMenu(options?: { width?: number }) {
     restoreFocusRef.current = true;
     setIsOpen(true);
   }, [isOpen, closeMenu, updatePosition]);
+
+  useCloseOnViewInactive(isOpen, () => closeMenu(false));
 
   useLayoutEffect(() => {
     const trigger = triggerRef.current;

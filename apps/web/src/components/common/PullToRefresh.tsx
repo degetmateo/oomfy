@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowDown, RefreshCw } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh.js';
+import { useViewActive } from '../../contexts/ViewActivityContext.js';
 
 interface Props {
   onRefresh?: () => Promise<any> | void;
@@ -9,9 +10,10 @@ interface Props {
 }
 
 export const PullToRefresh: React.FC<Props> = ({ onRefresh, children, disabled = false }) => {
+  const isViewActive = useViewActive();
   const { pullDistance, isRefreshing, isReadyToRefresh } = usePullToRefresh({
     onRefresh,
-    disabled,
+    disabled: disabled || !isViewActive,
   });
 
   return (

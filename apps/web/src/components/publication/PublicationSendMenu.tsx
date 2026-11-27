@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Share2, ExternalLink, Check } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore.js';
 import { usePopoverMenu } from '../../hooks/usePopoverMenu.js';
+import { useCloseOnViewInactive } from '../../contexts/ViewActivityContext.js';
 import { SendPublicationModal } from '../modals/SendPublicationModal.js';
 
 interface Props {
@@ -34,6 +35,7 @@ export const PublicationSendMenu: React.FC<Props> = ({ postId, authorUsername, c
   const { menuId, triggerRef, menuRef, isOpen, supportsPopover, useJsPos, coords, closeMenu, toggleFallback } =
     usePopoverMenu({ width: 216 });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useCloseOnViewInactive(isModalOpen, () => setIsModalOpen(false));
   const [shareFeedback, setShareFeedback] = useState('');
   const lastFeedbackRef = useRef('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

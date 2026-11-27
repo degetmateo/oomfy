@@ -8,6 +8,7 @@ import { WikipediaEmbedCard } from './WikipediaEmbedCard.js';
 import { EmbedCardShell } from './EmbedCardShell.js';
 import { UrlHelper } from '../../utils/UrlHelper.js';
 import { resolveMediaUrl } from '../../utils/mediaUrl.js';
+import { useCloseOnViewInactive } from '../../contexts/ViewActivityContext.js';
 
 interface Props {
   embed: PublicationEmbed;
@@ -21,6 +22,7 @@ function getSiteHost(url: string, fallback = 'Enlace'): string {
 export const PublicationEmbedItem: React.FC<Props> = ({ embed, isHiddenSlide = false }) => {
   const navigate = useNavigate();
   const [playingYt, setPlayingYt] = useState(false);
+  useCloseOnViewInactive(playingYt, () => setPlayingYt(false));
 
   const href = UrlHelper.isInternalUrl(embed.url)
     ? UrlHelper.getInternalPath(embed.url)

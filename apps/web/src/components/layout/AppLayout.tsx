@@ -1,28 +1,26 @@
 import React from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Navbar } from './Navbar.js';
 import { Aside } from './Aside.js';
 import { MobileBottomNav } from './MobileBottomNav.js';
+import { MobileSideDrawer } from './MobileSideDrawer.js';
 import { MobileFloatingButton } from './MobileFloatingButton.js';
 import { GuestBottomBanner } from './GuestBottomBanner.js';
+import { PersistentViewHost } from './PersistentViewHost.js';
 import { CreatePostModal } from '../publication/CreatePostModal.js';
 import { PixelDialogModal } from '../common/PixelDialogModal.js';
 import { PublicationToastBanner } from '../common/PublicationToastBanner.js';
 import { TermsAcceptanceModal } from '../legal/TermsAcceptanceModal.js';
 import { PushReconnectBanner } from '../notifications/PushReconnectBanner.js';
-import { RouteErrorBoundary } from '../common/RouteErrorBoundary.js';
 import { useUIStore } from '../../stores/uiStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
-import { useRouteScroll } from '../../hooks/useRouteScroll.js';
 import { useVirtualKeyboard } from '../../hooks/useVirtualKeyboard.js';
 
 export const AppLayout: React.FC = () => {
   const { isPostModalOpen, closePostModal } = useUIStore();
   const { isAuthenticated } = useAuthStore();
   const location = useLocation();
-  const navigate = useNavigate();
   const isChatsRoute = location.pathname.startsWith('/chats');
-  useRouteScroll();
   useVirtualKeyboard();
 
   return (
@@ -36,19 +34,18 @@ export const AppLayout: React.FC = () => {
       <Navbar />
 
       <main
-        className={`flex-1 min-w-0 ${
+        className={`relative flex-1 min-w-0 ${
           isChatsRoute ? 'max-w-none h-full overflow-hidden' : 'max-w-2xl min-h-screen pb-40 md:pb-24'
         } border-x-0 md:border-r border-dark-border`}
       >
         <PushReconnectBanner />
-        <RouteErrorBoundary resetKey={`${location.pathname}${location.search}`} onNavigateHome={() => navigate('/')}>
-          <Outlet />
-        </RouteErrorBoundary>
+        <PersistentViewHost isChatsRoute={isChatsRoute} />
       </main>
 
       {!isChatsRoute && <Aside />}
 
       <MobileBottomNav />
+      <MobileSideDrawer />
       {isAuthenticated && <MobileFloatingButton />}
       <GuestBottomBanner />
       <CreatePostModal isOpen={isPostModalOpen} onClose={closePostModal} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUp } from 'lucide-react';
 import { SITE_URL } from '@oomfy/shared';
@@ -11,6 +11,7 @@ import {
   HomeTimelineTab, HOME_TIMELINE_TABS, HOME_TIMELINE_STORAGE_KEY, readSavedTimelineTab,
   HomeTimelineTabs, ForYouDevelopmentPanel, TimelineFeedList,
 } from '../components/publication/HomeTimelineTabs.js';
+import { useViewActive } from '../contexts/ViewActivityContext.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useCursorFeed } from '../hooks/useCursorFeed.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
@@ -19,7 +20,10 @@ import { safeLocalGet, safeLocalSet } from '../utils/safeStorage.js';
 
 export const HomeView: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
+  const isViewActive = useViewActive();
   const [activeTab, setActiveTab] = useState<HomeTimelineTab>(() => readSavedTimelineTab(safeLocalGet(HOME_TIMELINE_STORAGE_KEY)));
+  const tabScrollRef = useRef<Record<HomeTimelineTab, number>>({ global: 0, following: 0, foryou: 0 });
+  const prevTabRef = useRef<HomeTimelineTab>(activeTab);
 
   const buildGlobalUrl = (olderId: string | null) =>
     `/publications${olderId ? `?older_id=${olderId}&limit=20` : '?limit=20'}`;
@@ -40,24 +44,40 @@ export const HomeView: React.FC = () => {
   const globalAutoRefresh = useTimelineAutoRefresh({
     queryKey: ['feed', 'global'],
     buildUrl: buildGlobalUrl,
-    enabled: activeTab === 'global',
+    enabled: isViewActive && activeTab === 'global',
     currentPosts: globalFeed.posts,
   });
   const followingAutoRefresh = useTimelineAutoRefresh({
     queryKey: ['feed', 'following'],
     buildUrl: buildFollowingUrl,
-    enabled: activeTab === 'following' && isAuthenticated,
+    enabled: isViewActive && activeTab === 'following' && isAuthenticated,
     currentPosts: followingFeed.posts,
   });
 
   const activeAutoRefresh = activeTab === 'following' ? followingAutoRefresh : globalAutoRefresh;
 
   const handleTabChange = (nextTab: HomeTimelineTab) => {
+    if (nextTab === activeTab) return;
+    if (isViewActive && typeof window !== 'undefined') {
+      tabScrollRef.current[activeTab] = window.scrollY || 0;
+    }
     globalAutoRefresh.clearUnseen();
     followingAutoRefresh.clearUnseen();
     setActiveTab(nextTab);
     safeLocalSet(HOME_TIMELINE_STORAGE_KEY, nextTab);
   };
+
+  useLayoutEffect(() => {
+    if (prevTabRef.current === activeTab) return;
+    prevTabRef.current = activeTab;
+    if (!isViewActive || typeof window === 'undefined' || typeof window.scrollTo !== 'function') return;
+    const savedY = tabScrollRef.current[activeTab] ?? 0;
+    try {
+      window.scrollTo({ top: savedY, behavior: 'instant' as ScrollBehavior });
+    } catch {
+      window.scrollTo(0, savedY);
+    }
+  }, [activeTab, isViewActive]);
 
   const { touchHandlers } = useTabSwipe({ tabs: HOME_TIMELINE_TABS, activeTab, onTabChange: handleTabChange });
 
@@ -105,32 +125,34 @@ export const HomeView: React.FC = () => {
           </div>
         )}
 
-        <CachedTabPanel active={activeTab === 'global'}>
-          <TimelineFeedList
-            posts={globalFeed.posts} isLoading={globalFeed.isLoading} isFetchingNextPage={globalFeed.isFetchingNextPage}
-            hasNextPage={globalFeed.hasNextPage} loadMoreRef={globalFeed.loadMoreRef}
-            listContainerRef={globalAutoRefresh.listContainerRef}
-            emptyTitle="No hay publicaciones aún." emptySubtitle="¡Sé el primero en compartir algo en oomfy!"
-          />
-        </CachedTabPanel>
-        <CachedTabPanel active={activeTab === 'following'}>
-          {!isAuthenticated ? (
-            <div className="p-8 text-center text-xs text-dark-muted">
-              <p className="font-bold text-white">Inicia sesión para ver las publicaciones de quienes sigues.</p>
-              <Link to="/signin" className="inline-block mt-3 px-4 py-2 bg-brand-500 text-black font-bold uppercase pixel-button">Entrar</Link>
-            </div>
-          ) : (
+        <div className="relative">
+          <CachedTabPanel active={activeTab === 'global'}>
             <TimelineFeedList
-              posts={followingFeed.posts} isLoading={followingFeed.isLoading} isFetchingNextPage={followingFeed.isFetchingNextPage}
-              hasNextPage={followingFeed.hasNextPage} loadMoreRef={followingFeed.loadMoreRef}
-              listContainerRef={followingAutoRefresh.listContainerRef}
-              emptyTitle="Aún no hay publicaciones aquí." emptySubtitle="Sigue a otros miembros de oomfy para ver sus publicaciones en esta timeline."
+              posts={globalFeed.posts} isLoading={globalFeed.isLoading} isFetchingNextPage={globalFeed.isFetchingNextPage}
+              hasNextPage={globalFeed.hasNextPage} loadMoreRef={globalFeed.loadMoreRef}
+              listContainerRef={globalAutoRefresh.listContainerRef}
+              emptyTitle="No hay publicaciones aún." emptySubtitle="¡Sé el primero en compartir algo en oomfy!"
             />
-          )}
-        </CachedTabPanel>
-        <CachedTabPanel active={activeTab === 'foryou'}>
-          <ForYouDevelopmentPanel onGoGlobal={() => handleTabChange('global')} />
-        </CachedTabPanel>
+          </CachedTabPanel>
+          <CachedTabPanel active={activeTab === 'following'}>
+            {!isAuthenticated ? (
+              <div className="p-8 text-center text-xs text-dark-muted">
+                <p className="font-bold text-white">Inicia sesión para ver las publicaciones de quienes sigues.</p>
+                <Link to="/signin" className="inline-block mt-3 px-4 py-2 bg-brand-500 text-black font-bold uppercase pixel-button">Entrar</Link>
+              </div>
+            ) : (
+              <TimelineFeedList
+                posts={followingFeed.posts} isLoading={followingFeed.isLoading} isFetchingNextPage={followingFeed.isFetchingNextPage}
+                hasNextPage={followingFeed.hasNextPage} loadMoreRef={followingFeed.loadMoreRef}
+                listContainerRef={followingAutoRefresh.listContainerRef}
+                emptyTitle="Aún no hay publicaciones aquí." emptySubtitle="Sigue a otros miembros de oomfy para ver sus publicaciones en esta timeline."
+              />
+            )}
+          </CachedTabPanel>
+          <CachedTabPanel active={activeTab === 'foryou'}>
+            <ForYouDevelopmentPanel onGoGlobal={() => handleTabChange('global')} />
+          </CachedTabPanel>
+        </div>
       </div>
     </PullToRefresh>
   );

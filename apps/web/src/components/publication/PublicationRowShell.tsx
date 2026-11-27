@@ -37,7 +37,12 @@ export const PublicationRowShell: React.FC<Props> = ({
   const RootTag = as;
 
   return (
-    <RootTag {...cardHandlers} {...(noCardNavOnRoot ? { 'data-no-card-nav': 'true' } : {})} className={className}>
+    <RootTag
+      {...cardHandlers}
+      data-scroll-anchor={`post-${post.id}`}
+      {...(noCardNavOnRoot ? { 'data-no-card-nav': 'true' } : {})}
+      className={className}
+    >
       <div
         className="w-12 flex flex-col items-center flex-shrink-0"
         data-no-card-nav="true"

@@ -18,7 +18,7 @@ export const UserSearchCard: React.FC<Props> = ({ user: rawUser }) => {
   const isSelf = currentUser?.id === user.id || currentUser?.username === user.username;
 
   return (
-    <article className="p-3 sm:p-4 border-b border-dark-border hover:bg-dark-card/40 transition-colors flex items-center justify-between gap-3 font-mono">
+    <article data-scroll-anchor={`user-${user.id}`} className="p-3 sm:p-4 border-b border-dark-border hover:bg-dark-card/40 transition-colors flex items-center justify-between gap-3 font-mono">
       <Link to={`/${user.username}`} className="flex items-center gap-3 min-w-0 flex-1">
         <PixelAvatar src={user.icon_url} username={user.username} sizeClass="w-12 h-12" />
         <div className="min-w-0 flex-1">

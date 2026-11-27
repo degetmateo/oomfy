@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigationType } from 'react-router-dom';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
 import { PublicationCard } from '../components/publication/PublicationCard.js';
@@ -8,12 +8,17 @@ import { ExploreFilterPanel } from '../components/explore/ExploreFilterPanel.js'
 import { ExploreUsersTab } from '../components/explore/ExploreUsersTab.js';
 import { useCursorFeed } from '../hooks/useCursorFeed.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
+import { useViewActive } from '../contexts/ViewActivityContext.js';
+import { useViewSearchParams } from '../hooks/useViewSearchParams.js';
 
 const EXPLORE_TABS = ['posts', 'users'] as const;
 
 export const ExploreView: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const isViewActive = useViewActive();
+  const navigationType = useNavigationType();
+  const [searchParams, setSearchParams] = useViewSearchParams();
   const initialQ = searchParams.get('q') || '';
+  const prevInitialQRef = useRef(initialQ);
   const [searchTerm, setSearchTerm] = useState(initialQ);
   const [activeTab, setActiveTab] = useState<'posts' | 'users'>('posts');
   const [showFilters, setShowFilters] = useState(false);
@@ -21,8 +26,14 @@ export const ExploreView: React.FC = () => {
   const { touchHandlers } = useTabSwipe({ tabs: EXPLORE_TABS, activeTab, onTabChange: setActiveTab });
 
   useEffect(() => {
-    if (initialQ !== searchTerm) setSearchTerm(initialQ);
-  }, [initialQ]);
+    if (!isViewActive) return;
+    if (initialQ !== prevInitialQRef.current) {
+      prevInitialQRef.current = initialQ;
+      if (initialQ !== '' || navigationType === 'POP') {
+        setSearchTerm(initialQ);
+      }
+    }
+  }, [initialQ, isViewActive, navigationType]);
 
   const { posts: allPosts, isLoading: loadingPosts, isFetchingNextPage, loadMoreRef } = useCursorFeed({
     queryKey: ['explore-posts', searchTerm, filters],

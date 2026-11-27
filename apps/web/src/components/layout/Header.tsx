@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { isMainMobileRoute } from '../../config/navigation.js';
+import { MobileDrawerTrigger } from './MobileDrawerTrigger.js';
+import { useViewActivity } from '../../contexts/ViewActivityContext.js';
 
 interface HeaderProps {
   title: string;
@@ -21,8 +24,12 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { viewKey, isPersistent } = useViewActivity();
   const [internalRefreshing, setInternalRefreshing] = useState(false);
-  const shouldShowBack = showBack !== undefined ? showBack : location.pathname !== '/';
+  const effectivePathname = isPersistent && viewKey ? viewKey : location.pathname;
+  const isMainRoute = isMainMobileRoute(effectivePathname);
+  const shouldShowBack = showBack !== undefined ? showBack : !isMainRoute;
+  const shouldShowDrawerTrigger = showBack !== true && isMainRoute;
   const isRefreshing = externalIsRefreshing ?? internalRefreshing;
 
   const handleScrollTop = () => {
@@ -43,6 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-20 backdrop-blur-md bg-dark-bg/85 border-b border-dark-border px-4 sm:px-6 py-3.5 flex items-center gap-3 select-none">
+      {shouldShowDrawerTrigger && <MobileDrawerTrigger />}
       {shouldShowBack && (
         <button
           type="button"

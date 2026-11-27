@@ -8,6 +8,7 @@ import { ApiClient } from '../services/api.js';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
+import { useViewActivity, useRevalidateOnViewResume } from '../contexts/ViewActivityContext.js';
 
 const FOLLOW_TABS = ['followers', 'following'] as const;
 
@@ -15,14 +16,16 @@ export const FollowListView: React.FC = () => {
   const { username } = useParams<{ username: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const activeTab: 'followers' | 'following' = location.pathname.endsWith('/followers') ? 'followers' : 'following';
+  const { viewKey, isPersistent } = useViewActivity();
+  const effectivePathname = isPersistent && viewKey ? viewKey : location.pathname;
+  const activeTab: 'followers' | 'following' = effectivePathname.endsWith('/followers') ? 'followers' : 'following';
   const { touchHandlers } = useTabSwipe({
     tabs: FOLLOW_TABS,
     activeTab,
     onTabChange: (tab) => navigate(`/${username}/${tab}`, { replace: true }),
   });
 
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery<{ success: boolean; data: PublicUser[] }>({
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } = useInfiniteQuery<{ success: boolean; data: PublicUser[] }>({
     queryKey: ['user-follows', username, activeTab],
     queryFn: async ({ pageParam = 0 }) => {
       const res = await ApiClient.get<{ success: boolean; data: PublicUser[] }>(`/follows/${username}/${activeTab}?limit=20&offset=${String(pageParam)}`);
@@ -34,6 +37,8 @@ export const FollowListView: React.FC = () => {
     staleTime: 5 * 60 * 1000,
     enabled: Boolean(username),
   });
+
+  useRevalidateOnViewResume(() => refetch(), 60_000);
 
   const loadMoreRef = useInfiniteScroll(() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }, Boolean(hasNextPage));
   const allUsers = (data?.pages.flatMap((p) => p.data) || []).filter((u, idx, arr) => idx === arr.findIndex((x) => x.id === u.id));

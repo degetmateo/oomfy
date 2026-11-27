@@ -6,14 +6,17 @@ import { chatIdentityMap } from '../models/ChatIdentityMap.js';
 import { useChatsListModel } from './useChatModel.js';
 import { syncChatListQueryOnMessage } from './chatHookHelpers.js';
 
-export function useChatsList(userId?: string, selectedChatId?: string | null) {
+export function useChatsList(userId?: string, selectedChatId?: string | null, isViewActive = true) {
   const queryClient = useQueryClient();
   const lastMissingRef = useRef<string | null>(null);
+  const wasViewActiveRef = useRef(isViewActive);
+  const isViewActiveRef = useRef(isViewActive);
+  isViewActiveRef.current = isViewActive;
   const [typingChats, setTypingChats] = useState<Record<string, string>>({});
   const typingTimersRef = useRef<Record<string, any>>({});
   const modelChats = useChatsListModel();
 
-  const { data: chatsData, isLoading } = useQuery<{ success: boolean; data: any[] }>({
+  const { data: chatsData, isLoading, refetch } = useQuery<{ success: boolean; data: any[] }>({
     queryKey: ['chats'],
     queryFn: async () => {
       const fetchedAt = Date.now();
@@ -25,8 +28,16 @@ export function useChatsList(userId?: string, selectedChatId?: string | null) {
       const cached = chatIdentityMap.getChats();
       return cached.length > 0 ? { success: true, data: cached } : undefined;
     },
-    staleTime: 30_000, enabled: Boolean(userId), refetchInterval: 10000,
+    staleTime: 30_000, enabled: Boolean(userId), refetchInterval: isViewActive ? 10000 : false,
   });
+
+  useEffect(() => {
+    const prev = wasViewActiveRef.current;
+    wasViewActiveRef.current = isViewActive;
+    if (!prev && isViewActive && userId) {
+      void refetch();
+    }
+  }, [isViewActive, userId, refetch]);
 
   const chats = modelChats.length > 0 ? modelChats : (chatsData?.data || []);
 
@@ -50,7 +61,7 @@ export function useChatsList(userId?: string, selectedChatId?: string | null) {
     const handleNewChatMessage = (msg: any) => {
       const msgChatId = msg.chat_id?.toLowerCase();
       if (msgChatId) clearChatTyping(msgChatId);
-      const isActive = selectedChatId?.toLowerCase() === msgChatId;
+      const isActive = isViewActiveRef.current && selectedChatId?.toLowerCase() === msgChatId;
       let found = Boolean(msg.chat_id && chatIdentityMap.getChat(msg.chat_id));
       if (msg.chat_id) {
         chatIdentityMap.upsertMessage(msg.chat_id, msg);
@@ -58,7 +69,7 @@ export function useChatsList(userId?: string, selectedChatId?: string | null) {
           ...c, unread_count: isActive ? 0 : (c.unread_count || 0) + (msg.sender_id !== userId ? 1 : 0),
         }));
       }
-      if (syncChatListQueryOnMessage(queryClient, msg, userId, selectedChatId)) found = true;
+      if (syncChatListQueryOnMessage(queryClient, msg, userId, isViewActiveRef.current ? selectedChatId : null)) found = true;
       if (!found) queryClient.invalidateQueries({ queryKey: ['chats'] });
       queryClient.invalidateQueries({ queryKey: ['unread-messages-count'] });
     };

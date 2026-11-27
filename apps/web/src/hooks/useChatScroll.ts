@@ -1,6 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useViewActive } from '../contexts/ViewActivityContext.js';
 
 export function useChatScroll() {
+  const isViewActive = useViewActive();
+  const isViewActiveRef = useRef(isViewActive);
+  isViewActiveRef.current = isViewActive;
+
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
@@ -23,7 +28,7 @@ export function useChatScroll() {
     lastContentHeightRef.current = node.scrollHeight;
     const ro = new ResizeObserver(() => {
       const container = scrollContainerRef.current;
-      if (!container) return;
+      if (!container || !isViewActiveRef.current || container.clientHeight === 0) return;
       const nextHeight = container.scrollHeight;
       if (nextHeight !== lastContentHeightRef.current) {
         lastContentHeightRef.current = nextHeight;
@@ -38,13 +43,15 @@ export function useChatScroll() {
 
   const checkIfAtBottom = useCallback(() => {
     const el = scrollContainerRef.current;
-    if (!el) return true;
+    if (!el || el.clientHeight === 0) return isAutoScrollRef.current;
     const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     return distanceToBottom <= 48;
   }, []);
 
   const handleScroll = useCallback(() => {
-    if (isPrependingRef.current || Date.now() < programmaticScrollUntilRef.current) return;
+    if (!isViewActiveRef.current || isPrependingRef.current || Date.now() < programmaticScrollUntilRef.current) return;
+    const el = scrollContainerRef.current;
+    if (el && el.clientHeight === 0) return;
     const isAtBottom = checkIfAtBottom();
     if (isAutoScrollRef.current !== isAtBottom) {
       setIsAutoScrollEnabled(isAtBottom);

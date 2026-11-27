@@ -1,6 +1,7 @@
 import React from 'react';
 import { MessageSquare, Plus } from 'lucide-react';
 import { PixelAvatar } from '../common/PixelAvatar.js';
+import { MobileDrawerTrigger } from '../layout/MobileDrawerTrigger.js';
 import { formatMessageTimestamp, formatExactDateTime } from '../../utils/formatTime.js';
 
 interface Props {
@@ -21,12 +22,22 @@ export const ChatListSidebar: React.FC<Props> = ({
     style={width ? { width: `${width}px` } : undefined}
     className={`${selectedChatId ? 'hidden md:flex' : 'flex'} w-full md:w-80 chat-sidebar-resizable flex-col border-r border-dark-border bg-dark-bg flex-shrink-0 h-full overflow-hidden`}
   >
-    <div className="p-3 border-b border-dark-border flex items-center justify-between bg-dark-bg select-none flex-shrink-0">
-      <h1 className="text-sm font-bold text-white tracking-wider uppercase">Mensajes</h1>
-      <button onClick={onOpenNewChat} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border border-brand-500 text-brand-400 hover:bg-brand-500 hover:text-black transition-colors pixel-button">
-        <Plus className="w-4 h-4" /><span>Nuevo</span>
+    <header className="sticky top-0 z-20 backdrop-blur-md bg-dark-bg/85 border-b border-dark-border px-4 sm:px-6 py-3.5 flex items-center gap-3 select-none flex-shrink-0">
+      <MobileDrawerTrigger />
+      <div className="flex-1 min-w-0">
+        <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white truncate">
+          Mensajes
+        </h1>
+      </div>
+      <button
+        type="button"
+        onClick={onOpenNewChat}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border border-brand-500 text-brand-400 hover:bg-brand-500 hover:text-black transition-colors pixel-button flex-shrink-0"
+      >
+        <Plus className="w-4 h-4" aria-hidden="true" />
+        <span>Nuevo</span>
       </button>
-    </div>
+    </header>
 
     <div className="flex-1 overflow-y-auto pb-32 md:pb-12">
       {isLoading ? (

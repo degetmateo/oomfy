@@ -7,9 +7,14 @@ import { OutgoingChatPayload } from '../components/chat/ChatInputBar.js';
 import { chatIdentityMap } from '../models/ChatIdentityMap.js';
 import { useChatMessagesModel } from './useChatModel.js';
 import { buildChatSendBody, buildOptimisticChatMsg } from './chatHookHelpers.js';
+import { useViewActive } from '../contexts/ViewActivityContext.js';
 
 export function useChatMessages(chatId: string, currentUserId: string, scrollToBottom: (b?: ScrollBehavior, force?: boolean) => void) {
   const queryClient = useQueryClient();
+  const isViewActive = useViewActive();
+  const isViewActiveRef = useRef(isViewActive);
+  isViewActiveRef.current = isViewActive;
+
   const currentUser = useAuthStore((s) => s.user);
   const messages = useChatMessagesModel(chatId);
   const [isLoading, setIsLoading] = useState(() => !chatIdentityMap.getMessages(chatId)?.length);
@@ -23,16 +28,29 @@ export function useChatMessages(chatId: string, currentUserId: string, scrollToB
     chatIdentityMap.ingestMessages(chatId, typeof updater === 'function' ? updater(prev) : updater, 'replace', Date.now(), false);
   }, [chatId]);
 
+  const markRead = useCallback(() => ApiClient.post(`/chats/${chatId}/read`).then(() => {
+    chatIdentityMap.patchChat(chatId, (c) => ({ ...c, unread_count: 0 }));
+    queryClient.invalidateQueries({ queryKey: ['unread-messages-count'] });
+    queryClient.invalidateQueries({ queryKey: ['chats'] });
+  }).catch(() => {}), [chatId, queryClient]);
+
+  useEffect(() => {
+    if (!chatId) return;
+    if (isViewActive) {
+      SocketClient.setActiveChat(chatId);
+      void markRead();
+    } else if (SocketClient.getActiveChatId()?.toLowerCase() === chatId.toLowerCase()) {
+      SocketClient.setActiveChat(null);
+    }
+  }, [isViewActive, chatId, markRead]);
+
   useEffect(() => {
     let active = true;
     setIsLoading(!chatIdentityMap.getMessages(chatId)?.length); setHasMore(chatIdentityMap.hasMore(chatId));
-    const markRead = () => ApiClient.post(`/chats/${chatId}/read`).then(() => {
-      chatIdentityMap.patchChat(chatId, (c) => ({ ...c, unread_count: 0 }));
-      queryClient.invalidateQueries({ queryKey: ['unread-messages-count'] }); queryClient.invalidateQueries({ queryKey: ['chats'] });
-    }).catch(() => {});
     const fetchAndMark = (initial = false, force = false) => {
       if (!force && !chatIdentityMap.isMessagesStale(chatId, 60_000) && chatIdentityMap.getMessages(chatId) !== undefined) {
-        setIsLoading(false); return void markRead();
+        setIsLoading(false);
+        return isViewActiveRef.current ? void markRead() : undefined;
       }
       if (initial && !chatIdentityMap.getMessages(chatId)?.length) setIsLoading(true);
       const startedAt = Date.now();
@@ -45,21 +63,26 @@ export function useChatMessages(chatId: string, currentUserId: string, scrollToB
         chatIdentityMap.ingestMessages(chatId, list, mode, startedAt, true, mode === 'replace' ? hasMoreFlag : undefined);
         pending.forEach((m) => chatIdentityMap.upsertMessage(chatId, m));
         if (mode === 'replace') setHasMore(hasMoreFlag);
-        void markRead();
+        if (isViewActiveRef.current) void markRead();
       }).finally(() => { if (initial && active) setIsLoading(false); });
     };
     void fetchAndMark(true, false);
     const socket = SocketClient.getSocket(), joinAndSync = () => { socket.emit('join-chat', chatId); void fetchAndMark(false, true); };
     SocketClient.trackChatRoom(chatId);
-    SocketClient.setActiveChat(chatId);
+    if (isViewActiveRef.current) SocketClient.setActiveChat(chatId);
     socket.emit('join-chat', chatId);
     const handleMessage = (msg: any) => {
       if (msg.chat_id?.toLowerCase() !== chatId.toLowerCase()) return;
       chatIdentityMap.upsertMessage(chatId, msg); setTypingUser(null);
       if (typingAutoClearTimerRef.current) clearTimeout(typingAutoClearTimerRef.current);
       const isMine = msg.sender_id === currentUserId;
-      setTimeout(() => scrollToBottom('smooth', isMine), 30);
-      if (!isMine) void markRead(); else queryClient.invalidateQueries({ queryKey: ['chats'] });
+      if (isViewActiveRef.current) {
+        setTimeout(() => scrollToBottom('smooth', isMine), 30);
+        if (!isMine) void markRead(); else queryClient.invalidateQueries({ queryKey: ['chats'] });
+      } else if (!isMine) {
+        queryClient.invalidateQueries({ queryKey: ['unread-messages-count'] });
+        queryClient.invalidateQueries({ queryKey: ['chats'] });
+      }
     };
     const handleTyping = (d: { chatId: string; userId: string; username: string }) => {
       if (d.chatId?.toLowerCase() !== chatId.toLowerCase() || d.userId === currentUserId) return;
@@ -69,10 +92,10 @@ export function useChatMessages(chatId: string, currentUserId: string, scrollToB
     };
     const handleStopTyping = (d: { chatId: string; userId: string }) => { if (d.chatId?.toLowerCase() === chatId.toLowerCase() && d.userId !== currentUserId) setTypingUser(null); };
     const handleDelete = ({ messageId }: { messageId: string }) => { chatIdentityMap.removeMessage(chatId, messageId); queryClient.invalidateQueries({ queryKey: ['chats'] }); };
-    const onFallbackSync = () => { if (document.visibilityState === 'visible' && !SocketClient.isConnected()) void fetchAndMark(false, true); };
+    const onFallbackSync = () => { if (isViewActiveRef.current && document.visibilityState === 'visible' && !SocketClient.isConnected()) void fetchAndMark(false, true); };
     const onClientSyncEvent = (e: Event) => {
       const detail = (e as CustomEvent<{ chatId?: string }>).detail;
-      if (detail?.chatId === chatId.toLowerCase()) { void markRead(); scrollToBottom('smooth', false); }
+      if (isViewActiveRef.current && detail?.chatId === chatId.toLowerCase()) { void markRead(); scrollToBottom('smooth', false); }
     };
     ['new-message', 'new_chat_message'].forEach((ev) => socket.on(ev, handleMessage));
     socket.on('connect', joinAndSync); socket.on('user-typing', handleTyping);
@@ -91,7 +114,7 @@ export function useChatMessages(chatId: string, currentUserId: string, scrollToB
       window.removeEventListener('oomfy:client-sync', onClientSyncEvent);
       if (lastTypingSentRef.current > 0) socket.emit('typing-stop', { chatId });
     };
-  }, [chatId, currentUserId, queryClient]);
+  }, [chatId, currentUserId, queryClient, markRead]);
 
   const sendOptimisticMessage = async (payload: OutgoingChatPayload, existingTempId?: string) => {
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);

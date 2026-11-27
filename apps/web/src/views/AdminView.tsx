@@ -3,12 +3,14 @@ import { useQueryClient, useIsFetching } from '@tanstack/react-query';
 import { BarChart3, Settings, Users, ShieldAlert, Bell } from 'lucide-react';
 import { Header } from '../components/layout/Header.js';
 import { PullToRefresh } from '../components/common/PullToRefresh.js';
+import { CachedTabPanel } from '../components/common/CachedTabPanel.js';
 import { AdminStatsTab } from '../components/admin/AdminStatsTab.js';
 import { AdminSettingsTab } from '../components/admin/AdminSettingsTab.js';
 import { AdminUsersTab } from '../components/admin/AdminUsersTab.js';
 import { AdminModerationTab } from '../components/admin/AdminModerationTab.js';
 import { AdminPushTab } from '../components/admin/AdminPushTab.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
+import { useViewActive } from '../contexts/ViewActivityContext.js';
 
 type Tab = 'stats' | 'settings' | 'users' | 'moderation' | 'push';
 
@@ -18,6 +20,7 @@ const ADMIN_KEYS = new Set(['admin-stats', 'admin-settings', 'admin-users', 'sta
 
 export const AdminView: React.FC = () => {
   const queryClient = useQueryClient();
+  const isViewActive = useViewActive();
   const [activeTab, setActiveTab] = useState<Tab>('stats');
   const { touchHandlers } = useTabSwipe({ tabs: ADMIN_TABS, activeTab, onTabChange: setActiveTab });
   const isFetching = useIsFetching({ predicate: (q) => ADMIN_KEYS.has(String(q.queryKey[0])) }) > 0;
@@ -27,10 +30,11 @@ export const AdminView: React.FC = () => {
   }, [queryClient]);
 
   useEffect(() => {
+    if (!isViewActive) return;
     const onVisible = () => { if (document.visibilityState === 'visible') void handleRefresh(); };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [handleRefresh]);
+  }, [isViewActive, handleRefresh]);
 
   const tabs: { key: Tab; label: string; icon: any }[] = [
     { key: 'stats', label: 'Métricas', icon: BarChart3 },
@@ -57,12 +61,12 @@ export const AdminView: React.FC = () => {
             </button>
           ))}
         </div>
-        <div className="flex-1">
-          {activeTab === 'stats' && <AdminStatsTab />}
-          {activeTab === 'settings' && <AdminSettingsTab />}
-          {activeTab === 'users' && <AdminUsersTab />}
-          {activeTab === 'moderation' && <AdminModerationTab />}
-          {activeTab === 'push' && <AdminPushTab />}
+        <div className="flex-1 relative">
+          <CachedTabPanel active={activeTab === 'stats'}><AdminStatsTab /></CachedTabPanel>
+          <CachedTabPanel active={activeTab === 'settings'}><AdminSettingsTab /></CachedTabPanel>
+          <CachedTabPanel active={activeTab === 'users'}><AdminUsersTab /></CachedTabPanel>
+          <CachedTabPanel active={activeTab === 'moderation'}><AdminModerationTab /></CachedTabPanel>
+          <CachedTabPanel active={activeTab === 'push'}><AdminPushTab /></CachedTabPanel>
         </div>
       </div>
     </PullToRefresh>

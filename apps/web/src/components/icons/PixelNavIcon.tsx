@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Bookmark, Compass, Home, Mail, Settings, Shield, User } from 'lucide-react';
+import { Bell, Bookmark, Home, Mail, Search, Settings, Shield, User } from 'lucide-react';
 
 export type NavIconType =
   | 'home'
@@ -21,7 +21,7 @@ interface Props {
 
 const ICONS: Record<NavIconType, React.ComponentType<any>> = {
   home: Home,
-  explore: Compass,
+  explore: Search,
   notifications: Bell,
   messages: Mail,
   bookmarks: Bookmark,

@@ -192,6 +192,9 @@ export function useTimelineAutoRefresh({
 
   useEffect(() => {
     if (!enabled) return;
+    if (Date.now() - lastCheckedAtRef.current >= VISIBILITY_MIN_INTERVAL_MS) {
+      void checkForNewPosts();
+    }
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
       void checkForNewPosts();

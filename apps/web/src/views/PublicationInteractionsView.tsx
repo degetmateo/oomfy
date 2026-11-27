@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Header } from '../components/layout/Header.js';
 import { CachedTabPanel } from '../components/common/CachedTabPanel.js';
@@ -8,6 +8,8 @@ import { PublicationCacheService } from '../services/PublicationCacheService.js'
 import { publicationIdentityMap } from '../models/PublicationIdentityMap.js';
 import { usePublicationModel } from '../hooks/usePublicationModel.js';
 import { useTabSwipe } from '../hooks/useTabSwipe.js';
+import { useRevalidateOnViewResume } from '../contexts/ViewActivityContext.js';
+import { useViewSearchParams } from '../hooks/useViewSearchParams.js';
 import {
   PublicationInteractionsTabs,
   INTERACTION_TABS,
@@ -18,13 +20,13 @@ import { PublicationInteractionsUsersTab } from '../components/publication/Publi
 
 export const PublicationInteractionsView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useViewSearchParams();
   const queryClient = useQueryClient();
   const rawTab = searchParams.get('tab') as InteractionTab;
   const activeTab: InteractionTab = INTERACTION_TABS.includes(rawTab) ? rawTab : 'quotes';
   const pub = usePublicationModel(id);
 
-  const { data } = useQuery({
+  const { data, refetch } = useQuery({
     queryKey: ['publication', id],
     queryFn: async () => {
       const fetchedAt = Date.now();
@@ -37,6 +39,8 @@ export const PublicationInteractionsView: React.FC = () => {
     staleTime: 60 * 1000,
     refetchOnMount: 'always',
   });
+
+  useRevalidateOnViewResume(() => refetch(), 60_000);
 
   const author = pub?.author?.username || data?.publication?.author?.username;
   const subtitle = author ? `Publicación de @${author}` : undefined;

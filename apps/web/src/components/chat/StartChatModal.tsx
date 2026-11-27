@@ -6,6 +6,7 @@ import { useDialogStore } from '../../stores/dialogStore.js';
 import { PixelAvatar } from '../common/PixelAvatar.js';
 import { ChatStartingOverlay } from './ChatStartingOverlay.js';
 import { PublicUser } from '@oomfy/shared';
+import { useViewActive } from '../../contexts/ViewActivityContext.js';
 
 interface Props {
   isOpen: boolean;
@@ -15,16 +16,17 @@ interface Props {
 
 export const StartChatModal: React.FC<Props> = ({ isOpen, onClose, onChatSelected }) => {
   const queryClient = useQueryClient();
+  const isViewActive = useViewActive();
   const [searchTerm, setSearchTerm] = useState('');
   const [isStarting, setIsStarting] = useState(false);
   const [targetUsername, setTargetUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isViewActive) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  }, [isOpen, isViewActive, onClose]);
   const { data: usersData, isLoading } = useQuery<{ success: boolean; data: PublicUser[] }>({
     queryKey: ['chat-search-users', searchTerm],
     queryFn: () => (!searchTerm.trim()

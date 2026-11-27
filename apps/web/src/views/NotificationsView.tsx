@@ -10,10 +10,12 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
 import { NotificationController } from '../controllers/NotificationController.js';
 import { useNotificationModel } from '../hooks/useNotificationModel.js';
+import { useViewActive, useRevalidateOnViewResume } from '../contexts/ViewActivityContext.js';
 
 export const NotificationsView: React.FC = () => {
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuthStore();
+  const isViewActive = useViewActive();
   const { notifications: modelNotifications } = useNotificationModel();
   const [sessionUnreadIds, setSessionUnreadIds] = useState<Set<string>>(new Set());
   const hasAutoMarkedRef = useRef(false);
@@ -31,6 +33,14 @@ export const NotificationsView: React.FC = () => {
       gcTime: 30 * 60 * 1000,
       enabled: isAuthenticated,
     });
+
+  useRevalidateOnViewResume(() => refetch(), 60_000);
+
+  useEffect(() => {
+    if (!isViewActive) {
+      hasAutoMarkedRef.current = false;
+    }
+  }, [isViewActive]);
 
   const queryNotifications = data?.pages?.flatMap((page) => page?.data?.notifications || []) || [];
   const allNotifications = React.useMemo(() => {
@@ -55,14 +65,14 @@ export const NotificationsView: React.FC = () => {
   }, [isAuthenticated, isError, refetch]);
 
   useEffect(() => {
-    if (!data?.pages?.length) return;
+    if (!isViewActive || !data?.pages?.length) return;
     const newlyPending = allNotifications.filter((n) => n.status === 'pending').map((n) => n.id);
     if (newlyPending.length > 0) setSessionUnreadIds((prev) => new Set([...prev, ...newlyPending]));
     if (!hasAutoMarkedRef.current && (newlyPending.length > 0 || (data.pages[0]?.data?.pendingCount ?? 0) > 0)) {
       hasAutoMarkedRef.current = true;
       NotificationController.markAllAsRead(queryClient).catch(() => {});
     }
-  }, [data, queryClient]);
+  }, [isViewActive, data, queryClient]);
 
   const markAllMutation = useMutation({
     mutationFn: () => NotificationController.markAllAsRead(queryClient),
@@ -76,7 +86,7 @@ export const NotificationsView: React.FC = () => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   }, Boolean(hasNextPage && !isFetchingNextPage));
 
-  if (!isAuthenticated) return <Navigate to="/signin" replace />;
+  if (!isAuthenticated) return isViewActive ? <Navigate to="/signin" replace /> : null;
 
   return (
     <PullToRefresh onRefresh={() => refetch()}>

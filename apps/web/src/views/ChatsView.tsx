@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useNavigationType } from 'react-router-dom';
 import { MessageSquare, ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore.js';
 import { useChatsList } from '../hooks/useChatsList.js';
 import { useResizableChatSidebar } from '../hooks/useResizableChatSidebar.js';
 import { useUserModel } from '../hooks/useUserModel.js';
+import { useViewActive, useCloseOnViewInactive } from '../contexts/ViewActivityContext.js';
+import { useViewSearchParams } from '../hooks/useViewSearchParams.js';
 import { userIdentityMap } from '../models/UserIdentityMap.js';
 import { StartChatModal } from '../components/chat/StartChatModal.js';
 import { ChatListSidebar } from '../components/chat/ChatListSidebar.js';
@@ -13,19 +15,32 @@ import { PixelAvatar } from '../components/common/PixelAvatar.js';
 
 export const ChatsView: React.FC = () => {
   const { user } = useAuthStore();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const isViewActive = useViewActive();
+  const navigationType = useNavigationType();
+  const [searchParams, setSearchParams] = useViewSearchParams();
   const queryChatId = searchParams.get('id') || searchParams.get('chatId');
   const [selectedChatId, setSelectedChatId] = useState<string | null>(queryChatId || null);
   const [isStartOpen, setIsStartOpen] = useState(false);
+  useCloseOnViewInactive(isStartOpen, () => setIsStartOpen(false));
   const containerRef = useRef<HTMLDivElement>(null);
+  const prevActiveRef = useRef(isViewActive);
   const { sidebarWidth, isResizing, startResizing, handleDividerKeyDown } = useResizableChatSidebar(containerRef);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!isViewActive) return;
     if (queryChatId && queryChatId !== selectedChatId) setSelectedChatId(queryChatId);
-  }, [queryChatId]);
+  }, [isViewActive, queryChatId, selectedChatId]);
 
-  const { chats, isLoading, markChatOpened, typingChats } = useChatsList(user?.id, selectedChatId);
+  useEffect(() => {
+    const wasActive = prevActiveRef.current;
+    prevActiveRef.current = isViewActive;
+    if (!wasActive && isViewActive && navigationType === 'PUSH' && !queryChatId && typeof window !== 'undefined' && window.innerWidth < 768) {
+      setSelectedChatId(null);
+    }
+  }, [isViewActive, navigationType, queryChatId]);
+
+  const { chats, isLoading, markChatOpened, typingChats } = useChatsList(user?.id, selectedChatId, isViewActive);
   const selectedChat = chats.find((c) => c.id?.toLowerCase() === selectedChatId?.toLowerCase());
 
   const handleSelectChat = (chatId: string) => {
