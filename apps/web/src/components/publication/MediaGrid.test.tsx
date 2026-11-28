@@ -31,7 +31,7 @@ describe('MediaGrid censorship and GIF playback controls', () => {
     expect(screen.getByText('Spoiler')).toBeInTheDocument();
   });
 
-  it('shows Pause/Resume button underneath GIFs and toggles animation state', () => {
+  it('shows compact icon-only Pause/Resume button at bottom-left of GIFs and toggles state', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 
     render(
@@ -44,10 +44,14 @@ describe('MediaGrid censorship and GIF playback controls', () => {
 
     const pauseBtn = screen.getByRole('button', { name: 'Pausar GIF' });
     expect(pauseBtn).toHaveAttribute('aria-pressed', 'false');
+    expect(pauseBtn.className).toContain('bottom-2');
+    expect(pauseBtn.className).toContain('left-2');
+    expect(pauseBtn.textContent).toBe('');
 
     fireEvent.click(pauseBtn);
     const resumeBtn = screen.getByRole('button', { name: 'Reanudar GIF' });
     expect(resumeBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(resumeBtn.textContent).toBe('');
     expect(screen.getByText('GIF pausado')).toBeInTheDocument();
 
     fireEvent.click(resumeBtn);

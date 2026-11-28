@@ -83,123 +83,110 @@ export const MediaTileContent: React.FC<MediaTileContentProps> = ({
   };
 
   return (
-    <div className="flex flex-col min-h-0 h-full w-full">
-      <div
-        onClick={(e) => {
-          if (isObscured) {
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-          }
-          onOpenZoom(e, img.resolvedUrl);
-        }}
-        className={`${wrapperClassName} ${isObscured ? 'cursor-default' : 'cursor-pointer'}`}
-      >
-        {isGif && (
-          <canvas
-            ref={canvasRef}
-            aria-label="Fotograma pausado de GIF"
-            className={isPaused && hasFrozenFrame ? imgClassName : 'hidden'}
-          />
-        )}
+    <div
+      onClick={(e) => {
+        if (isObscured) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        onOpenZoom(e, img.resolvedUrl);
+      }}
+      className={`${wrapperClassName} ${isObscured ? 'cursor-default' : 'cursor-pointer'}`}
+    >
+      {isGif && (
+        <canvas
+          ref={canvasRef}
+          aria-label="Fotograma pausado de GIF"
+          className={isPaused && hasFrozenFrame ? imgClassName : 'hidden'}
+        />
+      )}
 
-        {isGif && isPaused ? (
-          !hasFrozenFrame ? (
-            <div
-              role="img"
-              aria-label="GIF en pausa"
-              className="w-full min-h-[140px] h-full bg-dark-card flex items-center justify-center p-4 text-xs font-mono text-dark-muted"
-            >
-              GIF pausado
-            </div>
-          ) : null
-        ) : (
-          <img
-            key={`${img.resolvedUrl}-${resumeKey}`}
-            ref={imgRef}
-            src={img.resolvedUrl}
-            alt="Adjunto de publicación"
-            onLoad={() => ImageMemoryCache.mark(img.resolvedUrl)}
-            onError={() => onError(img.resolvedUrl)}
-            style={{ imageRendering: 'auto' }}
-            className={`${imgClassName} ${
-              isObscured ? 'blur-2xl scale-110 brightness-50 pointer-events-none select-none' : ''
-            }`}
-            {...loadingProps}
-          />
-        )}
-
-        {isObscured && (
+      {isGif && isPaused ? (
+        !hasFrozenFrame ? (
           <div
-            data-no-card-nav="true"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-3 text-center font-mono"
+            role="img"
+            aria-label="GIF en pausa"
+            className="w-full min-h-[140px] h-full bg-dark-card flex items-center justify-center p-4 text-xs font-mono text-dark-muted"
           >
-            <EyeOff className="w-5 h-5 text-amber-400" aria-hidden="true" />
-            <span className="text-xs font-bold text-amber-300 uppercase tracking-wide">{warningText}</span>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onReveal();
-              }}
-              className="px-3 py-1 bg-dark-bg/95 border border-amber-400/70 text-white hover:border-brand-400 hover:text-brand-400 text-xs font-bold flex items-center gap-1.5 pixel-button cursor-pointer"
-            >
-              <Eye className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>Mostrar</span>
-            </button>
+            GIF pausado
           </div>
-        )}
+        ) : null
+      ) : (
+        <img
+          key={`${img.resolvedUrl}-${resumeKey}`}
+          ref={imgRef}
+          src={img.resolvedUrl}
+          alt="Adjunto de publicación"
+          onLoad={() => ImageMemoryCache.mark(img.resolvedUrl)}
+          onError={() => onError(img.resolvedUrl)}
+          style={{ imageRendering: 'auto' }}
+          className={`${imgClassName} ${
+            isObscured ? 'blur-2xl scale-110 brightness-50 pointer-events-none select-none' : ''
+          }`}
+          {...loadingProps}
+        />
+      )}
 
-        {hasWarning && isRevealed && (
-          <button
-            type="button"
-            data-no-card-nav="true"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onHide();
-            }}
-            aria-label="Ocultar imagen censurada"
-            className="absolute top-1.5 left-1.5 z-10 px-2 py-0.5 bg-black/85 border border-dark-border text-[10px] font-mono text-amber-300 hover:text-white flex items-center gap-1 cursor-pointer"
-          >
-            <EyeOff className="w-3 h-3" aria-hidden="true" />
-            <span>Ocultar</span>
-          </button>
-        )}
-      </div>
-
-      {isGif && !isObscured && (
+      {isObscured && (
         <div
           data-no-card-nav="true"
-          onClick={(e) => e.stopPropagation()}
-          className="border-t border-dark-border bg-dark-bg px-2.5 py-1 flex items-center justify-between gap-2 text-[11px] font-mono flex-shrink-0"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-3 text-center font-mono"
         >
-          <span className="text-dark-muted font-bold tracking-wider">GIF</span>
+          <EyeOff className="w-5 h-5 text-amber-400" aria-hidden="true" />
+          <span className="text-xs font-bold text-amber-300 uppercase tracking-wide">{warningText}</span>
           <button
             type="button"
-            aria-pressed={isPaused}
-            aria-label={isPaused ? 'Reanudar GIF' : 'Pausar GIF'}
-            onClick={handleTogglePause}
-            className="inline-flex items-center gap-1 px-2 py-0.5 border border-dark-border hover:border-brand-500 text-white hover:text-brand-400 transition-colors cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onReveal();
+            }}
+            className="px-3 py-1 bg-dark-bg/95 border border-amber-400/70 text-white hover:border-brand-400 hover:text-brand-400 text-xs font-bold flex items-center gap-1.5 pixel-button cursor-pointer"
           >
-            {isPaused ? (
-              <>
-                <Play className="w-3 h-3" aria-hidden="true" />
-                <span>Reanudar</span>
-              </>
-            ) : (
-              <>
-                <Pause className="w-3 h-3" aria-hidden="true" />
-                <span>Pausar</span>
-              </>
-            )}
+            <Eye className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Mostrar</span>
           </button>
         </div>
+      )}
+
+      {hasWarning && isRevealed && (
+        <button
+          type="button"
+          data-no-card-nav="true"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onHide();
+          }}
+          aria-label="Ocultar imagen censurada"
+          className="absolute top-1.5 left-1.5 z-10 px-2 py-0.5 bg-black/85 border border-dark-border text-[10px] font-mono text-amber-300 hover:text-white flex items-center gap-1 cursor-pointer"
+        >
+          <EyeOff className="w-3 h-3" aria-hidden="true" />
+          <span>Ocultar</span>
+        </button>
+      )}
+
+      {isGif && !isObscured && (
+        <button
+          type="button"
+          data-no-card-nav="true"
+          aria-pressed={isPaused}
+          aria-label={isPaused ? 'Reanudar GIF' : 'Pausar GIF'}
+          title={isPaused ? 'Reanudar GIF' : 'Pausar GIF'}
+          onClick={handleTogglePause}
+          className="absolute bottom-2 left-2 z-10 w-7 h-7 flex items-center justify-center bg-black/75 hover:bg-black/90 text-white hover:text-brand-400 border border-white/20 transition-colors cursor-pointer"
+        >
+          {isPaused ? (
+            <Play className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
+          ) : (
+            <Pause className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
+          )}
+        </button>
       )}
     </div>
   );

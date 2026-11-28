@@ -95,7 +95,7 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false, 
             <MediaTileContent
               img={img}
               imgClassName="block w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-200"
-              wrapperClassName="relative flex-1 min-h-0 overflow-hidden"
+              wrapperClassName="relative w-full h-full overflow-hidden"
               loadingProps={getImgLoadingProps(img.resolvedUrl, i)}
               isRevealed={Boolean(revealed[i])}
               onReveal={() => setRevealed((prev) => ({ ...prev, [i]: true }))}

@@ -59,7 +59,7 @@ export const PublicationToastBanner: React.FC = () => {
       onPointerUp={endSwipe}
       style={{ transform: `translate(-50%, ${dragY}px)` }}
       title="Clic o desliza hacia arriba para cerrar"
-      className={`fixed top-3 left-1/2 z-[100] w-[calc(100%-1.5rem)] max-w-md px-3.5 py-2.5 border-2 shadow-pixel font-mono text-xs flex items-center justify-between gap-2.5 cursor-pointer select-none touch-none transition-transform duration-150 ${
+      className={`fixed safe-top-toast left-1/2 z-[100] w-[calc(100%-1.5rem)] max-w-md px-3.5 py-2.5 border-2 shadow-pixel font-mono text-xs flex items-center justify-between gap-2.5 cursor-pointer select-none touch-none transition-transform duration-150 ${
         isError
           ? 'bg-[#2a1215] border-red-500 text-red-200'
           : 'bg-[#102418] border-brand-500 text-brand-100'

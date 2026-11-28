@@ -396,6 +396,10 @@ dialog::backdrop {
   padding-top: calc(0.875rem + env(safe-area-inset-top, 0px));
 }
 
+.safe-top-toast {
+  top: calc(0.75rem + env(safe-area-inset-top, 0px));
+}
+
 .safe-bottom-banner {
   padding-bottom: max(0.625rem, env(safe-area-inset-bottom, 0px));
   padding-left: max(1rem, env(safe-area-inset-left, 0px));
