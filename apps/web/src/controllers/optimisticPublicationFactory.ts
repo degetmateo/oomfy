@@ -1,4 +1,4 @@
-import { Publication, PublicUser } from '@oomfy/shared';
+import { MediaWarning, Publication, PublicUser } from '@oomfy/shared';
 
 const blobUrlTracker = new Map<string, string[]>();
 
@@ -15,6 +15,8 @@ export function buildOptimisticPublication(input: {
   content: string;
   files: File[];
   gifs: string[];
+  fileWarnings?: (MediaWarning | null)[];
+  gifWarnings?: (MediaWarning | null)[];
   type: 'default' | 'quote' | 'reply';
   targetPublication?: Publication | null;
 }): Publication {
@@ -24,12 +26,29 @@ export function buildOptimisticPublication(input: {
     .map((file, idx) => {
       const url = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : '';
       if (url.startsWith('blob:')) blobs.push(url);
-      return { url, source: 'other' as const, index: idx };
+      const isGif = file.type === 'image/gif' || /\.gif$/i.test(file.name);
+      const warning = input.fileWarnings?.[idx] ?? null;
+      return {
+        url,
+        source: 'other' as const,
+        index: idx,
+        ...(warning ? { warning } : {}),
+        ...(isGif ? { is_gif: true } : {}),
+      };
     })
     .filter((m) => Boolean(m.url));
   if (blobs.length > 0) blobUrlTracker.set(id, blobs);
 
-  const gifImages = input.gifs.map((url, idx) => ({ url, source: 'other' as const, index: fileImages.length + idx }));
+  const gifImages = input.gifs.map((url, idx) => {
+    const warning = input.gifWarnings?.[idx] ?? null;
+    return {
+      url,
+      source: 'tenor' as const,
+      index: fileImages.length + idx,
+      is_gif: true,
+      ...(warning ? { warning } : {}),
+    };
+  });
   return {
     id,
     author: {

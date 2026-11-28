@@ -10,6 +10,7 @@ import { ProfileInfo } from '../components/profile/ProfileInfo.js';
 import { ProfileInfoSkeleton } from '../components/profile/ProfileInfoSkeleton.js';
 import { ProfileTabs, ProfileTab } from '../components/profile/ProfileTabs.js';
 import { ProfileFeed } from '../components/profile/ProfileFeed.js';
+import { ProfileMediaGrid } from '../components/profile/ProfileMediaGrid.js';
 import { EditProfileModal } from '../components/profile/EditProfileModal.js';
 import { ImageViewerModal } from '../components/common/ImageViewerModal.js';
 import { resolveMediaUrl } from '../utils/mediaUrl.js';
@@ -25,7 +26,7 @@ import { useTabSwipe } from '../hooks/useTabSwipe.js';
 import { useCloseOnViewInactive, useRevalidateOnViewResume } from '../contexts/ViewActivityContext.js';
 import { useViewSearchParams } from '../hooks/useViewSearchParams.js';
 
-const PROFILE_TABS: readonly ProfileTab[] = ['posts', 'replies', 'likes'];
+const PROFILE_TABS: readonly ProfileTab[] = ['posts', 'replies', 'media', 'likes'];
 
 const ProfileTabFeed: React.FC<{
   tab: ProfileTab;
@@ -45,7 +46,10 @@ const ProfileTabFeed: React.FC<{
       const p = new URLSearchParams({ limit: '20' });
       if (olderId) p.append('older_id', olderId);
       if (tab === 'likes' && displayUsername) p.append('liked_by', displayUsername);
-      else if (displayUsername) {
+      else if (tab === 'media' && displayUsername) {
+        p.append('author_username', displayUsername);
+        p.append('has_media', 'true');
+      } else if (displayUsername) {
         p.append('author_username', displayUsername);
         p.append('type', tab === 'replies' ? 'reply' : 'posts');
       }
@@ -57,6 +61,17 @@ const ProfileTabFeed: React.FC<{
 
   const visiblePosts =
     tab === 'likes' ? posts : posts.filter((p) => p?.author?.username?.toLowerCase() === username);
+
+  if (tab === 'media') {
+    return (
+      <ProfileMediaGrid
+        posts={visiblePosts}
+        loadingPosts={isLoading}
+        isFetchingNextPage={isFetchingNextPage}
+        loadMoreRef={loadMoreRef}
+      />
+    );
+  }
 
   return (
     <ProfileFeed
@@ -86,7 +101,8 @@ const ProfileViewContent: React.FC<ContentProps> = ({ username, displayUsername 
   useCloseOnViewInactive(Boolean(zoomedImage), () => setZoomedImage(null));
 
   const tabParam = searchParams.get('tab');
-  const activeTab: ProfileTab = tabParam === 'replies' || tabParam === 'likes' ? tabParam : 'posts';
+  const activeTab: ProfileTab =
+    tabParam === 'replies' || tabParam === 'media' || tabParam === 'likes' ? tabParam : 'posts';
   const handleTabChange = (tab: ProfileTab) => setSearchParams(tab === 'posts' ? {} : { tab }, { replace: true });
   const { touchHandlers } = useTabSwipe({ tabs: PROFILE_TABS, activeTab, onTabChange: handleTabChange });
 

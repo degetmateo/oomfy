@@ -14,13 +14,15 @@ export const MobileDrawerTrigger: React.FC = () => {
       type="button"
       onClick={(e) => {
         e.stopPropagation();
+        e.currentTarget.blur();
         openMobileDrawer();
       }}
       aria-label="Abrir menú de navegación"
       aria-expanded={isMobileDrawerOpen}
       aria-controls="mobile-nav-drawer"
       data-testid="mobile-drawer-trigger"
-      className="md:hidden shrink-0 p-0.5 border border-dark-border hover:border-brand-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 transition-colors cursor-pointer touch-manipulation"
+      style={{ WebkitTapHighlightColor: 'transparent' }}
+      className="md:hidden shrink-0 p-0.5 border border-dark-border [@media(hover:hover)]:hover:border-brand-400 outline-none focus:outline-none focus-visible:outline-none select-none transition-colors cursor-pointer touch-manipulation"
     >
       <PixelAvatar
         src={user.icon_url}

@@ -11,7 +11,7 @@ interface Props {
 
 export const PullToRefresh: React.FC<Props> = ({ onRefresh, children, disabled = false }) => {
   const isViewActive = useViewActive();
-  const { pullDistance, isRefreshing, isReadyToRefresh } = usePullToRefresh({
+  const { pullDistance, isRefreshing, isPulling, isReadyToRefresh } = usePullToRefresh({
     onRefresh,
     disabled: disabled || !isViewActive,
   });
@@ -21,7 +21,9 @@ export const PullToRefresh: React.FC<Props> = ({ onRefresh, children, disabled =
       {(pullDistance > 0 || isRefreshing) && (
         <div
           style={{ height: `${pullDistance}px` }}
-          className="overflow-hidden flex items-center justify-center bg-dark-bg/95 border-b border-dark-border text-xs font-mono transition-[height] duration-75 select-none"
+          className={`overflow-hidden flex items-center justify-center bg-dark-bg border-b border-dark-border text-xs font-mono select-none ${
+            isPulling ? '' : 'transition-[height] duration-150 ease-out'
+          }`}
         >
           <div className="flex items-center gap-2 text-dark-muted px-4 py-1">
             {isRefreshing ? (
@@ -44,15 +46,7 @@ export const PullToRefresh: React.FC<Props> = ({ onRefresh, children, disabled =
         </div>
       )}
 
-      <div
-        style={{
-          transform: pullDistance > 0 && !isRefreshing ? `translateY(${Math.round(pullDistance * 0.2)}px)` : undefined,
-        }}
-        className="transition-transform duration-75"
-      >
-        {children}
-      </div>
+      <div>{children}</div>
     </div>
   );
 };
-

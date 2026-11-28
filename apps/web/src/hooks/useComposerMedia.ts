@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback, RefObject } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, RefObject } from 'react';
+import { MediaWarning } from '@oomfy/shared';
 import { useImageCropQueue } from './useImageCropQueue.js';
 import { extractMediaFromDataTransfer, hasDraggableMediaPayload, syncTextareaHeight } from '../utils/composerMediaHelper.js';
 
@@ -10,17 +11,57 @@ interface Options {
   maxLength?: number;
 }
 
+interface FileAttachmentEntry {
+  file: File;
+  warning: MediaWarning | null;
+}
+
+interface GifAttachmentEntry {
+  url: string;
+  warning: MediaWarning | null;
+}
+
 export function useComposerMedia(options: Options = {}) {
   const { allowCrop = true, cropTitle = 'Recortar imagen', maxGifs = 4, maxTotal = 4, maxLength } = options;
-  const [files, setFiles] = useState<File[]>([]);
-  const [gifs, setGifs] = useState<string[]>([]);
+  const [fileEntries, setFileEntries] = useState<FileAttachmentEntry[]>([]);
+  const [gifEntries, setGifEntries] = useState<GifAttachmentEntry[]>([]);
   const [isDraggingMedia, setIsDraggingMedia] = useState(false);
   const [dropFeedback, setDropFeedback] = useState<string | null>(null);
   const [textareaEl, setTextareaEl] = useState<HTMLTextAreaElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const dragDepthRef = useRef(0);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cropQueue = useImageCropQueue((cropped) => setFiles((prev) => [...prev, ...cropped].slice(0, maxTotal)));
+
+  const files = useMemo(() => fileEntries.map((e) => e.file), [fileEntries]);
+  const fileWarnings = useMemo(() => fileEntries.map((e) => e.warning), [fileEntries]);
+  const gifs = useMemo(() => gifEntries.map((e) => e.url), [gifEntries]);
+  const gifWarnings = useMemo(() => gifEntries.map((e) => e.warning), [gifEntries]);
+
+  const setFiles = useCallback<React.Dispatch<React.SetStateAction<File[]>>>((updater) => {
+    setFileEntries((prev) => {
+      const prevFiles = prev.map((e) => e.file);
+      const nextFiles = typeof updater === 'function' ? updater(prevFiles) : updater;
+      return nextFiles.map((file, idx) => ({
+        file,
+        warning: prev[idx]?.file === file ? prev[idx].warning : null,
+      }));
+    });
+  }, []);
+
+  const setGifs = useCallback<React.Dispatch<React.SetStateAction<string[]>>>((updater) => {
+    setGifEntries((prev) => {
+      const prevGifs = prev.map((e) => e.url);
+      const nextGifs = typeof updater === 'function' ? updater(prevGifs) : updater;
+      return nextGifs.map((url, idx) => ({
+        url,
+        warning: prev[idx]?.url === url ? prev[idx].warning : null,
+      }));
+    });
+  }, []);
+
+  const cropQueue = useImageCropQueue((cropped) =>
+    setFileEntries((prev) => [...prev, ...cropped.map((file) => ({ file, warning: null }))].slice(0, maxTotal))
+  );
 
   const remainingSlots = Math.max(0, maxTotal - (files.length + gifs.length));
 
@@ -65,19 +106,27 @@ export function useComposerMedia(options: Options = {}) {
     const picked = incoming.slice(0, remaining);
     const gifFiles = picked.filter((f) => f.type === 'image/gif' || /\.gif$/i.test(f.name));
     const nonGifs = picked.filter((f) => f.type !== 'image/gif' && !/\.gif$/i.test(f.name));
-    if (gifFiles.length > 0) setFiles((p) => [...p, ...gifFiles].slice(0, maxTotal));
+    if (gifFiles.length > 0) {
+      setFileEntries((p) => [...p, ...gifFiles.map((file) => ({ file, warning: null }))].slice(0, maxTotal));
+    }
     if (nonGifs.length > 0) {
       if (allowCrop && !skipCrop) {
         cropQueue.startCropping(nonGifs, { title: cropTitle, aspectRatio: 'free', allowAspectChange: true });
       } else {
-        setFiles((p) => [...p, ...nonGifs].slice(0, maxTotal));
+        setFileEntries((p) => [...p, ...nonGifs.map((file) => ({ file, warning: null }))].slice(0, maxTotal));
       }
     }
   };
 
   const attachGifUrl = (url: string) => {
     if (!url || files.length + gifs.length >= maxTotal) return;
-    setGifs((prev) => (maxGifs === 1 ? [url] : prev.includes(url) || prev.length >= maxGifs ? prev : [...prev, url]));
+    setGifEntries((prev) =>
+      maxGifs === 1
+        ? [{ url, warning: null }]
+        : prev.some((e) => e.url === url) || prev.length >= maxGifs
+          ? prev
+          : [...prev, { url, warning: null }]
+    );
   };
 
   const handleDataTransfer = (
@@ -194,15 +243,41 @@ export function useComposerMedia(options: Options = {}) {
     setTimeout(() => { if (el) { el.focus(); el.setSelectionRange(start + emoji.length, start + emoji.length); } }, 0);
   };
 
+  const setFileWarning = useCallback((index: number, warning: MediaWarning | null) => {
+    setFileEntries((prev) => prev.map((entry, idx) => (idx === index ? { ...entry, warning } : entry)));
+  }, []);
+
+  const setGifWarning = useCallback((index: number, warning: MediaWarning | null) => {
+    setGifEntries((prev) => prev.map((entry, idx) => (idx === index ? { ...entry, warning } : entry)));
+  }, []);
+
   return {
-    files, setFiles, gifs, setGifs, textareaRef, textareaEl, attachTextareaRef, cropQueue, attachFiles, attachGifUrl,
-    isDraggingMedia, dropFeedback, remainingSlots, maxTotal, dragProps,
-    removeFile: (i: number) => setFiles((p) => p.filter((_, idx) => idx !== i)),
-    removeGif: (i: number) => setGifs((p) => p.filter((_, idx) => idx !== i)),
-    handlePaste, insertEmoji,
+    files,
+    fileWarnings,
+    setFiles,
+    setFileWarning,
+    gifs,
+    gifWarnings,
+    setGifs,
+    setGifWarning,
+    textareaRef,
+    textareaEl,
+    attachTextareaRef,
+    cropQueue,
+    attachFiles,
+    attachGifUrl,
+    isDraggingMedia,
+    dropFeedback,
+    remainingSlots,
+    maxTotal,
+    dragProps,
+    removeFile: (i: number) => setFileEntries((p) => p.filter((_, idx) => idx !== i)),
+    removeGif: (i: number) => setGifEntries((p) => p.filter((_, idx) => idx !== i)),
+    handlePaste,
+    insertEmoji,
     clearMedia: () => {
-      setFiles([]);
-      setGifs([]);
+      setFileEntries([]);
+      setGifEntries([]);
       showDropFeedback(null);
       if (textareaRef.current) { textareaRef.current.value = ''; syncTextareaHeight(textareaRef.current); }
     },

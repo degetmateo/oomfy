@@ -53,7 +53,7 @@ const ChatThreadPaneBase: React.FC<Props> = ({
       className={isThreadActive ? 'spa-chat-thread-active' : 'spa-chat-thread-inactive'}
     >
       <ViewActivityProvider isActive={isThreadActive} viewKey="/chats" isPersistent>
-        <header className="sticky top-0 z-20 bg-dark-bg/95 border-b border-dark-border px-3 sm:px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] flex items-center gap-3 select-none flex-shrink-0">
+        <header className="sticky top-0 z-20 bg-dark-bg border-b border-dark-border px-3 sm:px-4 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] flex items-center gap-3 select-none flex-shrink-0">
           <button
             type="button"
             onClick={onBackToInbox}

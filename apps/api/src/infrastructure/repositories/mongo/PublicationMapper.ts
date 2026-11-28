@@ -84,7 +84,11 @@ export class PublicationMapper {
       .map((img: any) => ({ ...img, url: normalizeAssetUrl(img?.url) }))
       .filter((img: any) => Boolean(img.url))
       .map((img: any, idx: number) => ({
-        url: img.url, source: img.source || 'other', index: typeof img.index === 'number' ? img.index : idx,
+        url: img.url,
+        source: img.source || 'other',
+        index: typeof img.index === 'number' ? img.index : idx,
+        ...(img.warning === 'spoiler' || img.warning === 'sensitive' ? { warning: img.warning } : {}),
+        ...(img.is_gif === true || img.source === 'tenor' ? { is_gif: true } : {}),
       }));
   }
 

@@ -47,6 +47,9 @@ export class MongoPublicationFeedHelper {
 
     if (params.query) query.content = { $regex: MongoIdHelper.escapeRegex(params.query), $options: 'i' };
     if (params.hasMedia) query['images.0'] = { $exists: true };
+    if (params.hasMedia && !params.type && params.authorUsername) {
+      query.type = { $in: ['default', 'quote', 'reply'] };
+    }
 
     if (params.since || params.until) {
       query.created_at = query.created_at || {};

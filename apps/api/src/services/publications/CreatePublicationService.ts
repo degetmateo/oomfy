@@ -27,6 +27,7 @@ export class CreatePublicationService {
       throw new BadRequestError(`El contenido no puede superar los ${LIMITS.POST_CONTENT_MAX} caracteres.`);
     }
     const tenorList = PublicationMediaHelper.parseTenorList(input.tenor);
+    const imageWarnings = PublicationMediaHelper.parseImageWarnings(input.image_warnings);
     if (!content && imageFiles.length === 0 && tenorList.length === 0) {
       throw new BadRequestError('La publicación no puede estar vacía.');
     }
@@ -53,7 +54,7 @@ export class CreatePublicationService {
     }
 
     const [limitedMedia, { iconUrl, bannerUrl }] = await Promise.all([
-      PublicationMediaHelper.buildMediaItems(imageFiles, tenorList),
+      PublicationMediaHelper.buildMediaItems(imageFiles, tenorList, imageWarnings),
       AuthorProfileResolver.resolve(user),
     ]);
 

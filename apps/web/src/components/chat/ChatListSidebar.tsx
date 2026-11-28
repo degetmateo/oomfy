@@ -21,7 +21,7 @@ export const ChatListSidebar: React.FC<Props> = ({
     style={width ? { width: `${width}px` } : undefined}
     className={`${selectedChatId ? 'hidden md:flex' : 'flex'} w-full md:w-80 chat-sidebar-resizable flex-col border-r border-dark-border bg-dark-bg flex-shrink-0 h-full overflow-hidden`}
   >
-    <header className="sticky top-0 z-20 backdrop-blur-md bg-dark-bg/85 border-b border-dark-border px-4 sm:px-6 pb-3.5 safe-top-header flex items-center gap-3 select-none flex-shrink-0">
+    <header className="sticky top-0 z-20 bg-dark-bg border-b border-dark-border px-4 sm:px-6 pb-3.5 safe-top-header flex items-center gap-3 select-none flex-shrink-0">
       <MobileDrawerTrigger />
       <div className="flex-1 min-w-0">
         <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white truncate">

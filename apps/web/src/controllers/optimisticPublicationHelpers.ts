@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
-import { Publication, PublicUser } from '@oomfy/shared';
+import { MediaWarning, Publication, PublicUser } from '@oomfy/shared';
 import { ApiClient } from '../services/api.js';
 import { PublicationCacheService } from '../services/PublicationCacheService.js';
 import { useToastStore } from '../stores/toastStore.js';
@@ -14,6 +14,8 @@ export interface OptimisticMeta {
   content: string;
   files: File[];
   gifs: string[];
+  fileWarnings?: (MediaWarning | null)[];
+  gifWarnings?: (MediaWarning | null)[];
 }
 
 export function submitOptimisticPublication(
@@ -37,6 +39,8 @@ export function submitOptimisticPublication(
     content: meta.content,
     files: meta.files,
     gifs: meta.gifs,
+    fileWarnings: meta.fileWarnings,
+    gifWarnings: meta.gifWarnings,
     type: quotedPublication ? 'quote' : 'default',
     targetPublication: quotedPublication || null,
   });
@@ -79,6 +83,8 @@ export function submitOptimisticReply(
     content: meta.content,
     files: meta.files,
     gifs: meta.gifs,
+    fileWarnings: meta.fileWarnings,
+    gifWarnings: meta.gifWarnings,
     type: 'reply',
     targetPublication: parentPublication,
   });

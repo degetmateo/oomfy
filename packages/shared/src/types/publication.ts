@@ -11,10 +11,14 @@ export interface AuthorSnapshot {
   banner_url: string | null;
 }
 
+export type MediaWarning = 'spoiler' | 'sensitive';
+
 export interface MediaItem {
   url: string;
   source: 'imgbb' | 'tenor' | 'other';
   index: number;
+  warning?: MediaWarning | null;
+  is_gif?: boolean;
   delete_url?: string | null;
   imgbb_id?: string | null;
 }

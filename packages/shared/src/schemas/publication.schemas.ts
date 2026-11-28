@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { LIMITS } from '../constants/limits.js';
 import { emptyToNull, httpUrlSchema, safeEntityIdSchema } from './url.schemas.js';
 
+export const MediaWarningSchema = z.enum(['spoiler', 'sensitive']);
+
 export const CreatePublicationSchema = z.object({
   content: z
     .string()
@@ -11,11 +13,13 @@ export const CreatePublicationSchema = z.object({
   type: z.enum(['default', 'reply', 'quote']).default('default'),
   target_id: safeEntityIdSchema.nullable().optional(),
   spotify_url: httpUrlSchema('Enlace de Spotify inválido.').nullable().optional(),
+  image_warnings: z.array(MediaWarningSchema.nullable()).max(4).optional().default([]),
   tenor: z
     .array(
       z.object({
         src: httpUrlSchema('URL de GIF inválida.'),
         index: z.number().int().min(0).max(3),
+        warning: MediaWarningSchema.nullable().optional(),
       })
     )
     .max(4)
@@ -26,6 +30,16 @@ export const CreatePublicationSchema = z.object({
 export const CreatePublicationFormSchema = CreatePublicationSchema.extend({
   target_id: z.preprocess(emptyToNull, safeEntityIdSchema.nullable().optional()),
   spotify_url: z.preprocess(emptyToNull, httpUrlSchema('Enlace de Spotify inválido.').nullable().optional()),
+  image_warnings: z.preprocess(
+    (v) => {
+      if (typeof v === 'string') {
+        if (!v.trim()) return [];
+        try { return JSON.parse(v); } catch { return v; }
+      }
+      return v;
+    },
+    CreatePublicationSchema.shape.image_warnings
+  ),
   tenor: z.preprocess(
     (v) => {
       if (typeof v === 'string') {

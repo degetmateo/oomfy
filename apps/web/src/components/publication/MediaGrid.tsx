@@ -3,6 +3,7 @@ import { MediaItem } from '@oomfy/shared';
 import { ImageViewerModal } from '../common/ImageViewerModal.js';
 import { resolveMediaUrl } from '../../utils/mediaUrl.js';
 import { ImageMemoryCache } from '../../utils/imageCache.js';
+import { MediaTileContent, ResolvedMediaItem } from './MediaTileContent.js';
 
 interface MediaGridProps {
   images: MediaItem[];
@@ -13,10 +14,11 @@ interface MediaGridProps {
 export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false, compact = false }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
 
   const validImages = (images || [])
     .map((img) => ({ ...img, resolvedUrl: resolveMediaUrl(img?.url) }))
-    .filter((img): img is MediaItem & { resolvedUrl: string } => Boolean(img.resolvedUrl && !failedUrls[img.resolvedUrl]))
+    .filter((img): img is ResolvedMediaItem => Boolean(img.resolvedUrl && !failedUrls[img.resolvedUrl]))
     .slice(0, 4);
 
   if (validImages.length === 0) return null;
@@ -26,6 +28,10 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false, 
     e.preventDefault();
     e.stopPropagation();
     setSelectedImage(url);
+  };
+
+  const handleImageError = (url: string) => {
+    setFailedUrls((prev) => ({ ...prev, [url]: true }));
   };
 
   const getImgLoadingProps = (url: string, idx: number) => {
@@ -40,22 +46,27 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false, 
 
   if (count === 1) {
     const singleImg = validImages[0];
+    const isHiddenWarning = Boolean(singleImg.warning && !revealed[0]);
     return (
       <>
         <div
           data-no-card-nav="true"
           onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => openZoom(e, singleImg.resolvedUrl)}
-          className="w-fit max-w-full overflow-hidden bg-dark-card border border-dark-border hover:border-brand-500/60 transition-colors cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
+          className={`w-fit max-w-full overflow-hidden bg-dark-card border border-dark-border transition-colors ${
+            isHiddenWarning ? 'min-w-[240px] min-h-[160px]' : 'hover:border-brand-500/60'
+          }`}
         >
-          <img
-            src={singleImg.resolvedUrl}
-            alt="Adjunto de publicación"
-            onLoad={() => ImageMemoryCache.mark(singleImg.resolvedUrl)}
-            onError={() => setFailedUrls((prev) => ({ ...prev, [singleImg.resolvedUrl]: true }))}
-            style={{ imageRendering: 'auto' }}
-            className={`block max-w-full w-auto h-auto object-contain ${compact ? 'max-h-[280px]' : 'max-h-[560px] sm:max-h-[600px]'}`}
-            {...getImgLoadingProps(singleImg.resolvedUrl, 0)}
+          <MediaTileContent
+            img={singleImg}
+            imgClassName={`block max-w-full w-auto h-auto object-contain ${compact ? 'max-h-[280px]' : 'max-h-[560px] sm:max-h-[600px]'}`}
+            wrapperClassName={`relative overflow-hidden ${isHiddenWarning ? 'min-w-[240px] min-h-[160px]' : ''}`}
+            loadingProps={getImgLoadingProps(singleImg.resolvedUrl, 0)}
+            isRevealed={Boolean(revealed[0])}
+            onReveal={() => setRevealed((prev) => ({ ...prev, 0: true }))}
+            onHide={() => setRevealed((prev) => ({ ...prev, 0: false }))}
+            onOpenZoom={openZoom}
+            onError={handleImageError}
           />
         </div>
         <ImageViewerModal imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />
@@ -79,16 +90,18 @@ export const MediaGrid: React.FC<MediaGridProps> = ({ images, priority = false, 
         {validImages.map((img, i) => (
           <div
             key={img.resolvedUrl + i}
-            onClick={(e) => openZoom(e, img.resolvedUrl)}
-            className={`relative min-h-0 h-full overflow-hidden bg-dark-card cursor-pointer group ${count === 3 && i === 0 ? 'row-span-2' : ''}`}
+            className={`relative min-h-0 h-full overflow-hidden bg-dark-card group ${count === 3 && i === 0 ? 'row-span-2' : ''}`}
           >
-            <img
-              src={img.resolvedUrl}
-              alt="Adjunto de publicación"
-              onLoad={() => ImageMemoryCache.mark(img.resolvedUrl)}
-              onError={() => setFailedUrls((prev) => ({ ...prev, [img.resolvedUrl]: true }))}
-              className="block w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-200"
-              {...getImgLoadingProps(img.resolvedUrl, i)}
+            <MediaTileContent
+              img={img}
+              imgClassName="block w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-200"
+              wrapperClassName="relative flex-1 min-h-0 overflow-hidden"
+              loadingProps={getImgLoadingProps(img.resolvedUrl, i)}
+              isRevealed={Boolean(revealed[i])}
+              onReveal={() => setRevealed((prev) => ({ ...prev, [i]: true }))}
+              onHide={() => setRevealed((prev) => ({ ...prev, [i]: false }))}
+              onOpenZoom={openZoom}
+              onError={handleImageError}
             />
           </div>
         ))}

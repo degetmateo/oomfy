@@ -1,5 +1,6 @@
 import { Environment } from '../../config/Environment.js';
 import { BadRequestError } from '../../errors/AppError.js';
+import { ensureGifInfiniteLoop } from '../../utils/GifLoopNormalizer.js';
 import { stripImageMetadata } from '../../utils/ImageMetadataStripper.js';
 import { isSafePublicHttpUrl } from '../../utils/UrlSecurityHelper.js';
 
@@ -17,7 +18,7 @@ export class ImgBBStorageAdapter {
       throw new BadRequestError('ImgBB API Key no configurada en el servidor.');
     }
 
-    const sanitized = stripImageMetadata(imageBuffer);
+    const sanitized = ensureGifInfiniteLoop(stripImageMetadata(imageBuffer));
     const formData = new FormData();
     formData.append('image', sanitized.toString('base64'));
 

@@ -45,6 +45,14 @@ export const MobileSideDrawer: React.FC = () => {
       if (typeof dialog.close === 'function') dialog.close();
       else dialog.removeAttribute('open');
     }
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(pointer: coarse)')?.matches &&
+      document.activeElement instanceof HTMLElement &&
+      document.activeElement.dataset.testid === 'mobile-drawer-trigger'
+    ) {
+      document.activeElement.blur();
+    }
     if (useUIStore.getState().isMobileDrawerOpen) {
       closeMobileDrawer();
     }
@@ -101,6 +109,7 @@ export const MobileSideDrawer: React.FC = () => {
       if (typeof dialog.showModal === 'function') dialog.showModal();
       else dialog.setAttribute('open', '');
     }
+    sheetRef.current?.focus({ preventScroll: true });
 
     if (!scroller) return;
 
@@ -243,8 +252,9 @@ export const MobileSideDrawer: React.FC = () => {
         <div ref={scrollerRef} className="mobile-drawer-scroller">
           <aside
             ref={sheetRef}
+            tabIndex={-1}
             aria-label="Panel de usuario y opciones"
-            className="mobile-drawer-sheet bg-dark-bg border-r border-dark-border text-dark-text flex flex-col justify-between shadow-2xl"
+            className="mobile-drawer-sheet bg-dark-bg border-r border-dark-border text-dark-text flex flex-col justify-between shadow-2xl outline-none focus:outline-none focus-visible:outline-none"
           >
             <div>
               <div className="p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] border-b border-dark-border">
@@ -252,7 +262,8 @@ export const MobileSideDrawer: React.FC = () => {
                   <Link
                     to={`/${user.username}`}
                     onClick={requestClose}
-                    className="flex items-center gap-3 min-w-0 group"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    className="flex items-center gap-3 min-w-0 group select-none outline-none focus:outline-none focus-visible:outline-none"
                   >
                     <PixelAvatar
                       src={user.icon_url}
@@ -261,7 +272,7 @@ export const MobileSideDrawer: React.FC = () => {
                       priority
                     />
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-white truncate group-hover:text-brand-400 transition-colors">
+                      <p className="text-sm font-bold text-white truncate [@media(hover:hover)]:group-hover:text-brand-400 transition-colors">
                         {user.name}
                       </p>
                       <p className="text-xs text-dark-muted truncate">@{user.username}</p>
@@ -270,10 +281,10 @@ export const MobileSideDrawer: React.FC = () => {
 
                   <button
                     type="button"
-                    autoFocus
                     onClick={requestClose}
                     aria-label="Cerrar menú"
-                    className="p-2 -mr-1 -mt-1 min-w-[44px] min-h-[44px] flex items-center justify-center text-dark-muted hover:text-white rounded transition-colors cursor-pointer"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    className="p-2 -mr-1 -mt-1 min-w-[44px] min-h-[44px] flex items-center justify-center text-dark-muted hover:text-white rounded transition-colors cursor-pointer outline-none focus:outline-none focus-visible:outline-none"
                   >
                     <X className="w-5 h-5" aria-hidden="true" />
                   </button>
@@ -319,7 +330,7 @@ export const MobileSideDrawer: React.FC = () => {
               </nav>
             </div>
 
-            <div className="p-3 border-t border-dark-border pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+            <div className="p-3 border-t border-dark-border pb-[max(1rem,calc(0.75rem+env(safe-area-inset-bottom,0px)))]">
               <button
                 type="button"
                 onClick={() => {

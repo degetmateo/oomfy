@@ -42,11 +42,17 @@ export class RoutePrefetchService {
     }).catch(() => {});
   }
 
-  public static prefetchProfileTab(queryClient: QueryClient, username: string, tab: 'posts' | 'replies' | 'likes'): void {
+  public static prefetchProfileTab(queryClient: QueryClient, username: string, tab: 'posts' | 'replies' | 'media' | 'likes'): void {
     const normalized = username.trim().toLowerCase();
     const p = new URLSearchParams({ limit: '20' });
     if (tab === 'likes') p.append('liked_by', normalized);
-    else { p.append('author_username', normalized); p.append('type', tab === 'replies' ? 'reply' : 'posts'); }
+    else if (tab === 'media') {
+      p.append('author_username', normalized);
+      p.append('has_media', 'true');
+    } else {
+      p.append('author_username', normalized);
+      p.append('type', tab === 'replies' ? 'reply' : 'posts');
+    }
     this.prefetchCursorFeed(queryClient, ['user-posts', normalized, tab], `/publications?${p.toString()}`);
   }
 

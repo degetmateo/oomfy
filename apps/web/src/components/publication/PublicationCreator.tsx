@@ -38,14 +38,34 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
     const formData = new FormData();
     if (trimmed) formData.append('content', trimmed);
     media.files.forEach((img) => formData.append('images', img));
-    if (media.gifs.length > 0) formData.append('tenor', JSON.stringify(media.gifs.map((src, index) => ({ src, index }))));
+    if (media.fileWarnings.some(Boolean)) {
+      formData.append('image_warnings', JSON.stringify(media.fileWarnings));
+    }
+    if (media.gifs.length > 0) {
+      formData.append(
+        'tenor',
+        JSON.stringify(
+          media.gifs.map((src, index) => ({
+            src,
+            index,
+            ...(media.gifWarnings[index] ? { warning: media.gifWarnings[index] } : {}),
+          }))
+        )
+      );
+    }
     if (quotedPublication) { formData.append('target_id', quotedPublication.id); formData.append('type', 'quote'); }
 
     submitOptimisticPublication(
       queryClient,
       formData,
       user,
-      { content: trimmed, files: [...media.files], gifs: [...media.gifs] },
+      {
+        content: trimmed,
+        files: [...media.files],
+        gifs: [...media.gifs],
+        fileWarnings: [...media.fileWarnings],
+        gifWarnings: [...media.gifWarnings],
+      },
       quotedPublication
     );
     setContent('');
@@ -81,7 +101,16 @@ export const PublicationCreator: React.FC<Props> = ({ onCreated, autoFocus = fal
       />
       {quotedPublication && <PublicationQuotedPreview quotedPublication={quotedPublication} onRemove={onRemoveQuoted} />}
       <ComposerDropFeedback message={media.dropFeedback} />
-      <ComposerAttachmentPreviews files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
+      <ComposerAttachmentPreviews
+        files={media.files}
+        gifs={media.gifs}
+        fileWarnings={media.fileWarnings}
+        gifWarnings={media.gifWarnings}
+        onRemoveFile={media.removeFile}
+        onRemoveGif={media.removeGif}
+        onChangeFileWarning={media.setFileWarning}
+        onChangeGifWarning={media.setGifWarning}
+      />
       <PublicationComposerToolbar
         content={content} onChangeContent={setContent} media={media} isSubmitting={false}
         hasContent={hasContent} submitLabel="Publicar" submittingLabel="Publicando..." cropTitle="Recortar imagen"

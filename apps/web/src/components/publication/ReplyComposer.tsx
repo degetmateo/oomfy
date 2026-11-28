@@ -48,8 +48,28 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
     formData.append('target_id', targetId);
     if (trimmed) formData.append('content', trimmed);
     media.files.forEach((img) => formData.append('images', img));
-    if (media.gifs.length > 0) formData.append('tenor', JSON.stringify(media.gifs.map((src, index) => ({ src, index }))));
-    onSubmit(formData, { content: trimmed, files: [...media.files], gifs: [...media.gifs] });
+    if (media.fileWarnings.some(Boolean)) {
+      formData.append('image_warnings', JSON.stringify(media.fileWarnings));
+    }
+    if (media.gifs.length > 0) {
+      formData.append(
+        'tenor',
+        JSON.stringify(
+          media.gifs.map((src, index) => ({
+            src,
+            index,
+            ...(media.gifWarnings[index] ? { warning: media.gifWarnings[index] } : {}),
+          }))
+        )
+      );
+    }
+    onSubmit(formData, {
+      content: trimmed,
+      files: [...media.files],
+      gifs: [...media.gifs],
+      fileWarnings: [...media.fileWarnings],
+      gifWarnings: [...media.gifWarnings],
+    });
     setContent('');
     media.clearMedia();
     submittingRef.current = false;
@@ -71,7 +91,16 @@ export const ReplyComposer: React.FC<Props> = ({ targetId, onSubmit, isSubmittin
         className="w-full bg-transparent resize-none focus:outline-none text-white text-sm placeholder-dark-muted font-sans min-h-[3.25rem] max-h-80 overflow-y-hidden"
       />
       <ComposerDropFeedback message={media.dropFeedback} />
-      <ComposerAttachmentPreviews files={media.files} gifs={media.gifs} onRemoveFile={media.removeFile} onRemoveGif={media.removeGif} />
+      <ComposerAttachmentPreviews
+        files={media.files}
+        gifs={media.gifs}
+        fileWarnings={media.fileWarnings}
+        gifWarnings={media.gifWarnings}
+        onRemoveFile={media.removeFile}
+        onRemoveGif={media.removeGif}
+        onChangeFileWarning={media.setFileWarning}
+        onChangeGifWarning={media.setGifWarning}
+      />
       <PublicationComposerToolbar
         content={content} onChangeContent={setContent} media={media} isSubmitting={isSubmitting}
         hasContent={hasContent} submitLabel="Responder" submittingLabel="Respondiendo..."

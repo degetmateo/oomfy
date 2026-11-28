@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PublicationCreator } from './PublicationCreator.js';
 import { useAuthStore } from '../../stores/authStore.js';
+import { ApiClient } from '../../services/api.js';
 
 describe('PublicationCreator Component', () => {
   const queryClient = new QueryClient();
@@ -61,5 +62,26 @@ describe('PublicationCreator Component', () => {
     fireEvent.change(textarea, { target: { value: '' } });
     expect(textarea.style.height).toBe('auto');
     expect(textarea.style.overflowY).toBe('hidden');
+  });
+
+  it('allows flagging an attached GIF as Spoiler or Contenido sensible and sends image_warnings in FormData', () => {
+    const postSpy = vi.spyOn(ApiClient, 'post').mockResolvedValue({ success: true, data: null });
+    const { container } = renderComponent();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+    const gifFile = new File(['gif'], 'spoiler-clip.gif', { type: 'image/gif' });
+    fireEvent.change(fileInput, { target: { files: [gifFile] } });
+
+    const flagBtn = screen.getByRole('button', { name: /Marcar advertencia de contenido: spoiler-clip\.gif/i });
+    fireEvent.click(flagBtn);
+
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Spoiler' }));
+    expect(screen.getByText('Spoiler')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar' }));
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    const formData = postSpy.mock.calls[0][1] as FormData;
+    expect(formData.get('image_warnings')).toBe(JSON.stringify(['spoiler']));
+    postSpy.mockRestore();
   });
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type ProfileTab = 'posts' | 'replies' | 'likes';
+export type ProfileTab = 'posts' | 'replies' | 'media' | 'likes';
 
 interface Props {
   activeTab: ProfileTab;
@@ -11,6 +11,7 @@ interface Props {
 const TABS: { id: ProfileTab; label: string }[] = [
   { id: 'posts', label: 'Publicaciones' },
   { id: 'replies', label: 'Respuestas' },
+  { id: 'media', label: 'Multimedia' },
   { id: 'likes', label: 'Me gusta' },
 ];
 
@@ -22,7 +23,7 @@ export const ProfileTabs: React.FC<Props> = ({ activeTab, onTabChange, onPrefetc
         onClick={() => onTabChange(id)}
         onMouseEnter={() => onPrefetchTab?.(id)}
         onTouchStart={() => onPrefetchTab?.(id)}
-        className={`flex-1 py-3 text-xs sm:text-sm font-bold tracking-wider transition-colors ${
+        className={`flex-1 px-1.5 sm:px-2 py-3 text-[11px] sm:text-sm font-bold tracking-wider whitespace-nowrap transition-colors ${
           activeTab === id
             ? 'text-brand-400 border-b-2 border-brand-400'
             : 'text-dark-muted hover:text-white border-b-2 border-transparent'
@@ -33,4 +34,3 @@ export const ProfileTabs: React.FC<Props> = ({ activeTab, onTabChange, onPrefetc
     ))}
   </div>
 );
-
